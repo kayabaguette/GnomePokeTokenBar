@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "growthDifficulty": 1.0,
+  "installBaselineSet": true,
+  "usedSinceInstall": 900000000,
+  "spentTokens": 0,
+  "eggUsage": 0,
+  "lastDate": "__TODAY__",
+  "claimedTodayTokensByProvider": {"claude_code": 1000000000000},
+  "active": {
+    "baseID": 16, "pathIDs": [16, 17], "plannedPathIDs": [16, 17, 18],
+    "stageIndex": 1, "usedAtStage": 100000000, "rarity": "common", "totalForms": 3,
+    "isShiny": false, "nature": "adamant", "hasGrowthBoost": false, "dittoRevealed": false,
+    "profile": {"instanceID": "seed-active", "seed": 4242, "ivs": {"hp": 12, "attack": 31, "defense": 8, "specialAttack": 20, "specialDefense": 14, "speed": 27},
+                "abilityIsHidden": false, "level": 36, "growthTokens": 225000000, "moves": []}
+  },
+  "dex": [
+    {"id": "seed-1", "baseID": 4, "finalID": 6, "chainOrder": [4, 5, 6], "rarity": "uncommon",
+     "caughtAt": "2026-11-10T12:00:00Z", "isShiny": false, "nature": "bold",
+     "profile": {"instanceID": "seed-1", "seed": 77, "ivs": {"hp": 30, "attack": 25, "defense": 18, "specialAttack": 31, "specialDefense": 22, "speed": 29},
+                 "abilityIsHidden": false, "level": 100, "growthTokens": 1875000000, "moves": []}},
+    {"id": "seed-2", "baseID": 172, "finalID": 26, "chainOrder": [172, 25, 26], "rarity": "common",
+     "caughtAt": "2026-11-14T09:30:00Z", "isShiny": true, "nature": "timid",
+     "profile": {"instanceID": "seed-2", "seed": 99, "ivs": {"hp": 5, "attack": 11, "defense": 9, "specialAttack": 28, "specialDefense": 16, "speed": 31},
+                 "abilityIsHidden": false, "level": 100, "growthTokens": 750000000, "moves": []}}
+  ],
+  "collectedFinals": ["4:6", "172:26"],
+  "language": "en",
+  "inventory": {"rareCandy": 2},
+  "candyGrantTier": {},
+  "candyWindowEpoch": {},
+  "candyFeatureSeeded": true,
+  "notifiedDexCompletions": [],
+  "dexCompletionsSeeded": true
+}

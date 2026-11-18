@@ -20,6 +20,8 @@
 #   --enable UUID  enable this extension once the shell is up (repeatable)
 #   --duration S   seconds to keep the shell running after enabling (default 20)
 #   --cycle        disable then re-enable every enabled extension halfway through
+#   --seed-state F copy companion save F into the helper state dir (__TODAY__ -> today's date)
+#   --prefs UUID   open that extension's preferences window once the shell is up
 #
 # Output: .sandbox/logs/<timestamp>/ with shell.log, extension-info.txt, isolation.txt.
 # Exit status is non-zero if isolation checks fail.
@@ -35,6 +37,8 @@ CYCLE=0
 EXTS=()
 ENABLE=()
 RPM=""
+SEED=""
+PREFS=""
 
 die() { echo "headless-shell: $*" >&2; exit 2; }
 
@@ -45,6 +49,8 @@ while (($#)); do
         --enable) ENABLE+=("$2"); shift 2 ;;
         --duration) DURATION=$2; shift 2 ;;
         --cycle) CYCLE=1; shift ;;
+        --seed-state) SEED=$(realpath -e "$2") || die "no such seed: $2"; shift 2 ;;
+        --prefs) PREFS=$2; shift 2 ;;
         -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
         *) die "unknown argument: $1" ;;
     esac
@@ -101,6 +107,10 @@ mkdir -p "$RUN" "$SB/config" "$SB/data/gnome-shell/extensions" "$SB/cache" "$SB/
 chmod 0700 "$RUN"
 trap teardown EXIT
 
+if [[ -n $SEED ]]; then
+    sed "s/__TODAY__/$(date +%F)/" "$SEED" >"$SB/ptb-state/companion-state.json"
+fi
+
 for d in "${EXTS[@]}"; do
     [[ -f $d/metadata.json ]] || die "no metadata.json in $d"
     uuid=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["uuid"])' "$d/metadata.json")
@@ -138,6 +148,10 @@ done
 [ "$up" = 1 ] || { echo "shell did not come up" >>"$SB_LOGS/shell.log"; kill -TERM $shell; wait $shell; exit 3; }
 sleep 2 # let the shell finish its startup animation before enabling
 for u in $SB_ENABLE; do echo "enable $u: $(call EnableExtension "$u")" >>"$SB_LOGS/extension-info.txt"; done
+if [ -n "$SB_PREFS" ]; then
+    sleep 3
+    echo "open prefs $SB_PREFS: $(gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell --method org.gnome.Shell.Extensions.OpenExtensionPrefs "$SB_PREFS" "" "{}" 2>&1)" >>"$SB_LOGS/extension-info.txt"
+fi
 half=$((SB_DURATION / 2))
 sleep "$half"
 echo "ptb-helper processes while enabled: $(pgrep -f ptb-helper -a | grep -F "$SB_ROOT" | wc -l)" >>"$SB_LOGS/extension-info.txt"
@@ -163,7 +177,7 @@ env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XDG_SESSION_ID 
     XDG_DATA_DIRS="$DATA_DIRS" \
     PTB_STATE_DIR="$SB/ptb-state" \
     GSETTINGS_BACKEND=memory \
-    SB_LOGS="$LOGS" SB_ROOT="$SB" SB_DURATION="$DURATION" SB_CYCLE="$CYCLE" SB_ENABLE="${ENABLE[*]}" \
+    SB_LOGS="$LOGS" SB_ROOT="$SB" SB_DURATION="$DURATION" SB_CYCLE="$CYCLE" SB_ENABLE="${ENABLE[*]}" SB_PREFS="$PREFS" \
     dbus-run-session -- bash -c "$INNER" >"$LOGS/session.log" 2>&1
 status=$?
 set -e
