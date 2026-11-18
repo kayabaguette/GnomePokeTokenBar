@@ -207,6 +207,13 @@ func staticAssetName(speciesID int, form *string) string {
 	return assetName(speciesID, form)
 }
 
+// SpriteAssets returns the form-aware sprite asset names of a species in a form (nil: the default
+// form): the animated/cache asset and the static PNG asset, for the daemon's getSprite (protocol
+// §8.1). An unknown form resolves to the default, as everywhere else.
+func SpriteAssets(speciesID int, form *string) (asset, staticAsset string) {
+	return assetName(speciesID, form), staticAssetName(speciesID, form)
+}
+
 // formNameResource is the pokemon-form resource holding this form's localized name, or "" when the
 // form needs none: Unown shows its letter and the unnamed usual looks use "Normal Form" (PF:216-220).
 func formNameResource(speciesID int, form *string) string {

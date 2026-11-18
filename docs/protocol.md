@@ -361,7 +361,7 @@ day, stepping +1 calendar day from `start` (never +86,400 s, so DST is safe).
 | `httpStatus` | int \| null | HTTP status of the last failure, if it had one | message detail |
 | `backoffUntil` | ts \| null | end of the 429 backoff | "retry later" hint |
 | `plan` | string \| null | plan display string (usage.md §7.1, `planDisplay`) | plan line |
-| `account` | string \| null | `"email · organization"`, or just the email (upstream `accountDisplay`) | account line |
+| `account` | string \| null | `"email · organization"`, or just the email (upstream `accountDisplay`). Always `null` in M1: the helper does not call the profile endpoint. | account line |
 | `headlineKey` | string \| null | the window narrow surfaces show: the 5 h window if present, else the 7 d one | top-bar limit item (§1.1). It is shown only if `show-limit-in-menu` is on and today's tokens for this provider are > 0. |
 | `windows` | Window[] | display order: fiveHour, sevenDay, sevenDayOpus, sevenDaySonnet, then scoped in server order. A window with null utilization is omitted. | quota rows (§2.1 F) |
 
@@ -469,7 +469,7 @@ player owns that species shiny (`ownsShinySpecies`, companion.md §5.5).
 | `form` | string \| null | |
 | `shiny` | bool | |
 | `back` | bool | `facesBack`: an active Pokémon exists and (`alwaysFacesBack` or mood is `sulk`); never for an egg. The popover companion card uses it too. |
-| `sprite` | `{key, manifestPath, status}` | the animated sprite the helper keeps ready for this subject (§8) |
+| `sprite` | `{key, manifestPath, status}` | the animated sprite the helper keeps ready for this subject (§8). For the egg and for a static fallback, `manifestPath` is a `.png` file (§8.1). |
 
 - **Subject rule** (companion.md §5.5):
   - a pinned representative gives (pinned species, `representative.shiny`, pinned form);
@@ -672,11 +672,16 @@ Static thumbnails for chain nodes: `{speciesId, form, shiny: entry.isShiny, back
 - **Reply `data`.**
   - `key`: the asset actually served.
   - `status`: `ready` or `fallback`.
-  - `manifestPath`: absolute path.
+  - `manifestPath`: absolute path of what was served (§8.2). The name is kept for compatibility:
+    - an animated sprite gives its `sprites/<key>/manifest.json`;
+    - a static sprite (dex cells, static fallbacks, the egg) gives the plain file `sprites/<key>.png`,
+      with no manifest. A path ending in `.png` is a single static image.
 - **Fallbacks** (companion.md §8.3).
   - A missing shiny falls back to plain, a missing animation to static.
-  - A missing back sprite falls back to front, only after a 404.
-  - `fallback` means `key` differs from the requested key.
+  - A back sprite falls back to front after a 404, for good. After a transient failure the front is
+    served as `fallback` too, and the helper retries the back in the background (2 s, then up to 30 s).
+  - `fallback` means the served sprite differs from the request: another `key`, or a 1-frame GIF
+    where an animation was requested.
   - When nothing can be obtained (offline and uncached), the error is `unavailable`.
 - **Which surfaces animate** (the extension decides).
   - Animated: the top bar (frames decimated per `animation-quality`), the companion card and the
@@ -686,8 +691,8 @@ Static thumbnails for chain nodes: `{speciesId, form, shiny: entry.isShiny, back
   - `asset` is `<id>` for the default form, else `<id>-<form>`.
   - The egg's key is `egg`.
   - Examples: `25-a`, `25-sha`, `12-shs`, `423-s`, `492-sky-s`, `25-back-a`.
-- **Notification icons.** For a notification icon, request the static sprite and use its frame file
-  as a `Gio.FileIcon`.
+- **Notification icons.** For a notification icon, request the static sprite (`animated: false`) and
+  use the returned `.png` path as a `Gio.FileIcon`.
 
 ### 8.2 Manifest on disk
 

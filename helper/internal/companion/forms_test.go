@@ -91,6 +91,8 @@ func TestAssetNames(t *testing.T) {
 	for _, c := range cases {
 		eq(t, assetName(c.id, c.form), c.asset, "asset")
 		eq(t, staticAssetName(c.id, c.form), c.stAss, "static asset")
+		a, s := SpriteAssets(c.id, c.form)
+		eq(t, a+"/"+s, c.asset+"/"+c.stAss, "exported SpriteAssets")
 	}
 }
 

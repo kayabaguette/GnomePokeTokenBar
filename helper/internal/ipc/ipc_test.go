@@ -33,15 +33,47 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-func TestOversizeLine(t *testing.T) {
-	r := NewReader(strings.NewReader("ok\n" + strings.Repeat("x", MaxLine+10) + "\n"))
-	if l, err := r.Next(); err != nil || string(l) != "ok" {
-		t.Fatalf("first line: %q %v", l, err)
+// Protocol §1/§11.1: an over-long line is discarded through its "\n" and reading continues.
+func TestOversizeLineIsSkipped(t *testing.T) {
+	exact := strings.Repeat("e", MaxLine)
+	in := "ok\n" + strings.Repeat("x", MaxLine+10) + "\n" + "after\n" + exact + "\n" +
+		strings.Repeat("y", MaxLine+1) + "\n" + strings.Repeat("z", 3*MaxLine) + "\nlast"
+	r := NewReader(strings.NewReader(in))
+	want := []struct {
+		line string
+		err  error
+	}{
+		{"ok", nil}, {"", ErrLineTooLong}, {"after", nil}, {exact, nil}, {"", ErrLineTooLong},
+		{"", ErrLineTooLong}, {"last", nil}, {"", io.EOF},
 	}
-	if _, err := r.Next(); err != bufio.ErrTooLong {
-		t.Fatalf("want ErrTooLong, got %v", err)
+	for i, w := range want {
+		l, err := r.Next()
+		if err != w.err || string(l) != w.line {
+			t.Fatalf("read %d: got (%d bytes, %v), want (%d bytes, %v)", i, len(l), err, len(w.line), w.err)
+		}
 	}
 }
+
+func TestOversizeFinalLineWithoutTerminator(t *testing.T) {
+	r := NewReader(strings.NewReader(strings.Repeat("x", MaxLine+1)))
+	if _, err := r.Next(); err != ErrLineTooLong {
+		t.Fatalf("want ErrLineTooLong, got %v", err)
+	}
+	if _, err := r.Next(); err != io.EOF {
+		t.Fatalf("want EOF, got %v", err)
+	}
+}
+
+func TestReadErrorIsReturned(t *testing.T) {
+	r := NewReader(bufio.NewReader(errReader{}))
+	if _, err := r.Next(); err == nil || err == io.EOF {
+		t.Fatalf("want a read error, got %v", err)
+	}
+}
+
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
 
 func TestConcurrentWritesDoNotInterleave(t *testing.T) {
 	var buf bytes.Buffer

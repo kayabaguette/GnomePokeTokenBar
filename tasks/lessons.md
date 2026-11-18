@@ -22,3 +22,14 @@
     - the portal and gvfs mounted *inside* the sandbox.
   - `make run-nested` must warn about the risk and check `findmnt /run/user/$UID/doc` afterwards,
     printing the restart command if the mount is gone.
+
+## 2026-11-18 — A timing test that passed alone failed under `go test ./...`
+
+- **What happened.** `TestMidnightTimerRollsOver` set the fake clock 700 ms before midnight. It then
+  checked the scan counter once, at the first state showing the new day. Run alone it passed 10/10.
+  Under the parallel load of the whole module, a state rebuild crossed midnight before the timer's
+  rescan was counted, and the test failed. The subagent reported "all green" from isolated runs.
+- **Rule.**
+  - Run the **whole module** (`go test -race ./...`) as the acceptance check, not only the package.
+  - Timing tests poll for the expected condition with a deadline instead of sampling once.
+  - Fake-clock margins must leave room for a loaded machine (seconds, not hundreds of ms).

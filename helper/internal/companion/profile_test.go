@@ -405,3 +405,75 @@ func TestOfflineOverflowCatchesUpWhenLineLoads(t *testing.T) {
 	}
 	eq(t, s.st.Dex[0].Profile.Level, 100, "level")
 }
+
+// Not a Swift port. A details or type-name fetch that fails when the line loads is retried by the
+// next Update, so the card does not stay without types until the next evolution (the daemon's
+// memory-only data view misses on every first attempt).
+func TestActiveCardDataRetriedAfterFailure(t *testing.T) {
+	st := freshState()
+	st.Active = &monState{BaseID: 16, PathIDs: []int{16}, PlannedPathIDs: []int{16, 17}, StageIndex: 0, Rarity: rarityCommon, TotalForms: 2}
+	online := false
+	f := &fakeData{
+		lineFn: func(b int) (*Line, error) { return makeLine(b, node(b, node(b+1)), rarityCommon), nil },
+		detailsFn: func(id int) (*Details, error) {
+			if !online {
+				return nil, errOffline
+			}
+			return &Details{SpeciesID: id, GenderRate: -1, Types: []string{"normal"}}, nil
+		},
+		namesFn: func(kind, name string) (map[string]string, error) {
+			if !online {
+				return nil, errOffline
+			}
+			return map[string]string{"en": "Normal"}, nil
+		},
+	}
+	s := openAt(t, writeState(t, st), f, 7)
+	use(s, 0)
+	if v := s.BuildState(MoodInput{Now: fixedNow}); len(v.Active.Types) != 0 || !s.warmPending {
+		t.Fatalf("offline: types %v, retry pending %t", v.Active.Types, s.warmPending)
+	}
+	online = true
+	use(s, 0)
+	v := s.BuildState(MoodInput{Now: fixedNow})
+	if len(v.Active.Types) != 1 || v.Active.Types[0].Name != "Normal" || s.warmPending {
+		t.Fatalf("after recovery: types %v, retry pending %t", v.Active.Types, s.warmPending)
+	}
+}
+
+// Not a Swift port. A form name that fails during the egg prefetch is fetched again by the next
+// Update, so the hatch event names the form ("[East Sea]", not the identifier "[East]").
+func TestPrefetchRetriesMissingFormNames(t *testing.T) {
+	pending, form := 422, "east"
+	st := freshState()
+	st.InstallBaselineSet, st.EggUsage, st.PendingHatchID, st.PendingForm = true, 10, &pending, &form
+	online := false
+	f := &fakeData{
+		lineFn: func(b int) (*Line, error) { return makeLine(b, node(b, node(b+1)), rarityCommon), nil },
+		namesFn: func(kind, name string) (map[string]string, error) {
+			if !online {
+				return nil, errOffline
+			}
+			return map[string]string{"en": "East Sea"}, nil
+		},
+	}
+	s := openAt(t, writeState(t, st), f, 7)
+	use(s, 0)
+	if s.prefetchedLineID != 0 {
+		t.Fatal("a prefetch with a missing form name must not count as done")
+	}
+	online = true
+	use(s, 0)
+	if s.prefetchedLineID != pending {
+		t.Fatalf("prefetch not completed: %d", s.prefetchedLineID)
+	}
+	var hatch *HatchEvent
+	for _, e := range use(s, 6_000_000) {
+		if h, ok := e.(HatchEvent); ok {
+			hatch = &h
+		}
+	}
+	if hatch == nil || hatch.DisplayName != "P422 [East Sea]" {
+		t.Fatalf("hatch event = %+v", hatch)
+	}
+}

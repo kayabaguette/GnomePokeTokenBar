@@ -763,7 +763,11 @@ func (s *Store) prefetchEgg(ctx context.Context) {
 	if _, err := s.fetchLine(ctx, id); err != nil {
 		return
 	}
-	s.warmFormNames(ctx, id, s.st.PendingForm)
+	// Only a complete prefetch counts: with a form name missing, the hatch event would carry the
+	// raw form identifier, and nothing would fetch the name again before the hatch.
+	if !s.warmFormNames(ctx, id, s.st.PendingForm) {
+		return
+	}
 	s.prefetchedLineID = id
 	s.hatchDelayed = false
 }
@@ -777,10 +781,16 @@ func (s *Store) warmActive(ctx context.Context) {
 	if a == nil {
 		return
 	}
-	if d, err := s.loadDetails(ctx, a.currentID()); err == nil {
-		s.warmNames(ctx, "type", d.Types)
+	typesOK := false
+	d, err := s.loadDetails(ctx, a.currentID())
+	if err == nil {
+		typesOK = s.warmNames(ctx, "type", d.Types)
 	}
-	s.warmFormNames(ctx, a.BaseID, a.Form)
+	formsOK := s.warmFormNames(ctx, a.BaseID, a.Form)
+	// A failed fetch is retried by the next Update. Otherwise the card would lack its types and
+	// localized names until the next evolution; the daemon's memory-only data view always misses
+	// on the first attempt and fetches in the background.
+	s.warmPending = err != nil || !typesOK || !formsOK
 }
 
 // loadDetails returns cached or fetched details and enriches every matching profile once (CS:2151-2197).
@@ -815,26 +825,34 @@ func (s *Store) loadDetails(ctx context.Context, speciesID int) (*Details, error
 
 func nameKey(kind, name string) string { return kind + "/" + name }
 
-// warmNames fetches missing names; failures are not cached, so a fallback is never kept.
-func (s *Store) warmNames(ctx context.Context, kind string, names []string) {
+// warmNames fetches missing names; failures are not cached, so a fallback is never kept. It
+// reports whether every fetch succeeded (an empty answer counts as success).
+func (s *Store) warmNames(ctx context.Context, kind string, names []string) bool {
+	ok := true
 	for _, n := range names {
-		if _, ok := s.names[nameKey(kind, n)]; ok {
+		if _, have := s.names[nameKey(kind, n)]; have {
 			continue
 		}
-		if m, err := s.data.Names(ctx, kind, n); err == nil && len(m) > 0 {
+		m, err := s.data.Names(ctx, kind, n)
+		if err != nil {
+			ok = false
+			continue
+		}
+		if len(m) > 0 {
 			s.names[nameKey(kind, n)] = m
 		}
 	}
+	return ok
 }
 
-func (s *Store) warmFormNames(ctx context.Context, baseID int, form *string) {
+func (s *Store) warmFormNames(ctx context.Context, baseID int, form *string) bool {
 	var res []string
 	for _, id := range formSpecies(baseID) {
 		if r := formNameResource(id, form); r != "" {
 			res = append(res, r)
 		}
 	}
-	s.warmNames(ctx, "pokemon-form", res)
+	return s.warmNames(ctx, "pokemon-form", res)
 }
 
 // apiName resolves a type, ability or move name, else returns the API identifier (protocol §10).
