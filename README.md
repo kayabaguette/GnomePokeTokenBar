@@ -26,6 +26,20 @@ make pack      # dist/poketokenbar@local.zip
 
 Then log out and back in (Wayland) and enable the extension.
 
+### Install from RPM
+
+Fedora, system-wide. Build requirements: `sudo dnf install rpm-build golang`.
+
+```
+make rpm
+sudo dnf install dist/gnome-shell-extension-poketokenbar-*.rpm
+```
+
+Log out and back in (Wayland), then `gnome-extensions enable poketokenbar@local`.
+
+A per-user copy from `make install` in `~/.local/share/gnome-shell/extensions/` takes
+precedence over the system one, so run `make uninstall` first.
+
 ## Disclaimer
 
 Unofficial, non-commercial fan project. Pokémon and Pokémon names are trademarks of Nintendo,

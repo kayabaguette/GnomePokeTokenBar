@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `make rpm`: builds an installable Fedora RPM (`packaging/gnome-shell-extension-poketokenbar.spec`) from the
+  working tree; the helper is installed in `/usr/libexec/poketokenbar/` and symlinked into the extension.
 - Project skeleton: Go helper (`ptb-helper`: `--version`, `serve` NDJSON handshake and ping,
   `snapshot --json` placeholder, `internal/ipc` line reader/writer), GNOME Shell 51 extension
   skeleton (panel button and helper client), Makefile, build-only Dockerfile, LICENSE, README, SPEC index.

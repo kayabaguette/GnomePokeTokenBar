@@ -3,7 +3,7 @@ UUID := poketokenbar@local
 EXT_DIR := $(HOME)/.local/share/gnome-shell/extensions/$(UUID)
 EXT_JS := $(shell find extension -name '*.js' -not -path 'extension/test/*' 2>/dev/null)
 
-.PHONY: build test lint install uninstall pack run-nested clean
+.PHONY: build test lint install uninstall pack rpm run-nested clean
 
 build:
 	cd helper && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$(VERSION)" -o ../extension/bin/ptb-helper ./cmd/ptb-helper
@@ -30,6 +30,21 @@ pack: build
 	mkdir -p dist
 	rm -f dist/$(UUID).zip
 	cd extension && zip -qr ../dist/$(UUID).zip . -x 'test/*'
+
+# Installable RPM, built from a source tarball of the working tree inside dist/rpmbuild.
+# Needs: sudo dnf install rpm-build golang
+RPM_TOP := $(CURDIR)/dist/rpmbuild
+RPM_NAME := gnome-shell-extension-poketokenbar
+
+rpm:
+	rm -rf $(RPM_TOP)
+	mkdir -p $(RPM_TOP)/SOURCES
+	tar --transform 's,^,$(RPM_NAME)-$(VERSION)/,' \
+		--exclude=extension/bin --exclude=extension/test --exclude=extension/schemas/gschemas.compiled \
+		-czf $(RPM_TOP)/SOURCES/$(RPM_NAME)-$(VERSION).tar.gz helper extension LICENSE README.md
+	rpmbuild -bb --define "_topdir $(RPM_TOP)" --define "pkg_version $(VERSION)" packaging/$(RPM_NAME).spec
+	cp $(RPM_TOP)/RPMS/*/$(RPM_NAME)-$(VERSION)-*.rpm dist/
+	@ls -1 dist/$(RPM_NAME)-$(VERSION)-*.rpm
 
 # Nested dev shell; requires the mutter-devkit package (sudo dnf install mutter-devkit).
 # `gnome-shell --help` on this machine lists --devkit.

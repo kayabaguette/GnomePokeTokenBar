@@ -307,6 +307,11 @@ That settles the spec's "329 vs 328": the right number is 328. Protocol §8.2 wa
   - Measure CPU with the extension idle, while scanning and with the popover open.
 - [ ] Docs: README (install, architecture, screenshots), CHANGELOG, final `SPEC.md`, `tasks/lessons.md`.
 - [ ] `make pack` → `poketokenbar@local.zip`.
+- [ ] `make rpm` → `gnome-shell-extension-poketokenbar` (requested by the user 2026-11-18). `[sub:sonnet]`
+  - rpmbuild builds from source.
+  - The extension goes in `/usr/share/gnome-shell/extensions/poketokenbar@local/`.
+  - The helper goes in `/usr/libexec/poketokenbar/`, reached through a `bin/ptb-helper` symlink.
+  - No scriptlets.
 
 ## Parity backlog (M2+, ordered by value)
 
