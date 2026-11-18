@@ -433,4 +433,22 @@ have caught the original portal incident.
 
 ## Results
 
-_(filled in as phases complete)_
+### 2026-11-18: RPM 0.1.0 ready (phases 1–7 integrated)
+
+- Artifact: `dist/gnome-shell-extension-poketokenbar-0.1.0-1.fc45.x86_64.rpm`. The payload contains no
+  `test/` files. The helper lives in `/usr/libexec/poketokenbar/` and is reached through a relative
+  symlink.
+- End-to-end runs used the **RPM payload** in the sandbox with the real helper, the real
+  `~/.claude` logs, PokéAPI and official limits:
+  - Pokédex suite: ISOLATION OK, 0 JS ERROR, 0 CRITICAL.
+  - Open-popover `--cycle` suite (screen-lock path): ISOLATION OK, 0 JS ERROR, 0 CRITICAL; helper
+    count 1 → 0 → restarted.
+- Tests:
+  - Go module: `go test -race ./...` green across repeated runs.
+  - 116 `gjs -m` unit tests.
+  - Usage totals equal the independent oracle token for token.
+- **Still open:**
+  - CPU gate in the real session (user, `spikes/sprite-anim/measure-cpu.sh`).
+  - Phase 8: README with screenshots built from fixture data (never the user's real numbers), final
+    SPEC, `make pack`.
+  - Backlog items listed in the Phase 6/7 notes.
