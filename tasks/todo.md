@@ -139,6 +139,18 @@ Legend: `[sub:<model>]` = delegated subagent and its model. `[user]` = needs a u
   - `docs/protocol.md` defines the message types, commands and events.
   - `extension/test/fixtures/state-sample.json` lets UI work proceed in parallel with the Go phases.
 - [ ] **Gate:** review the spike results with the user, then adjust the plan.
+  - **2026-11-18 change:**
+    - The user asked to be told "when the RPM is ready" and has not run the live CPU test.
+    - The CPU gate therefore **moves to the first RPM install**, and the `measure-cpu.sh` step goes in
+      the ready notification.
+    - Headless CPU numbers don't count. The animator stays in one module, so a failed gate changes a
+      default rather than forcing a rewrite.
+  - Sandbox: `scripts/headless-shell.sh` is the only authorized shell launcher (see `tasks/lessons.md`).
+    - Verified with the skeleton: enable → disable → enable works, with no orphan helper and no JS
+      errors.
+    - Verified with the **RPM payload** through `XDG_DATA_DIRS`: the helper is spawned via the relative
+      `bin/ptb-helper` symlink.
+  - Meaning of "ready": phases 1–6 integrated, with `VERSION` bumped so `dnf` upgrades over 0.0.1.
 
 ### Phase 1 — Go usage core: Claude Code  `[sub:opus]`
 ✅ 2026-11-18 in `helper/internal/{usage,claude}`, `cmd/ptb-usage-debug` and `scripts/oracle_usage.py`.

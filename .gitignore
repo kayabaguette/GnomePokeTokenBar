@@ -13,3 +13,4 @@ extension/bin/
 extension/schemas/gschemas.compiled
 .dev-state/
 spikes/**/out/
+.sandbox/

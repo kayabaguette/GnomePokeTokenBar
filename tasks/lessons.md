@@ -13,5 +13,12 @@
 - **Rule.**
   - Subagent briefs must forbid launching any `gnome-shell` instance (headless, nested or devkit)
     unless the orchestrator explicitly authorizes it.
+  - The only authorized launcher is `scripts/headless-shell.sh`. It uses a private
+    `XDG_RUNTIME_DIR` under `.sandbox/run`, a short path that fits the 108-byte socket limit, private
+    XDG dirs, `GSETTINGS_BACKEND=memory` and `PTB_STATE_DIR`. Afterwards it kills sandbox processes by
+    environment, unmounts FUSE mounts lazily and checks isolation.
+  - First verified 2026-11-18:
+    - the live PID, the live `/run/user/$UID` and the absence of leftovers were all unchanged;
+    - the portal and gvfs mounted *inside* the sandbox.
   - `make run-nested` must warn about the risk and check `findmnt /run/user/$UID/doc` afterwards,
     printing the restart command if the mount is gone.
