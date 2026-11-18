@@ -28,6 +28,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Incremental zlib JSON cache keyed by path, mtime, size and inode.
   - Totals match an independent Python oracle (`scripts/oracle_usage.py`) token for token.
 - `helper/cmd/ptb-usage-debug`: prints today, week, month and series totals as JSON.
+- `helper/internal/companion`: the companion game.
+  - Save format keeps the upstream key names, plus `schemaVersion` and ISO-8601 dates.
+  - Saves are written atomically, with corrupt-file recovery and 12 h snapshots.
+  - Per-provider credit ledger.
+  - Growth thresholds with the upstream rounding chain, and a difficulty rescale.
+  - Hatch roll with the exact RNG draw order, evolution plans, graduation.
+  - Pokédex cells, search, regions and badges; representative pin.
+  - Rare Candy grants; mood; protocol view builders.
+  - 151 tests ported from the Swift suite.
 - `helper/internal/pokeapi`: PokéAPI client.
   - Base index via GraphQL, with a self-healing fallback to REST.
   - Species, evolution chains (SSRF-guarded), details and localized names.

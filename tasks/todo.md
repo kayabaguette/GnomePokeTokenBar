@@ -223,6 +223,24 @@ Notes for later phases:
 - [ ] Tests ported from `RareCandyTests` and the limit-format parts of `SessionKeyLimitsTests`.
 
 ### Phase 3 — Go companion  `[sub:opus]` (parallel with 1, 2 and 4)
+✅ 2026-11-18 in `helper/internal/companion/`: 151 tests, 99.9 % coverage, fault injection on the
+rollover, the rounding chain and the draw order.
+
+Orchestrator checks:
+- all 28 upstream save keys are present;
+- the balance constants match the spec;
+- Ditto is off by default.
+
+Carry-overs for Phase 5:
+- Call `Update` after `networkUp`.
+- Fill `CandyWindow.ProviderID`.
+- The adapter keeps only `level-up` b2w2 moves for `Details`.
+- `getSpecies` returns individuals of every form; the extension filters by form.
+
+Accepted deviations:
+- shiny odds fixed at 1/64 until the Charm ships;
+- legacy `unownForm` keys are not read;
+- the name sort uses folded strings.
 - [ ] Save model:
   - upstream field names, `schemaVersion`, ISO dates;
   - lenient decode plus `sanitized()` clamps;
