@@ -31,6 +31,7 @@ chmod +x "$DEST/bin/ptb-helper"
 
 gjs -m "$REPO/extension/test/make-sprite-fixture.js" "$REPO/spikes/sprite-anim/out" "$DEST/test/sprite-fixture"
 
-printf '{"fixture": "%s", "eventsAfter": %s, "eventGap": 1, "protocol": 1}\n' "$FIXTURE" "$EVENTS_AFTER" \
+EXTRA=${PTB_STUB_EXTRA:+, $PTB_STUB_EXTRA}
+printf '{"fixture": "%s", "eventsAfter": %s, "eventGap": 1, "protocol": 1%s}\n' "$FIXTURE" "$EVENTS_AFTER" "$EXTRA" \
     >"$DEST/test/stub-config.json"
 echo "prepared $DEST (fixture $FIXTURE, events after ${EVENTS_AFTER}s)"

@@ -1,20 +1,23 @@
-/* Popover frame (ui.md §2.0): tab bar, scrolling content, footer.
- * Home holds the companion card, usage totals with the daily chart, and the
- * official limits. The Pokédex tab is a placeholder until Phase 7.
+/* Popover frame (ui.md §2.0): tab bar, content, footer.
+ * Home scrolls and holds the companion card, usage totals with the daily
+ * chart, and the official limits. The Pokédex tab (lib/dex/) has a fixed
+ * height of its own: its grid pages instead of scrolling.
  */
 
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import {_, fmt} from '../i18n.js';
+import {_} from '../i18n.js';
+import {DexView} from '../dex/dexView.js';
 import {CompanionCard} from './companionCard.js';
 import {Footer} from './footer.js';
 import {LimitsSection} from './limitsSection.js';
 import {UsageSection} from './usageSection.js';
-import {label, vbox, hbox, wrapLabel} from './widgets.js';
+import {vbox, hbox} from './widgets.js';
 
-/* ui.md §2: Home scrolls inside a fixed 520 px area; clamp on small screens. */
+/* ui.md §2: Home scrolls inside a fixed 520 px area and the Pokédex is
+ * 520 px tall (Collection); clamp both on small screens. */
 const SCROLL_MAX_HEIGHT = 520;
 const SCREEN_MARGIN = 160;
 
@@ -24,7 +27,8 @@ function separator() {
 
 export class Popover {
     /**
-     * @param {object} deps  {tooltip, sprites, refresh(), openPrefs(), setTrendWindow(w)}
+     * @param {object} deps  {tooltip, sprites, refresh(), openPrefs(), setTrendWindow(w),
+     *                        request(cmd, args)}
      */
     constructor(deps) {
         this.actor = vbox('ptb-popover');
@@ -54,7 +58,10 @@ export class Popover {
         this.actor.add_child(this._scroll);
 
         this._home = vbox('ptb-home', {x_expand: true});
-        this._companion = new CompanionCard(deps);
+        this._companion = new CompanionCard({
+            ...deps,
+            openDexEntry: (speciesId, form) => this.openDexEntry(speciesId, form),
+        });
         this._usage = new UsageSection(deps);
         this._limits = new LimitsSection(deps);
         this._limitsSeparator = separator();
@@ -64,25 +71,14 @@ export class Popover {
         this._home.add_child(this._limitsSeparator);
         this._home.add_child(this._limits.actor);
 
-        this._dex = vbox('ptb-dex-placeholder', {x_expand: true});
-        this._dexTitle = label(_('Pokédex'), 'ptb-dex-title');
-        this._dexCount = label('', 'ptb-secondary');
-        this._dexNote = wrapLabel('', 'ptb-tertiary ptb-small');
-        this._dex.add_child(this._dexTitle);
-        this._dex.add_child(this._dexCount);
-        this._dex.add_child(this._dexNote);
+        this._scroll.set_child(this._home);
+
+        this._dex = new DexView({tooltip: deps.tooltip, sprites: deps.sprites, request: deps.request});
+        this.actor.add_child(this._dex.actor);
 
         this.actor.add_child(separator());
         this._footer = new Footer(deps);
         this.actor.add_child(this._footer.actor);
-
-        // The pages swap in and out of the scroll view; the detached one is freed here.
-        this.actor.connect('destroy', () => {
-            for (const page of [this._home, this._dex]) {
-                if (!page.get_parent())
-                    page.destroy();
-            }
-        });
 
         this._tab = null;
         this.showTab('home');
@@ -98,22 +94,40 @@ export class Popover {
             else
                 b.remove_style_pseudo_class('checked');
         }
-        const page = name === 'dex' ? this._dex : this._home;
-        if (this._scroll.get_child() !== page)
-            this._scroll.set_child(page);
+        this._scroll.visible = name === 'home';
+        if (name === 'dex')
+            this._dex.show();
+        else
+            this._dex.hide();
         this._footer.setHomeVisible(name === 'home');
     }
 
-    /** Called when the menu opens: back to Home, top of the page, clamped height. */
+    /**
+     * Called when the menu opens: Home (or the tab asked for), top of the
+     * page, clamped height. 'dex' comes from the right-click "Pokédex" item,
+     * which opens the grid segment (openRepresentativeDex).
+     */
     onOpen(tab = 'home') {
-        this.showTab(tab);
-        this._scroll.vadjustment.value = 0;
         const monitor = Main.layoutManager.primaryMonitor;
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        let height = SCROLL_MAX_HEIGHT;
         if (monitor) {
             const available = Math.floor(monitor.height / scale) - SCREEN_MARGIN;
-            this._scroll.style = `max-height: ${Math.max(240, Math.min(SCROLL_MAX_HEIGHT, available))}px;`;
+            height = Math.max(240, Math.min(SCROLL_MAX_HEIGHT, available));
         }
+        this._scroll.style = `max-height: ${height}px;`;
+        this._dex.setHeight(height);
+        this._tab = null; // the menu was closed: re-run the tab switch
+        if (tab === 'dex')
+            this._dex.openGrid();
+        this.showTab(tab);
+        this._scroll.vadjustment.value = 0;
+    }
+
+    /** Open a species' Pokédex detail (Home sprite and evolution line, ui.md §3.1). */
+    openDexEntry(speciesId, form = null) {
+        this._dex.openSpecies(speciesId, {form}); // first, so showing the tab loads no grid page
+        this.showTab('dex');
     }
 
     /** @param {object} ctx  {state, settings, nowMs, helperStatus} */
@@ -123,14 +137,6 @@ export class Popover {
         this._limits.update(ctx);
         this._limitsSeparator.visible = this._limits.hasContent;
         this._footer.update(ctx);
-
-        const dex = ctx.state?.companion?.dexSummary;
-        if (dex && dex.entries > 0) {
-            this._dexCount.text = fmt(_('%d of %d species · %d shiny'), dex.ownedSpecies, dex.nationalTotal, dex.shinySpecies);
-            this._dexNote.text = _('Browsing, search and filters arrive in the next update.');
-        } else {
-            this._dexCount.text = _('No Pokémon yet');
-            this._dexNote.text = _('Your first hatch starts the Pokédex.');
-        }
+        this._dex.update(ctx);
     }
 }

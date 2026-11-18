@@ -28,7 +28,7 @@ export const Indicator = GObject.registerClass(
 class PtbIndicator extends PanelMenu.Button {
     /**
      * @param {object} controller  the extension: settings, tooltip, sprites,
-     *   theme, context(), refresh(), openPrefs(), setTrendWindow()
+     *   theme, context(), refresh(), openPrefs(), setTrendWindow(), request()
      */
     _init(controller) {
         super._init(0.5, 'PokeTokenBar', false);
@@ -38,13 +38,17 @@ class PtbIndicator extends PanelMenu.Button {
         this._spriteRetried = new Set();
         this._openTab = 'home';
         this._tickId = 0;
+        this._destroyed = false;
 
         // Left click toggles the popover; the inherited gesture accepts any
         // button by default, so restrict it and give right click its own menu.
         this._clickGesture.set_required_button(Clutter.BUTTON_PRIMARY);
         this._secondaryGesture = new Clutter.ClickGesture({recognize_on_press: true});
         this._secondaryGesture.set_required_button(Clutter.BUTTON_SECONDARY);
-        this._secondaryGesture.connect('recognize', () => this._toggleSecondary());
+        this._secondaryGesture.connect('recognize', () => {
+            if (!this._destroyed)
+                this._toggleSecondary();
+        });
         this.add_action(this._secondaryGesture);
 
         this._buildPanel();
@@ -53,11 +57,17 @@ class PtbIndicator extends PanelMenu.Button {
         // The panel's own text color decides the limit-item palette: the panel
         // stays light-on-dark in the overview and on the lock screen even with
         // the light style, so the global variant is not enough here.
-        this.connect('style-changed', () => this._syncPanelContrast());
+        this.connect('style-changed', () => {
+            if (!this._destroyed)
+                this._syncPanelContrast();
+        });
         controller.theme.track(this.menu.actor);
         controller.theme.track(this._secondary.actor);
 
-        this.menu.connect('open-state-changed', (_m, open) => this._onMenuOpen(open));
+        // Disconnected first thing in _onDestroy(): the base class closes an
+        // open menu while it destroys it, which would call back into a
+        // half-torn-down indicator (screen lock with the popover open).
+        this._menuOpenId = this.menu.connect('open-state-changed', (_m, open) => this._onMenuOpen(open));
         controller.tooltip.attach(this, () => this._tooltipText());
     }
 
@@ -101,6 +111,7 @@ class PtbIndicator extends PanelMenu.Button {
                 c.openPrefs();
             },
             setTrendWindow: w => c.setTrendWindow(w),
+            request: (cmd, args) => c.request(cmd, args),
         });
         const item = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
@@ -140,7 +151,7 @@ class PtbIndicator extends PanelMenu.Button {
 
         this._backItem = new PopupMenu.PopupSwitchMenuItem(_('Show back view'),
             c.settings.get_boolean('always-faces-back'));
-        this._backItem.connect('toggled', (_i, state) => c.settings.set_boolean('always-faces-back', state));
+        this._backItem.connect('toggled', (_i, state) => c.settings?.set_boolean('always-faces-back', state));
         menu.addMenuItem(this._backItem);
     }
 
@@ -160,6 +171,8 @@ class PtbIndicator extends PanelMenu.Button {
     }
 
     _onMenuOpen(open) {
+        if (this._destroyed)
+            return;
         // The popover card already animates the companion: rest the top bar (ui.md §1.3).
         this._sprite.setPaused(open);
         this._controller.tooltip.hide();
@@ -278,6 +291,13 @@ class PtbIndicator extends PanelMenu.Button {
     }
 
     _onDestroy() {
+        // Mark and detach before anything is released: super._onDestroy()
+        // closes the open menu, and 'open-state-changed' must not reach us then.
+        this._destroyed = true;
+        if (this._menuOpenId) {
+            this.menu.disconnect(this._menuOpenId);
+            this._menuOpenId = 0;
+        }
         if (this._tickId) {
             GLib.source_remove(this._tickId);
             this._tickId = 0;

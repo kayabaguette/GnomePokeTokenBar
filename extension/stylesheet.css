@@ -542,17 +542,499 @@
 
 .ptb-light .ptb-footer-error { color: #b54000; }
 
-/* ---- Pokédex placeholder ---------------------------------------------- */
+/* ---- Pokédex --------------------------------------------------------- */
 
-.ptb-dex-placeholder {
+.ptb-dex {
     spacing: 6px;
-    padding: 24px 16px 32px 16px;
+    padding: 2px 4px 2px 4px;
 }
+
+.ptb-dex-list { spacing: 6px; }
+.ptb-dex-toolbar { spacing: 6px; }
+.ptb-dex-title-row { spacing: 6px; }
 
 .ptb-dex-title {
     font-weight: bold;
-    font-size: 1.15em;
 }
+
+/* Segmented control: the Home/Pokédex tab pill, one size down. */
+.ptb-segmented {
+    spacing: 2px;
+    padding: 2px;
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.ptb-segment {
+    padding: 3px 9px;
+    border-radius: 7px;
+    font-size: 0.86em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.ptb-segment:hover, .ptb-segment:focus { background-color: rgba(255, 255, 255, 0.07); }
+.ptb-segment:checked { color: #ffffff; background-color: rgba(255, 255, 255, 0.15); }
+.ptb-light .ptb-segmented { background-color: rgba(0, 0, 0, 0.05); }
+.ptb-light .ptb-segment { color: rgba(34, 34, 38, 0.66); }
+.ptb-light .ptb-segment:hover, .ptb-light .ptb-segment:focus { background-color: rgba(0, 0, 0, 0.05); }
+.ptb-light .ptb-segment:checked { color: #222226; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+
+/* Search field. */
+.ptb-search {
+    padding: 4px 8px;
+    border-radius: 9px;
+    font-size: 0.9em;
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+    selection-background-color: -st-accent-color;
+    selected-color: #ffffff;
+}
+
+.ptb-search:hover { background-color: rgba(255, 255, 255, 0.09); }
+.ptb-search:focus { border: 1px solid -st-accent-color; background-color: rgba(255, 255, 255, 0.09); }
+.ptb-search StLabel.hint-text { color: rgba(255, 255, 255, 0.45); }
+.ptb-search-icon { icon-size: 14px; color: rgba(255, 255, 255, 0.55); }
+.ptb-light .ptb-search { color: #222226; background-color: rgba(0, 0, 0, 0.04); border: 1px solid rgba(0, 0, 0, 0.10); }
+.ptb-light .ptb-search:focus { border: 1px solid -st-accent-color; background-color: #ffffff; }
+.ptb-light .ptb-search StLabel.hint-text { color: rgba(34, 34, 38, 0.45); }
+.ptb-light .ptb-search-icon { color: rgba(34, 34, 38, 0.55); }
+
+/* Shiny-only toggle and sort button. */
+.ptb-dex-tool {
+    padding: 3px 7px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+}
+
+.ptb-dex-tool:hover, .ptb-dex-tool:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-light .ptb-dex-tool:hover, .ptb-light .ptb-dex-tool:focus { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-dex-tool-icon { icon-size: 16px; }
+.ptb-dex-tool-custom .ptb-dex-tool-icon { color: -st-accent-color; }
+.ptb-sort-button:checked { background-color: rgba(255, 255, 255, 0.12); }
+.ptb-light .ptb-sort-button:checked { background-color: rgba(0, 0, 0, 0.08); }
+.ptb-shiny-toggle { font-size: 0.9em; }
+.ptb-shiny-toggle:checked { background-color: rgba(246, 211, 45, 0.18); border: 1px solid rgba(246, 211, 45, 0.60); }
+
+.ptb-dex-medal {
+    font-size: 0.78em;
+    padding: 0 4px;
+    border-radius: 999px;
+    background-color: rgba(246, 211, 45, 0.14);
+    border: 1px solid rgba(246, 211, 45, 0.50);
+}
+
+.ptb-dex-medals { spacing: 3px; }
+
+/* Region strip: five tiles, each a name, a count and a progress line. */
+.ptb-region-strip { spacing: 4px; }
+
+.ptb-region-tile {
+    padding: 3px 2px 5px 2px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+}
+
+.ptb-region-tile:hover, .ptb-region-tile:focus { background-color: rgba(255, 255, 255, 0.09); }
+.ptb-region-tile:checked { border: 1px solid -st-accent-color; background-color: st-transparentize(-st-accent-color, 0.82); }
+.ptb-region-tile:insensitive { color: rgba(255, 255, 255, 0.40); }
+.ptb-light .ptb-region-tile { background-color: rgba(0, 0, 0, 0.04); }
+.ptb-light .ptb-region-tile:hover, .ptb-light .ptb-region-tile:focus { background-color: rgba(0, 0, 0, 0.07); }
+.ptb-light .ptb-region-tile:insensitive { color: rgba(34, 34, 38, 0.40); }
+
+.ptb-region-box { spacing: 1px; }
+.ptb-region-top { spacing: 2px; }
+.ptb-region-name { font-size: 0.74em; font-weight: 600; }
+.ptb-region-medal { font-size: 0.66em; }
+
+.ptb-region-count {
+    font-size: 0.72em;
+    font-feature-settings: "tnum";
+    color: rgba(255, 255, 255, 0.60);
+}
+
+.ptb-light .ptb-region-count { color: rgba(34, 34, 38, 0.60); }
+
+.ptb-region-track {
+    height: 3px;
+    margin: 2px 7px 0 7px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.ptb-region-fill {
+    height: 3px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.60);
+}
+
+.ptb-light .ptb-region-track { background-color: rgba(0, 0, 0, 0.10); }
+.ptb-light .ptb-region-fill { background-color: rgba(34, 34, 38, 0.55); }
+.ptb-region-complete .ptb-region-fill { background-color: #33d17a; }
+.ptb-region-complete .ptb-region-count { color: #57e389; font-weight: bold; }
+.ptb-light .ptb-region-complete .ptb-region-count { color: #1b7a42; }
+
+/* Rarity chips: color dot, name, bold count (CompanionView RarityTally). */
+.ptb-chip-row { spacing: 4px; }
+
+.ptb-chip {
+    padding: 2px 3px;
+    border-radius: 999px;
+    font-size: 0.74em;
+    border: 1px solid rgba(154, 153, 150, 0.35);
+    background-color: rgba(154, 153, 150, 0.12);
+}
+
+.ptb-chip:hover, .ptb-chip:focus { background-color: rgba(154, 153, 150, 0.20); }
+.ptb-chip:checked { border: 2px solid #9a9996; background-color: rgba(154, 153, 150, 0.22); padding: 1px 2px; }
+.ptb-chip:insensitive { color: rgba(255, 255, 255, 0.38); }
+.ptb-light .ptb-chip:insensitive { color: rgba(34, 34, 38, 0.38); }
+.ptb-chip-box { spacing: 3px; }
+.ptb-chip-dot { width: 6px; height: 6px; border-radius: 3px; background-color: #9a9996; }
+.ptb-chip-count { font-weight: bold; font-feature-settings: "tnum"; }
+
+.ptb-chip.ptb-rarity-uncommon { border-color: rgba(51, 209, 122, 0.35); background-color: rgba(51, 209, 122, 0.12); }
+.ptb-chip.ptb-rarity-uncommon:checked { border-color: #33d17a; background-color: rgba(51, 209, 122, 0.22); }
+.ptb-chip.ptb-rarity-uncommon .ptb-chip-dot { background-color: #33d17a; }
+.ptb-chip.ptb-rarity-rare { border-color: rgba(53, 132, 228, 0.40); background-color: rgba(53, 132, 228, 0.12); }
+.ptb-chip.ptb-rarity-rare:checked { border-color: #3584e4; background-color: rgba(53, 132, 228, 0.24); }
+.ptb-chip.ptb-rarity-rare .ptb-chip-dot { background-color: #3584e4; }
+.ptb-chip.ptb-rarity-legendary { border-color: rgba(255, 120, 0, 0.40); background-color: rgba(255, 120, 0, 0.12); }
+.ptb-chip.ptb-rarity-legendary:checked { border-color: #ff7800; background-color: rgba(255, 120, 0, 0.24); }
+.ptb-chip.ptb-rarity-legendary .ptb-chip-dot { background-color: #ff7800; }
+
+/* Grid cells: each one a small patch of its rarity's ground, like the
+ * companion tile on Home. */
+.ptb-dex-grid { padding: 1px; }
+
+.ptb-dex-cell {
+    padding: 2px;
+    border-radius: 10px;
+    border: 1px solid rgba(154, 153, 150, 0.20);
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(154, 153, 150, 0.03);
+    background-gradient-end: rgba(154, 153, 150, 0.15);
+}
+
+.ptb-dex-cell.ptb-rarity-uncommon {
+    border-color: rgba(51, 209, 122, 0.24);
+    background-gradient-start: rgba(51, 209, 122, 0.03);
+    background-gradient-end: rgba(51, 209, 122, 0.15);
+}
+
+.ptb-dex-cell.ptb-rarity-rare {
+    border-color: rgba(53, 132, 228, 0.30);
+    background-gradient-start: rgba(53, 132, 228, 0.04);
+    background-gradient-end: rgba(53, 132, 228, 0.19);
+}
+
+.ptb-dex-cell.ptb-rarity-legendary {
+    border-color: rgba(255, 120, 0, 0.32);
+    background-gradient-start: rgba(255, 120, 0, 0.04);
+    background-gradient-end: rgba(255, 163, 72, 0.20);
+}
+
+.ptb-dex-cell:hover { border-color: rgba(255, 255, 255, 0.32); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.30); }
+.ptb-dex-cell:focus { border: 1px solid -st-accent-color; }
+.ptb-light .ptb-dex-cell:hover { border-color: rgba(0, 0, 0, 0.22); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.14); }
+
+/* The pinned representative keeps an accent ground. */
+.ptb-dex-cell.ptb-dex-representative {
+    background-gradient-direction: none;
+    background-color: st-transparentize(-st-accent-color, 0.80);
+    border-color: st-transparentize(-st-accent-color, 0.40);
+}
+
+.ptb-dex-cell.ptb-dex-locked { border-style: dashed; }
+
+.ptb-dex-cell-body { spacing: 0; }
+.ptb-dex-cell-name-row { spacing: 3px; }
+.ptb-dex-cell-name { font-size: 0.8em; }
+
+.ptb-dex-cell-forms {
+    font-size: 0.68em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+    color: rgba(255, 255, 255, 0.60);
+}
+
+.ptb-light .ptb-dex-cell-forms { color: rgba(34, 34, 38, 0.60); }
+
+.ptb-dex-number {
+    spacing: 2px;
+    margin: 1px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+.ptb-light .ptb-dex-number { background-color: rgba(255, 255, 255, 0.78); }
+
+.ptb-dex-number-text {
+    font-size: 0.66em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+    color: #c0bfbc;
+}
+
+.ptb-dex-number.ptb-rarity-uncommon .ptb-dex-number-text { color: #57e389; }
+.ptb-dex-number.ptb-rarity-rare .ptb-dex-number-text { color: #78aeed; }
+.ptb-dex-number.ptb-rarity-legendary .ptb-dex-number-text { color: #ffa348; }
+.ptb-light .ptb-dex-number-text { color: #5e5c64; }
+.ptb-light .ptb-dex-number.ptb-rarity-uncommon .ptb-dex-number-text { color: #1b7a42; }
+.ptb-light .ptb-dex-number.ptb-rarity-rare .ptb-dex-number-text { color: #1c71d8; }
+.ptb-light .ptb-dex-number.ptb-rarity-legendary .ptb-dex-number-text { color: #b54000; }
+
+.ptb-dex-star { icon-size: 9px; color: -st-accent-color; }
+
+.ptb-dex-shiny {
+    margin: 1px;
+    padding: 0 2px;
+    font-size: 0.64em;
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+.ptb-light .ptb-dex-shiny { background-color: rgba(255, 255, 255, 0.78); }
+
+.ptb-dex-raising {
+    padding: 0 4px;
+    font-size: 0.54em;
+    font-weight: bold;
+    color: #ffffff;
+    border-radius: 999px;
+    background-color: -st-accent-color;
+}
+
+/* Pager. */
+.ptb-pager { spacing: 0; }
+
+.ptb-pager-button {
+    padding: 5px 8px;
+    border-radius: 8px;
+}
+
+.ptb-pager-button:hover, .ptb-pager-button:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-light .ptb-pager-button:hover, .ptb-light .ptb-pager-button:focus { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-pager-button:insensitive .ptb-pager-icon { color: rgba(255, 255, 255, 0.25); }
+.ptb-light .ptb-pager-button:insensitive .ptb-pager-icon { color: rgba(34, 34, 38, 0.25); }
+.ptb-pager-icon { icon-size: 14px; }
+
+.ptb-pager-label {
+    font-size: 0.86em;
+    font-weight: 600;
+    font-feature-settings: "tnum";
+    color: rgba(255, 255, 255, 0.70);
+}
+
+.ptb-light .ptb-pager-label { color: rgba(34, 34, 38, 0.72); }
+
+/* Loading, error, empty and no-results states. */
+.ptb-dex-status, .ptb-dex-no-results {
+    spacing: 8px;
+    padding: 16px 20px;
+}
+
+.ptb-dex-status-icon { icon-size: 24px; color: rgba(255, 255, 255, 0.50); }
+.ptb-light .ptb-dex-status-icon { color: rgba(34, 34, 38, 0.50); }
+.ptb-dex-status-title { font-weight: 600; }
+
+/* Sort card, floating over the page under the sort button. */
+.ptb-sort-card {
+    min-width: 200px;
+    spacing: 1px;
+    padding: 6px;
+    border-radius: 12px;
+    background-color: #36363a;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.40);
+}
+
+.ptb-light .ptb-sort-card {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+}
+
+.ptb-sort-title {
+    padding: 2px 6px 4px 6px;
+    font-size: 0.78em;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.ptb-light .ptb-sort-title { color: rgba(34, 34, 38, 0.64); }
+.ptb-sort-option { padding: 5px 8px 5px 6px; border-radius: 7px; font-size: 0.9em; }
+.ptb-sort-option:hover, .ptb-sort-option:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-light .ptb-sort-option:hover, .ptb-light .ptb-sort-option:focus { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-sort-row { spacing: 8px; }
+.ptb-sort-check { icon-size: 14px; color: -st-accent-color; }
+
+/* Catch log. */
+.ptb-dex-log-page { spacing: 6px; }
+.ptb-log-list { spacing: 8px; padding-right: 10px; } /* the overlay scrollbar's lane */
+
+.ptb-log-card {
+    spacing: 5px;
+    padding: 8px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ptb-light .ptb-log-card { background-color: rgba(0, 0, 0, 0.04); }
+.ptb-log-top { spacing: 5px; }
+.ptb-log-shiny { font-size: 0.8em; }
+.ptb-badge.ptb-badge-accent { background-color: -st-accent-color; }
+.ptb-badge.ptb-badge-muted { background-color: #77767b; }
+
+/* Evolution strips (catch log, detail). */
+.ptb-dex-evo { spacing: 4px; }
+.ptb-dex-evo-node-box { spacing: 2px; }
+
+.ptb-dex-evo-node {
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+}
+
+.ptb-dex-evo-node:hover, .ptb-dex-evo-node:focus { background-color: rgba(255, 255, 255, 0.11); }
+.ptb-dex-evo-node.ptb-dex-evo-current { border: 1px solid -st-accent-color; background-color: st-transparentize(-st-accent-color, 0.85); }
+.ptb-light .ptb-dex-evo-node { background-color: rgba(0, 0, 0, 0.04); }
+.ptb-light .ptb-dex-evo-node:hover, .ptb-light .ptb-dex-evo-node:focus { background-color: rgba(0, 0, 0, 0.08); }
+.ptb-dex-evo-arrow { padding-bottom: 14px; }
+.ptb-dex-evo-name { font-size: 0.74em; max-width: 72px; }
+
+/* Species detail. */
+.ptb-dex-detail { spacing: 4px; }
+.ptb-detail-head { spacing: 6px; padding-right: 4px; }
+
+.ptb-back-button {
+    padding: 3px 9px 3px 4px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: -st-accent-color;
+}
+
+.ptb-back-button:hover, .ptb-back-button:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-light .ptb-back-button:hover, .ptb-light .ptb-back-button:focus { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-back-box { spacing: 2px; }
+.ptb-back-icon { icon-size: 14px; }
+.ptb-detail-number { font-feature-settings: "tnum"; }
+
+.ptb-detail-content {
+    spacing: 12px;
+    padding: 4px 12px 10px 2px; /* right side: the overlay scrollbar's lane */
+}
+
+.ptb-detail-section { spacing: 6px; }
+
+.ptb-detail-title {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.66);
+}
+
+.ptb-light .ptb-detail-title { color: rgba(34, 34, 38, 0.68); }
+
+.ptb-detail-subtitle {
+    margin-top: 4px;
+    font-size: 0.86em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.ptb-light .ptb-detail-subtitle { color: rgba(34, 34, 38, 0.64); }
+
+.ptb-form-cell {
+    padding: 3px 2px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ptb-form-cell:hover, .ptb-form-cell:focus { background-color: rgba(255, 255, 255, 0.10); }
+.ptb-form-cell:checked { border: 2px solid -st-accent-color; padding: 2px 1px; }
+.ptb-form-cell.ptb-form-pinned { background-color: st-transparentize(-st-accent-color, 0.84); }
+.ptb-light .ptb-form-cell { background-color: rgba(0, 0, 0, 0.04); }
+.ptb-form-box { spacing: 0; }
+.ptb-form-name { font-size: 0.72em; font-weight: 600; }
+
+.ptb-appearance { margin: 0 40px; }
+
+.ptb-detail-identity { spacing: 12px; }
+
+.ptb-detail-tile {
+    width: 104px;
+    height: 104px;
+    border-radius: 18px;
+    border: 1px solid rgba(154, 153, 150, 0.30);
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(154, 153, 150, 0.06);
+    background-gradient-end: rgba(154, 153, 150, 0.22);
+}
+
+.ptb-detail-tile .ptb-sprite-placeholder { font-size: 40px; }
+.ptb-detail-info { spacing: 4px; }
+.ptb-detail-name-row { spacing: 8px; }
+.ptb-detail-name { font-size: 1.15em; font-weight: bold; }
+.ptb-detail-rarity { font-size: 0.9em; font-weight: 600; }
+.ptb-accent-text { color: -st-accent-color; }
+
+.ptb-rep-button {
+    margin-top: 3px;
+    padding: 3px 10px 3px 7px;
+    border-radius: 8px;
+    font-size: 0.82em;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.09);
+}
+
+.ptb-rep-button:hover, .ptb-rep-button:focus { background-color: rgba(255, 255, 255, 0.16); }
+.ptb-rep-button:insensitive { color: rgba(255, 255, 255, 0.38); }
+.ptb-rep-button.ptb-rep-pinned { background-color: st-transparentize(-st-accent-color, 0.80); }
+.ptb-light .ptb-rep-button { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-light .ptb-rep-button:hover, .ptb-light .ptb-rep-button:focus { background-color: rgba(0, 0, 0, 0.11); }
+.ptb-light .ptb-rep-button:insensitive { color: rgba(34, 34, 38, 0.38); }
+.ptb-light .ptb-rep-button.ptb-rep-pinned { background-color: st-transparentize(-st-accent-color, 0.82); }
+.ptb-rep-box { spacing: 5px; }
+.ptb-rep-icon { icon-size: 12px; }
+.ptb-rep-pinned .ptb-rep-icon { color: -st-accent-color; }
+
+.ptb-detail-picker { spacing: 4px; }
+.ptb-detail-picker-label { font-size: 0.86em; font-feature-settings: "tnum"; }
+
+.ptb-detail-card {
+    spacing: 6px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ptb-light .ptb-detail-card { background-color: rgba(0, 0, 0, 0.04); }
+.ptb-detail-pairs, .ptb-iv-row { spacing: 14px; }
+.ptb-detail-pair { spacing: 1px; }
+.ptb-detail-value { font-weight: 600; font-feature-settings: "tnum"; }
+.ptb-detail-unavailable { spacing: 6px; }
+
+.ptb-stat-rows { spacing: 2px; }
+.ptb-stat-row { spacing: 6px; font-size: 0.86em; }
+.ptb-stat-name { width: 58px; }
+.ptb-stat-value { width: 30px; text-align: right; font-feature-settings: "tnum"; }
+.ptb-stat-iv { width: 40px; text-align: right; font-feature-settings: "tnum"; }
+.ptb-limit-bar.ptb-stat-bar { color: -st-accent-color; }
+
+.ptb-move-row { spacing: 8px; font-size: 0.9em; }
+
+/* Home: the companion sprite and reached evolution stages open the Pokédex. */
+.ptb-sprite-tile.ptb-linkable:hover { border-color: rgba(255, 255, 255, 0.45); }
+.ptb-light .ptb-sprite-tile.ptb-linkable:hover { border-color: rgba(0, 0, 0, 0.30); }
+.ptb-evo-node.ptb-linkable:hover { background-color: rgba(255, 255, 255, 0.12); }
+.ptb-light .ptb-evo-node.ptb-linkable:hover { background-color: rgba(0, 0, 0, 0.08); }
+
+.ptb-tiny.ptb-warning-text { margin-top: 2px; }
 
 /* ---- Tooltip ---------------------------------------------------------- */
 

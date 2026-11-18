@@ -47,6 +47,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - **Helper client** with an async write queue and command routing.
   - **Tests:** pure, unit-tested modules for formatting, the chart model, the view model and fps
     decimation. A protocol stub helper and screenshot tooling run only in the sandbox.
+- Pokédex tab:
+  - a 4×4 paged grid with region progress and badges, rarity, shiny and sort filters, debounced search,
+    and wheel and trackpad paging;
+  - a species detail view with forms, Normal/Shiny, the individual's profile and stats, the evolution
+    line, and *Set as representative*;
+  - a paged catch log.
+- `prefs.js` (libadwaita) covering every M1 setting. It enforces the warn/crit gap and ports the growth
+  difficulty slider mapping.
+- `helper/internal/daemon`: `ptb-helper serve` wiring all packages behind the NDJSON protocol, and
+  `snapshot --json`.
 - `helper/internal/pokeapi`: PokéAPI client.
   - Base index via GraphQL, with a self-healing fallback to REST.
   - Species, evolution chains (SSRF-guarded), details and localized names.
@@ -55,6 +65,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Builds URLs and cache keys, including form-aware ones.
   - Fallbacks: shiny to plain, animated to static, and back to front only after a 404.
   - Composites GIFs into a raw RGBA `frames.rgba` blob plus a manifest; crops the egg sprite.
+
+### Fixed
+
+- Disabling the extension with the popover open, as happens when the screen locks, logged a
+  `CRITICAL`: the menu closed after the indicator had already dropped its references. The menu
+  signal is now disconnected first, and late callbacks are guarded.
+- The companion now retries the active card's details and type names, and the egg's form names,
+  after a first miss.
+- The midnight-rollover daemon test was flaky under parallel load.
 
 ### Changed
 

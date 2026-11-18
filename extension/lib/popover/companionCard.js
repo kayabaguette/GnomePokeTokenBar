@@ -27,9 +27,15 @@ const TYPE_COLORS = {
 };
 const RARITIES = ['common', 'uncommon', 'rare', 'legendary'];
 
+function clickGesture(cb) {
+    const gesture = new Clutter.ClickGesture();
+    gesture.connect('recognize', () => cb());
+    return gesture;
+}
+
 export class CompanionCard {
     /**
-     * @param {object} deps  {tooltip, sprites: SpriteResolver}
+     * @param {object} deps  {tooltip, sprites: SpriteResolver, openDexEntry(speciesId, form)}
      */
     constructor(deps) {
         this._deps = deps;
@@ -53,6 +59,13 @@ export class CompanionCard {
         this._sprite.onLoadFailed = () => this._onSpriteFailed();
         this._tile.set_child(this._sprite);
         row.add_child(this._tile);
+        // The hatched companion links to its Pokédex detail (ui.md §2.1 A, DexEntryLink).
+        this._link = null; // {speciesId, form} while hatched
+        deps.tooltip.attach(this._tile, () => (this._link ? _('Open in the Pokédex') : null));
+        this._tile.add_action(clickGesture(() => {
+            if (this._link)
+                deps.openDexEntry?.(this._link.speciesId, this._link.form);
+        }));
 
         const info = vbox('ptb-companion-info', {x_expand: true, y_align: Clutter.ActorAlign.CENTER});
         row.add_child(info);
@@ -113,6 +126,12 @@ export class CompanionCard {
             this._updateActive(companion);
         else
             this._updateEgg(companion);
+        const a = companion.phase === 'active' ? companion.active : null;
+        this._link = a ? {speciesId: a.speciesId, form: a.form ?? null} : null;
+        if (this._link)
+            this._tile.add_style_class_name('ptb-linkable');
+        else
+            this._tile.remove_style_class_name('ptb-linkable');
         this._updateSprite(companion);
     }
 
@@ -293,6 +312,11 @@ export class CompanionCard {
         const icon = new St.Icon({icon_size: EVO_ICON_SIZE, style_class: 'ptb-evo-icon'});
         cell.set_child(icon);
         this._deps.tooltip.attach(cell, node.displayName ?? `#${node.speciesId}`);
+        if (node.reached) {
+            // Reached stages are in the Pokédex: link them (EvoLineView dexLinks).
+            cell.add_style_class_name('ptb-linkable');
+            cell.add_action(clickGesture(() => this._deps.openDexEntry?.(node.speciesId, node.form ?? null)));
+        }
         const req = {speciesId: node.speciesId, form: node.form ?? null, shiny: Boolean(shiny), back: false, animated: false};
         this._deps.sprites.resolve(req).then(data => {
             const png = staticPngPath(data.manifestPath);

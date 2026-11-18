@@ -18,7 +18,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {getLoginManager} from 'resource:///org/gnome/shell/misc/loginManager.js';
 import {Extension, gettext, ngettext} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {HelperClient} from './lib/helperClient.js';
+import {HelperClient, HelperError} from './lib/helperClient.js';
 import {setTranslations} from './lib/i18n.js';
 import {Indicator} from './lib/indicator.js';
 import {Notifier} from './lib/notifications.js';
@@ -137,6 +137,17 @@ export default class PokeTokenBarExtension extends Extension {
             if (e?.code !== 'helperExited')
                 console.warn(`${LOG}: refresh failed: ${e?.code ?? ''} ${e?.message ?? e}`);
         });
+    }
+
+    /**
+     * A helper command for the views (Pokédex pages, species, representative).
+     * Rejects with HelperError; callers must catch (every pending command
+     * fails with helperExited on each helper exit and on disable).
+     */
+    request(cmd, args) {
+        if (!this._client)
+            return Promise.reject(new HelperError('helperExited', 'helper is not running'));
+        return this._client.request(cmd, args);
     }
 
     openPrefs() {
