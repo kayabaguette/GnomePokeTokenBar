@@ -2,7 +2,7 @@
 %global uuid poketokenbar@local
 
 Name:           gnome-shell-extension-poketokenbar
-Version:        %{?pkg_version}%{!?pkg_version:0.1.0}
+Version:        %{?pkg_version}%{!?pkg_version:0.1.1}
 Release:        1%{?dist}
 Summary:        Top-bar Claude Code token usage tracker with a Pokemon companion
 License:        MIT
@@ -42,6 +42,9 @@ ln -sr %{buildroot}%{_libexecdir}/poketokenbar/ptb-helper %{buildroot}%{_datadir
 %{_libexecdir}/poketokenbar/
 
 %changelog
+* Wed Nov 18 2026 PokeTokenBar-GNOME maintainers - 0.1.1-1
+- Wider popover; the overlay scrollbar no longer covers the content
+
 * Wed Nov 18 2026 PokeTokenBar-GNOME maintainers - 0.1.0-1
 - First usable build: Claude Code usage, official limits, companion, top bar and popover
 

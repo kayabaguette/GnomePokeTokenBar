@@ -68,6 +68,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The popover is wider (384 px) and its scrolling views keep a right-hand lane for the overlay
+  scrollbar, which used to cover the content.
 - Disabling the extension with the popover open, as happens when the screen locks, logged a
   `CRITICAL`: the menu closed after the indicator had already dropped its references. The menu
   signal is now disconnected first, and late callbacks are guarded.

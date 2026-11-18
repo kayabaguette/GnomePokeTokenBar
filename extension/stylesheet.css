@@ -70,7 +70,7 @@
 }
 
 .ptb-popover {
-    width: 348px;
+    width: 384px;
     spacing: 6px;
     padding: 2px 2px 0 2px;
 }
@@ -105,7 +105,7 @@
 
 .ptb-home {
     spacing: 12px;
-    padding: 6px 10px 10px 8px; /* right side leaves room for the overlay scrollbar */
+    padding: 6px 20px 10px 8px; /* right side: lane for the overlay scrollbar */
 }
 
 .ptb-separator {
@@ -875,7 +875,7 @@
 
 /* Catch log. */
 .ptb-dex-log-page { spacing: 6px; }
-.ptb-log-list { spacing: 8px; padding-right: 10px; } /* the overlay scrollbar's lane */
+.ptb-log-list { spacing: 8px; padding-right: 18px; } /* the overlay scrollbar's lane */
 
 .ptb-log-card {
     spacing: 5px;
@@ -926,7 +926,7 @@
 
 .ptb-detail-content {
     spacing: 12px;
-    padding: 4px 12px 10px 2px; /* right side: the overlay scrollbar's lane */
+    padding: 4px 20px 10px 2px; /* right side: the overlay scrollbar's lane */
 }
 
 .ptb-detail-section { spacing: 6px; }
