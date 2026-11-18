@@ -1,0 +1,7 @@
+{
+  "uuid": "ptb-shot@local",
+  "name": "PokeTokenBar screenshot driver (sandbox only)",
+  "description": "Test-only: opens the PokeTokenBar menus and captures screenshots inside scripts/headless-shell.sh. Never install it in a real session.",
+  "shell-version": ["51"],
+  "version-name": "0.0.1"
+}

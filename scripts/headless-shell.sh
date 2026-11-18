@@ -118,6 +118,8 @@ fi
 LIVE_UID=$(id -u)
 LIVE_RUNTIME=/run/user/$LIVE_UID
 ls -A "$LIVE_RUNTIME" | sort >"$LOGS/runtime-before.txt"
+live_mounts() { findmnt -rn -o TARGET,FSTYPE | grep -E "^$LIVE_RUNTIME(/| )" | sort || true; }
+live_mounts >"$LOGS/live-mounts-before.txt"
 LIVE_SHELL_BEFORE=$(pgrep -u "$LIVE_UID" -x gnome-shell | sort | tr '\n' ' ' || true)
 
 # shellcheck disable=SC2016  # expanded inside the private session
@@ -171,14 +173,27 @@ trap - EXIT
 
 # Isolation evidence: the live runtime dir and the live shell must be unchanged.
 ls -A "$LIVE_RUNTIME" | sort >"$LOGS/runtime-after.txt"
+live_mounts >"$LOGS/live-mounts-after.txt"
 LIVE_SHELL_AFTER=$(pgrep -u "$LIVE_UID" -x gnome-shell | sort | tr '\n' ' ' || true)
+# Entries that other tools on the machine create or remove on their own (rootless containers).
+# A change there is reported but cannot come from the sandbox: sandbox processes run with
+# XDG_RUNTIME_DIR=$RUN, and the mount comparison below still covers the real risk.
+EXTERNAL_RE='^(crun|containers|libpod|netns|podman|buildah.*)$'
 ok=1
 {
     echo "inner status: $status"
     echo "live gnome-shell before: $LIVE_SHELL_BEFORE"
     echo "live gnome-shell after:  $LIVE_SHELL_AFTER"
-    if ! diff -u "$LOGS/runtime-before.txt" "$LOGS/runtime-after.txt"; then
-        echo "FAIL: live $LIVE_RUNTIME changed"; ok=0
+    changed=$(comm -3 "$LOGS/runtime-before.txt" "$LOGS/runtime-after.txt" | tr -d '\t' || true)
+    for e in $changed; do
+        if [[ $e =~ $EXTERNAL_RE ]]; then
+            echo "WARN: live $LIVE_RUNTIME/$e changed (container runtime, not the sandbox)"
+        else
+            echo "FAIL: live $LIVE_RUNTIME/$e appeared or disappeared"; ok=0
+        fi
+    done
+    if ! diff -u "$LOGS/live-mounts-before.txt" "$LOGS/live-mounts-after.txt"; then
+        echo "FAIL: mounts under live $LIVE_RUNTIME changed"; ok=0
     fi
     [[ $LIVE_SHELL_BEFORE == "$LIVE_SHELL_AFTER" ]] || { echo "FAIL: live shell PIDs changed"; ok=0; }
     leftovers=$(sandbox_pids | grep -vx "$$" || true)

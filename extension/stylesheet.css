@@ -1,3 +1,582 @@
-.ptb-label {
+/* PokeTokenBar — GNOME Shell 51.
+ *
+ * St reads a CSS subset: no variables, no opacity, no flexbox. Dark values are
+ * the defaults; `.ptb-light` (toggled from JS on each root actor when the
+ * shell switches to its light stylesheet) carries the light overrides.
+ * Cairo widgets (chart, limit bars) read their colors from the custom
+ * `-ptb-*` properties below, since Cairo ignores CSS.
+ *
+ * Palette (Adwaita): blue #3584e4, teal #2190a4, green #33d17a,
+ * yellow #f6d32d, orange #ff7800, red #e01b24; the today bar follows the
+ * system accent.
+ */
+
+/* ---- Top bar ---------------------------------------------------------- */
+
+.ptb-panel-box {
+    spacing: 6px;
+}
+
+.ptb-panel-lines {
+    spacing: 0;
+}
+
+.ptb-panel-text {
+    font-feature-settings: "tnum";
+}
+
+/* Two stacked lines inside the ≈26 px panel content area. */
+.ptb-panel-lines.ptb-two-lines .ptb-panel-text {
+    font-size: 0.74em;
+}
+
+.ptb-sprite-placeholder {
+    font-size: 14px;
+}
+
+/* Limit items in the top bar (and the popover percent), colored per pace
+ * tier. Yellow text is unreadable on light surfaces, so slightlyOver keeps
+ * the text color (ui.md §2.1 F). Bright tints suit a dark surface; the dark
+ * tints apply in the light popover (.ptb-light) and on a light panel
+ * (.ptb-panel-on-light, set from the panel's actual text color). */
+.ptb-tier-text-wayUnder { color: #78aeed; }
+.ptb-tier-text-under { color: #5bc8dc; }
+.ptb-tier-text-onPace { color: #57e389; }
+.ptb-tier-text-over { color: #ffa348; }
+.ptb-tier-text-wayOver { color: #ff7b63; }
+
+.ptb-light .ptb-tier-text-wayUnder, .ptb-panel-on-light .ptb-tier-text-wayUnder { color: #1c71d8; }
+.ptb-light .ptb-tier-text-under, .ptb-panel-on-light .ptb-tier-text-under { color: #187182; }
+.ptb-light .ptb-tier-text-onPace, .ptb-panel-on-light .ptb-tier-text-onPace { color: #1b7a42; }
+.ptb-light .ptb-tier-text-over, .ptb-panel-on-light .ptb-tier-text-over { color: #b54000; }
+.ptb-light .ptb-tier-text-wayOver, .ptb-panel-on-light .ptb-tier-text-wayOver { color: #c01c28; }
+
+/* ---- Popover frame ---------------------------------------------------- */
+
+.popup-menu-item.ptb-popover-item {
+    padding: 0;
+    spacing: 0;
+}
+
+/* The popover lives in a non-reactive menu item, which the theme dims as
+ * :insensitive; undo that. */
+.popup-menu .popup-menu-item.ptb-popover-item:insensitive {
+    color: #ffffff;
+    background-color: transparent;
+}
+
+.popup-menu.ptb-light .popup-menu-item.ptb-popover-item:insensitive {
+    color: #222226;
+}
+
+.ptb-popover {
+    width: 348px;
+    spacing: 6px;
+    padding: 2px 2px 0 2px;
+}
+
+.ptb-tabs {
+    spacing: 2px;
+    padding: 3px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.ptb-tab {
+    padding: 5px 8px;
+    border-radius: 9px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.ptb-tab:hover {
+    background-color: rgba(255, 255, 255, 0.07);
+}
+
+.ptb-tab:checked {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.ptb-light .ptb-tabs { background-color: rgba(0, 0, 0, 0.05); }
+.ptb-light .ptb-tab { color: rgba(34, 34, 38, 0.66); }
+.ptb-light .ptb-tab:hover { background-color: rgba(0, 0, 0, 0.05); }
+.ptb-light .ptb-tab:checked { color: #222226; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+
+.ptb-home {
+    spacing: 12px;
+    padding: 6px 10px 10px 8px; /* right side leaves room for the overlay scrollbar */
+}
+
+.ptb-separator {
+    height: 1px;
+    margin: 0 8px;
+    background-color: rgba(255, 255, 255, 0.09);
+}
+
+.ptb-light .ptb-separator { background-color: rgba(0, 0, 0, 0.09); }
+
+/* ---- Text roles ------------------------------------------------------- */
+
+.ptb-secondary { color: rgba(255, 255, 255, 0.70); }
+.ptb-tertiary { color: rgba(255, 255, 255, 0.50); }
+.ptb-light .ptb-secondary { color: rgba(34, 34, 38, 0.72); }
+.ptb-light .ptb-tertiary { color: rgba(34, 34, 38, 0.55); }
+
+.ptb-small { font-size: 0.86em; }
+.ptb-tiny { font-size: 0.78em; }
+
+.ptb-caption {
+    font-size: 0.86em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.ptb-light .ptb-caption { color: rgba(34, 34, 38, 0.64); }
+
+.ptb-orange-text, .ptb-warning-text { color: #ffa348; }
+.ptb-light .ptb-orange-text, .ptb-light .ptb-warning-text { color: #b54000; }
+
+/* ---- Companion card --------------------------------------------------- */
+
+.ptb-companion {
+    spacing: 8px;
+}
+
+.ptb-companion-row {
+    spacing: 12px;
+}
+
+/* The tile is the one bold element: a patch of the rarity's color under the
+ * sprite, darker toward the bottom like ground under its feet. */
+.ptb-sprite-tile {
+    width: 76px;
+    height: 76px;
+    border-radius: 16px;
+    border: 1px solid rgba(154, 153, 150, 0.30);
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(154, 153, 150, 0.08);
+    background-gradient-end: rgba(154, 153, 150, 0.24);
+}
+
+.ptb-sprite-tile .ptb-sprite-placeholder { font-size: 34px; }
+
+.ptb-sprite-tile.ptb-rarity-uncommon {
+    border-color: rgba(51, 209, 122, 0.34);
+    background-gradient-start: rgba(51, 209, 122, 0.07);
+    background-gradient-end: rgba(51, 209, 122, 0.24);
+}
+
+.ptb-sprite-tile.ptb-rarity-rare {
+    border-color: rgba(53, 132, 228, 0.40);
+    background-gradient-start: rgba(53, 132, 228, 0.08);
+    background-gradient-end: rgba(53, 132, 228, 0.28);
+}
+
+.ptb-sprite-tile.ptb-rarity-legendary {
+    border-color: rgba(255, 120, 0, 0.45);
+    background-gradient-start: rgba(255, 120, 0, 0.08);
+    background-gradient-end: rgba(255, 163, 72, 0.30);
+}
+
+.ptb-companion-info {
+    spacing: 3px;
+}
+
+.ptb-name-row {
+    spacing: 6px;
+}
+
+.ptb-companion-name {
     font-weight: bold;
+    font-size: 1.1em;
+}
+
+.ptb-shiny {
+    font-size: 0.9em;
+}
+
+.ptb-badge {
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 0.72em;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+.ptb-badge.ptb-rarity-common { background-color: #77767b; }
+.ptb-badge.ptb-rarity-uncommon { background-color: #26a269; }
+.ptb-badge.ptb-rarity-rare { background-color: #1c71d8; }
+.ptb-badge.ptb-rarity-legendary { background-color: #e66100; }
+.ptb-boost-badge { background-color: #e66100; }
+
+.ptb-type-row, .ptb-stage-row {
+    spacing: 4px;
+}
+
+.ptb-status {
+    margin-top: 1px;
+}
+
+/* Growth bar: orange on the shared track (ui.md §6). */
+.ptb-limit-bar {
+    -ptb-track-color: rgba(255, 255, 255, 0.13);
+    -ptb-marker-color: rgba(255, 255, 255, 0.72);
+    color: #33d17a;
+}
+
+.ptb-light .ptb-limit-bar {
+    -ptb-track-color: rgba(0, 0, 0, 0.10);
+    -ptb-marker-color: rgba(0, 0, 0, 0.58);
+}
+
+.ptb-limit-bar.ptb-growth-bar { color: #ff7800; margin: 2px 0 0 0; }
+
+.ptb-evo-line {
+    spacing: 3px;
+    padding-left: 2px;
+}
+
+.ptb-evo-node {
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+}
+
+.ptb-evo-node.ptb-evo-current {
+    border: 1px solid -st-accent-color;
+    background-color: st-transparentize(-st-accent-color, 0.85);
+}
+
+.ptb-light .ptb-evo-node { background-color: rgba(0, 0, 0, 0.04); }
+
+.ptb-evo-mystery {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ptb-light .ptb-evo-mystery { color: rgba(34, 34, 38, 0.5); }
+
+.ptb-evo-arrow {
+    font-size: 1.2em;
+}
+
+/* ---- Usage ------------------------------------------------------------ */
+
+.ptb-usage {
+    spacing: 4px;
+}
+
+.ptb-big-row {
+    spacing: 8px;
+}
+
+.ptb-big-number {
+    font-size: 28px;
+    font-weight: 800;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.5px;
+}
+
+.ptb-grouped {
+    padding-bottom: 5px;
+    font-feature-settings: "tnum";
+}
+
+.ptb-today-cost {
+    padding-bottom: 4px;
+    font-size: 1.05em;
+    font-feature-settings: "tnum";
+}
+
+.ptb-usage-head {
+    spacing: 6px;
+}
+
+.ptb-period-table {
+    spacing: 1px;
+}
+
+.ptb-period {
+    spacing: 6px;
+}
+
+.ptb-period-title {
+    min-width: 76px;
+}
+
+.ptb-period-value {
+    min-width: 52px;
+}
+
+.ptb-period-value {
+    font-size: 0.86em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+}
+
+.ptb-streak {
+    font-size: 0.9em;
+    font-weight: bold;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background-color: rgba(255, 120, 0, 0.14);
+}
+
+.ptb-breakdown {
+    spacing: 1px;
+    font-feature-settings: "tnum";
+}
+
+.ptb-chart-caption {
+    spacing: 6px;
+    margin-top: 6px;
+}
+
+.ptb-window-button {
+    padding: 2px 4px 2px 6px;
+    border-radius: 6px;
+}
+
+.ptb-window-button:hover, .ptb-window-button:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ptb-light .ptb-window-button:hover, .ptb-light .ptb-window-button:focus {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.ptb-window-button-box { spacing: 2px; }
+
+.ptb-window-label {
+    font-size: 0.86em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ptb-light .ptb-window-label { color: rgba(34, 34, 38, 0.58); }
+
+.ptb-window-icon {
+    icon-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ptb-light .ptb-window-icon { color: rgba(34, 34, 38, 0.58); }
+
+.ptb-readout {
+    font-size: 0.86em;
+    font-weight: 600;
+    font-feature-settings: "tnum";
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.ptb-light .ptb-readout { color: rgba(34, 34, 38, 0.74); }
+
+.ptb-peak-value {
+    font-size: 0.78em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.ptb-light .ptb-peak-value { color: rgba(34, 34, 38, 0.74); }
+
+.ptb-chart {
+    font-size: 0.72em;
+    font-feature-settings: "tnum";
+    -ptb-bar-color: rgba(255, 255, 255, 0.36);
+    -ptb-bar-empty-color: rgba(255, 255, 255, 0.15);
+    -ptb-bar-hover-color: rgba(255, 255, 255, 0.78);
+    -ptb-today-color: -st-accent-color;
+    -ptb-tick-color: rgba(255, 255, 255, 0.40);
+    -ptb-label-color: rgba(255, 255, 255, 0.62);
+    -ptb-future-color: rgba(255, 255, 255, 0.34);
+}
+
+.ptb-light .ptb-chart {
+    -ptb-bar-color: rgba(0, 0, 0, 0.26);
+    -ptb-bar-empty-color: rgba(0, 0, 0, 0.10);
+    -ptb-bar-hover-color: rgba(0, 0, 0, 0.62);
+    -ptb-tick-color: rgba(0, 0, 0, 0.32);
+    -ptb-label-color: rgba(34, 34, 38, 0.64);
+    -ptb-future-color: rgba(34, 34, 38, 0.36);
+}
+
+/* ---- Limits ----------------------------------------------------------- */
+
+.ptb-limits, .ptb-limits-provider {
+    spacing: 6px;
+}
+
+.ptb-quota-rows {
+    spacing: 9px;
+    margin-top: 2px;
+}
+
+.ptb-quota-row {
+    spacing: 2px;
+}
+
+.ptb-quota-top {
+    spacing: 8px;
+}
+
+.ptb-quota-reset {
+    font-feature-settings: "tnum";
+}
+
+.ptb-quota-percent {
+    font-weight: bold;
+    font-feature-settings: "tnum";
+}
+
+.ptb-limit-bar.ptb-tier-wayUnder { color: #3584e4; }
+.ptb-limit-bar.ptb-tier-under { color: #2190a4; }
+.ptb-limit-bar.ptb-tier-onPace { color: #33d17a; }
+.ptb-limit-bar.ptb-tier-slightlyOver { color: #f6d32d; }
+.ptb-limit-bar.ptb-tier-over { color: #ff7800; }
+.ptb-limit-bar.ptb-tier-wayOver { color: #e01b24; }
+
+.ptb-forecast {
+    spacing: 5px;
+    padding-left: 1px;
+}
+
+.ptb-forecast-icon {
+    icon-size: 12px;
+}
+
+.ptb-block-row {
+    spacing: 6px;
+}
+
+.ptb-block-tokens {
+    font-weight: bold;
+    font-feature-settings: "tnum";
+}
+
+.ptb-banner {
+    spacing: 4px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background-color: rgba(255, 120, 0, 0.13);
+}
+
+.ptb-banner-top {
+    spacing: 8px;
+}
+
+.ptb-banner-icon {
+    icon-size: 14px;
+    color: #ffa348;
+}
+
+.ptb-light .ptb-banner-icon { color: #b54000; }
+
+.ptb-banner-title {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.ptb-hint {
+    padding: 6px 9px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ptb-light .ptb-hint { background-color: rgba(0, 0, 0, 0.04); }
+
+.ptb-load-row {
+    spacing: 2px;
+}
+
+.ptb-load-top {
+    spacing: 8px;
+}
+
+/* ---- Buttons ---------------------------------------------------------- */
+
+.ptb-text-button {
+    padding: 3px 11px;
+    border-radius: 7px;
+    font-size: 0.86em;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+.ptb-text-button:hover, .ptb-text-button:focus { background-color: rgba(255, 255, 255, 0.17); }
+.ptb-light .ptb-text-button { background-color: rgba(0, 0, 0, 0.07); }
+.ptb-light .ptb-text-button:hover, .ptb-light .ptb-text-button:focus { background-color: rgba(0, 0, 0, 0.12); }
+
+.ptb-icon-button {
+    padding: 6px;
+    border-radius: 999px;
+}
+
+.ptb-icon-button:hover, .ptb-icon-button:focus { background-color: rgba(255, 255, 255, 0.10); }
+.ptb-light .ptb-icon-button:hover, .ptb-light .ptb-icon-button:focus { background-color: rgba(0, 0, 0, 0.07); }
+
+.ptb-icon-button:insensitive { color: rgba(255, 255, 255, 0.35); }
+.ptb-light .ptb-icon-button:insensitive { color: rgba(34, 34, 38, 0.35); }
+
+.ptb-icon {
+    icon-size: 16px;
+}
+
+/* ---- Footer ----------------------------------------------------------- */
+
+.ptb-footer {
+    padding: 0 4px 2px 2px;
+}
+
+.ptb-footer-home {
+    spacing: 4px;
+}
+
+.ptb-footer-error {
+    icon-size: 14px;
+    color: #ffa348;
+    margin-left: 4px;
+}
+
+.ptb-light .ptb-footer-error { color: #b54000; }
+
+/* ---- Pokédex placeholder ---------------------------------------------- */
+
+.ptb-dex-placeholder {
+    spacing: 6px;
+    padding: 24px 16px 32px 16px;
+}
+
+.ptb-dex-title {
+    font-weight: bold;
+    font-size: 1.15em;
+}
+
+/* ---- Tooltip ---------------------------------------------------------- */
+
+.ptb-tooltip {
+    max-width: 300px;
+    padding: 6px 10px;
+    border-radius: 9px;
+    font-size: 0.86em;
+    font-feature-settings: "tnum";
+    color: #ffffff;
+    background-color: rgba(28, 28, 31, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.ptb-tooltip.ptb-light {
+    color: #222226;
+    background-color: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* ---- Right-click menu ------------------------------------------------- */
+
+.ptb-info-item {
+    font-feature-settings: "tnum";
 }

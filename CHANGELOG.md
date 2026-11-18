@@ -37,6 +37,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Pokédex cells, search, regions and badges; representative pin.
   - Rare Candy grants; mood; protocol view builders.
   - 151 tests ported from the Swift suite.
+- Extension UI (Phase 6):
+  - **Top bar:** an animated sprite with configurable token, cost, limit and growth labels, plus a
+    right-click menu. The sprite is loaded from raw RGBA asynchronously and uploaded once with
+    `St.ImageContent`.
+  - **Home popover:** companion card, today, week and month totals, a daily bar chart in Cairo with
+    hover, and official limit rows with a pace marker, countdowns, forecast and current block.
+  - **Notifications** with the sprite as their icon. All M1 GSettings keys.
+  - **Helper client** with an async write queue and command routing.
+  - **Tests:** pure, unit-tested modules for formatting, the chart model, the view model and fps
+    decimation. A protocol stub helper and screenshot tooling run only in the sandbox.
 - `helper/internal/pokeapi`: PokéAPI client.
   - Base index via GraphQL, with a self-healing fallback to REST.
   - Species, evolution chains (SSRF-guarded), details and localized names.

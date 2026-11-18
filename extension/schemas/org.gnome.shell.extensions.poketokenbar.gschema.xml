@@ -1,11 +1,125 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist>
+<!-- Milestone 1 keys, protocol §9.1. "Forwarded" keys are sent to the helper
+     with setSettings (§9.2); the others are read by the extension only. -->
+<schemalist gettext-domain="poketokenbar">
   <schema id="org.gnome.shell.extensions.poketokenbar"
           path="/org/gnome/shell/extensions/poketokenbar/">
+
+    <!-- General -->
     <key name="refresh-interval" type="i">
+      <!-- Presets are 0 (manual), 60, 120, 300, 900. GSettings has no choices
+           for integers; the helper snaps any other value to the nearest preset. -->
+      <range min="0" max="900"/>
       <default>120</default>
-      <summary>Refresh interval (seconds)</summary>
-      <description>Placeholder: how often usage is refreshed.</description>
+      <summary>Refresh interval</summary>
+      <description>Seconds between usage refreshes; 0 refreshes only on demand. Forwarded to the helper as refreshInterval.</description>
+    </key>
+    <key name="animation-quality" type="s">
+      <choices>
+        <choice value="powerSaver"/>
+        <choice value="balanced"/>
+        <choice value="smooth"/>
+      </choices>
+      <default>'powerSaver'</default>
+      <summary>Top-bar animation quality</summary>
+      <description>Minimum frame duration of the top-bar sprite: 0.4 s (powerSaver), 0.2 s (balanced) or 0.1 s (smooth).</description>
+    </key>
+    <key name="limit-display-mode" type="s">
+      <choices>
+        <choice value="used"/>
+        <choice value="remaining"/>
+      </choices>
+      <default>'used'</default>
+      <summary>Limit display</summary>
+      <description>Show official limits as the percentage used or the percentage remaining.</description>
+    </key>
+    <key name="daily-trend-window" type="s">
+      <choices>
+        <choice value="7d"/>
+        <choice value="14d"/>
+        <choice value="21d"/>
+        <choice value="month"/>
+      </choices>
+      <default>'14d'</default>
+      <summary>Daily trend period</summary>
+      <description>Days shown by the daily bar chart in the popover.</description>
+    </key>
+    <key name="week-start" type="s">
+      <choices>
+        <choice value="locale"/>
+        <choice value="monday"/>
+        <choice value="sunday"/>
+        <choice value="saturday"/>
+      </choices>
+      <default>'locale'</default>
+      <summary>First day of the week</summary>
+      <description>Start of "This week". Forwarded to the helper as an ISO weekday (weekStart).</description>
+    </key>
+
+    <!-- Difficulty -->
+    <key name="growth-difficulty" type="d">
+      <range min="0.1" max="2.0"/>
+      <default>1.0</default>
+      <summary>Growth difficulty</summary>
+      <description>Multiplier on hatch and evolution thresholds. Forwarded to the helper as growthDifficulty.</description>
+    </key>
+
+    <!-- Show in menu bar -->
+    <key name="show-tokens-in-menu" type="b">
+      <default>true</default>
+      <summary>Show today's tokens in the top bar</summary>
+    </key>
+    <key name="show-cost-in-menu" type="b">
+      <default>false</default>
+      <summary>Show today's cost in the top bar</summary>
+    </key>
+    <key name="show-growth-in-menu" type="b">
+      <default>false</default>
+      <summary>Show the companion's growth in the top bar</summary>
+    </key>
+    <key name="show-limit-in-menu" type="b">
+      <default>false</default>
+      <summary>Show the official limit percentage in the top bar</summary>
+    </key>
+    <key name="menu-limit-color-mode" type="s">
+      <choices>
+        <choice value="gauge"/>
+        <choice value="attention"/>
+        <choice value="off"/>
+      </choices>
+      <default>'gauge'</default>
+      <summary>Top-bar limit color</summary>
+      <description>gauge colors every pace tier; attention only items running faster than pace; off none.</description>
+    </key>
+
+    <!-- Floating pet: only the back-view toggle is in M1, because it also turns the top-bar sprite. -->
+    <key name="always-faces-back" type="b">
+      <default>false</default>
+      <summary>Show the back view</summary>
+      <description>Draw the companion facing away. Forwarded to the helper as alwaysFacesBack.</description>
+    </key>
+
+    <!-- Notifications -->
+    <key name="limit-notifications" type="b">
+      <default>true</default>
+      <summary>Limit alerts</summary>
+    </key>
+    <key name="warn-threshold" type="i">
+      <range min="50" max="95"/>
+      <default>80</default>
+      <summary>Warning threshold (%)</summary>
+      <description>Step 5. Forwarded as warnThreshold; the helper keeps it at least 5 points below the critical threshold.</description>
+    </key>
+    <key name="crit-threshold" type="i">
+      <range min="80" max="100"/>
+      <default>95</default>
+      <summary>Critical threshold (%)</summary>
+      <description>Step 5. Forwarded as critThreshold.</description>
+    </key>
+    <key name="companion-notifications" type="b">
+      <default>true</default>
+      <summary>Companion events</summary>
+      <description>Notify on hatch, evolution, graduation, candy and Pokédex badges.</description>
     </key>
   </schema>
 </schemalist>

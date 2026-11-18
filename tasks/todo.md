@@ -316,6 +316,34 @@ That settles the spec's "329 vs 328": the right number is 328. Protocol §8.2 wa
 - [ ] Shutdown and logging: stdin EOF → flush and exit; logs to stderr, without token values.
 
 ### Phase 6 — Extension: indicator and popover home  `[sub:opus + frontend-design skill]`
+✅ 2026-11-18. 57 JS unit tests pass under `gjs -m`. Screenshots work in the sandbox through an
+in-process test extension (`extension/test/shot-extension/`).
+
+Orchestrator acceptance run (stub helper, `--cycle`):
+- `ISOLATION OK`;
+- helper count 1 while enabled, 0 while disabled;
+- 0 `JS ERROR`, 0 `CRITICAL`.
+
+Sprite defaults: a 22 px box capped at 40 px wide, TRILINEAR for minification, NEAREST only for
+integer upscaling.
+
+Accepted deviations:
+- Week start falls back to GNOME's setting, then the locale, then Monday. `Intl` week info is absent
+  in GJS 1.90.
+- `refresh-interval` is a 0–900 range.
+- Auth-expiry and candy notifications use LOW urgency.
+
+Later:
+- Ctrl+click opens the menu.
+- Pause while the display sleeps.
+- Hatch/evolve celebration flash.
+- The notification source is destroyed on disable, so notifications vanish at screen lock. Accepted
+  for M1.
+
+**Isolation false positive fixed.** A rootless podman build from another session recreated
+`/run/user/1000/crun` mid-run. Changes to container-runtime entries are now a WARN. Any other entry
+change, or any **mount** change under the live runtime dir, is still a FAIL; the mount check would
+have caught the original portal incident.
 - [ ] Helper client:
   - **Fix from the Phase 0 review:** `send()` currently does a synchronous `write_all` on the stdin
     pipe from the compositor thread. A stuck helper with a full pipe would freeze the session.
