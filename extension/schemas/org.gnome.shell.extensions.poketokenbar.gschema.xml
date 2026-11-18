@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.poketokenbar"
+          path="/org/gnome/shell/extensions/poketokenbar/">
+    <key name="refresh-interval" type="i">
+      <default>120</default>
+      <summary>Refresh interval (seconds)</summary>
+      <description>Placeholder: how often usage is refreshed.</description>
+    </key>
+  </schema>
+</schemalist>

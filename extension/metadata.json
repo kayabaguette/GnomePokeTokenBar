@@ -1,0 +1,10 @@
+{
+  "uuid": "poketokenbar@local",
+  "name": "PokeTokenBar",
+  "description": "Top-bar Claude Code token usage tracker with a Pokémon companion, backed by a Go helper process.",
+  "shell-version": ["51"],
+  "settings-schema": "org.gnome.shell.extensions.poketokenbar",
+  "gettext-domain": "poketokenbar",
+  "url": "",
+  "version-name": "0.0.1"
+}

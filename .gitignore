@@ -1,0 +1,15 @@
+.env
+*.exe
+*.dll
+*.bin
+*.o
+__pycache__/
+bin/
+dist/
+*.zip
+*.out
+coverage*
+extension/bin/
+extension/schemas/gschemas.compiled
+.dev-state/
+spikes/**/out/

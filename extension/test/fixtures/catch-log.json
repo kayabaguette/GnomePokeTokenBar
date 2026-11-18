@@ -1,0 +1,99 @@
+{
+  "type": "result",
+  "id": 43,
+  "ok": true,
+  "data": {
+    "offset": 0,
+    "limit": 20,
+    "total": 6,
+    "entries": [
+      {
+        "id": "active-16-17",
+        "isRaising": true,
+        "released": false,
+        "rarity": "common",
+        "isShiny": false,
+        "nature": "adamant",
+        "form": null,
+        "caughtAt": null,
+        "speciesId": 17,
+        "displayName": "Pidgeotto",
+        "chain": [{"speciesId": 16, "form": null, "displayName": "Pidgey"}, {"speciesId": 17, "form": null, "displayName": "Pidgeotto"}]
+      },
+      {
+        "id": "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
+        "isRaising": false,
+        "released": false,
+        "rarity": "rare",
+        "isShiny": false,
+        "nature": "bold",
+        "form": null,
+        "caughtAt": "2026-11-12T21:12:47Z",
+        "speciesId": 134,
+        "displayName": "Vaporeon",
+        "chain": [{"speciesId": 133, "form": null, "displayName": "Eevee"}, {"speciesId": 134, "form": null, "displayName": "Vaporeon"}]
+      },
+      {
+        "id": "e4f5a6b7-c8d9-4e0f-8a1b-2c3d4e5f6a7b",
+        "isRaising": false,
+        "released": false,
+        "rarity": "common",
+        "isShiny": false,
+        "nature": "modest",
+        "form": "east",
+        "caughtAt": "2026-10-30T08:55:14Z",
+        "speciesId": 423,
+        "displayName": "Gastrodon [East Sea]",
+        "chain": [{"speciesId": 422, "form": "east", "displayName": "Shellos"}, {"speciesId": 423, "form": "east", "displayName": "Gastrodon"}]
+      },
+      {
+        "id": "0d8a6b4c-3e2f-4a1b-9d7c-5f6e8a0b1c2d",
+        "isRaising": false,
+        "released": false,
+        "rarity": "common",
+        "isShiny": false,
+        "nature": "adamant",
+        "form": null,
+        "caughtAt": "2026-10-20T19:27:30Z",
+        "speciesId": 130,
+        "displayName": "Gyarados",
+        "chain": [{"speciesId": 129, "form": null, "displayName": "Magikarp"}, {"speciesId": 130, "form": null, "displayName": "Gyarados"}]
+      },
+      {
+        "id": "b3e9d7c1-2a4f-4e8b-a6d5-7c9f0e1b2a3d",
+        "isRaising": false,
+        "released": false,
+        "rarity": "common",
+        "isShiny": true,
+        "nature": "calm",
+        "form": null,
+        "caughtAt": "2026-10-09T11:03:52Z",
+        "speciesId": 12,
+        "displayName": "Butterfree",
+        "chain": [
+          {"speciesId": 10, "form": null, "displayName": "Caterpie"},
+          {"speciesId": 11, "form": null, "displayName": "Metapod"},
+          {"speciesId": 12, "form": null, "displayName": "Butterfree"}
+        ]
+      },
+      {
+        "id": "6f1c2a4e-8b0d-4f6a-9c3e-1d2b3a4c5e6f",
+        "isRaising": false,
+        "released": false,
+        "rarity": "common",
+        "isShiny": false,
+        "nature": "timid",
+        "form": null,
+        "caughtAt": "2026-10-02T16:41:09Z",
+        "speciesId": 26,
+        "displayName": "Raichu",
+        "chain": [
+          {"speciesId": 172, "form": null, "displayName": "Pichu"},
+          {"speciesId": 25, "form": null, "displayName": "Pikachu"},
+          {"speciesId": 26, "form": null, "displayName": "Raichu"}
+        ]
+      }
+    ],
+    "rarityCounts": {"legendary": 0, "rare": 1, "uncommon": 0, "common": 5}
+  }
+}

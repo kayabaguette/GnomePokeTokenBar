@@ -1,0 +1,35 @@
+{
+  "type": "result",
+  "id": 41,
+  "ok": true,
+  "data": {
+    "page": 1,
+    "pageSize": 16,
+    "pageCount": 1,
+    "total": 14,
+    "cells": [
+      {"speciesId": 10, "displayName": "Caterpie", "rarity": "common", "isShiny": true, "hasNormal": false, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 10, "form": null, "shiny": true, "back": false, "animated": false}, "spriteKey": "10-shs"},
+      {"speciesId": 11, "displayName": "Metapod", "rarity": "common", "isShiny": true, "hasNormal": false, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 11, "form": null, "shiny": true, "back": false, "animated": false}, "spriteKey": "11-shs"},
+      {"speciesId": 12, "displayName": "Butterfree", "rarity": "common", "isShiny": true, "hasNormal": false, "isRaising": false, "isRepresentative": true, "forms": null, "sprite": {"speciesId": 12, "form": null, "shiny": true, "back": false, "animated": false}, "spriteKey": "12-shs"},
+      {"speciesId": 16, "displayName": "Pidgey", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 16, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "16-s"},
+      {"speciesId": 17, "displayName": "Pidgeotto", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": true, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 17, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "17-s"},
+      {"speciesId": 25, "displayName": "Pikachu", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 25, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "25-s"},
+      {"speciesId": 26, "displayName": "Raichu", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 26, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "26-s"},
+      {"speciesId": 129, "displayName": "Magikarp", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 129, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "129-s"},
+      {"speciesId": 130, "displayName": "Gyarados", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 130, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "130-s"},
+      {"speciesId": 133, "displayName": "Eevee", "rarity": "rare", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 133, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "133-s"},
+      {"speciesId": 134, "displayName": "Vaporeon", "rarity": "rare", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 134, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "134-s"},
+      {"speciesId": 172, "displayName": "Pichu", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": null, "sprite": {"speciesId": 172, "form": null, "shiny": false, "back": false, "animated": false}, "spriteKey": "172-s"},
+      {"speciesId": 422, "displayName": "Shellos", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": {"owned": 1, "total": 2}, "sprite": {"speciesId": 422, "form": "west", "shiny": false, "back": false, "animated": false}, "spriteKey": "422-s"},
+      {"speciesId": 423, "displayName": "Gastrodon", "rarity": "common", "isShiny": false, "hasNormal": true, "isRaising": false, "isRepresentative": false, "forms": {"owned": 1, "total": 2}, "sprite": {"speciesId": 423, "form": "west", "shiny": false, "back": false, "animated": false}, "spriteKey": "423-s"}
+    ],
+    "regions": [
+      {"key": "kanto", "owned": 11, "shinyOwned": 3, "total": 151, "complete": false, "shinyComplete": false},
+      {"key": "johto", "owned": 1, "shinyOwned": 0, "total": 100, "complete": false, "shinyComplete": false},
+      {"key": "hoenn", "owned": 0, "shinyOwned": 0, "total": 135, "complete": false, "shinyComplete": false},
+      {"key": "sinnoh", "owned": 2, "shinyOwned": 0, "total": 107, "complete": false, "shinyComplete": false},
+      {"key": "unova", "owned": 0, "shinyOwned": 0, "total": 156, "complete": false, "shinyComplete": false}
+    ],
+    "rarityCounts": {"legendary": 0, "rare": 2, "uncommon": 0, "common": 12}
+  }
+}

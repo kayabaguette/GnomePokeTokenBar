@@ -1,0 +1,8 @@
+{"type":"event","kind":"hatch","speciesId":16,"form":null,"displayName":"Pidgey","rarity":"common","isShiny":false,"shinyOdds":64}
+{"type":"event","kind":"evolve","fromSpeciesId":16,"fromDisplayName":"Pidgey","speciesId":17,"form":null,"displayName":"Pidgeotto","isShiny":false}
+{"type":"event","kind":"graduate","speciesId":134,"form":null,"displayName":"Vaporeon","rarity":"rare","isShiny":false,"entryId":"7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d"}
+{"type":"event","kind":"candyGranted","item":"rareCandy","count":1,"providerId":"claude_code","windowKey":"claude.fiveHour","windowKind":"session"}
+{"type":"event","kind":"badge","key":"region.kanto","badge":"region","region":"kanto"}
+{"type":"event","kind":"limitAlert","providerId":"claude_code","windowKey":"claude.sevenDay","windowKind":"sevenDay","label":null,"tier":"warn","utilization":83.0}
+{"type":"event","kind":"authExpired","providerId":"claude_code","errorCode":"tokenExpired"}
+{"type":"event","kind":"error","code":"pokeapiUnreachable","message":"PokéAPI request failed (context deadline exceeded); the hatch retries on the next refresh"}

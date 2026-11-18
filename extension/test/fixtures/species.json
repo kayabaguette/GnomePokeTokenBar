@@ -1,0 +1,73 @@
+{
+  "type": "result",
+  "id": 42,
+  "ok": true,
+  "data": {
+    "speciesId": 423,
+    "displayName": "Gastrodon",
+    "rarity": "common",
+    "region": "sinnoh",
+    "owned": true,
+    "hasNormal": true,
+    "isShiny": false,
+    "isRaising": false,
+    "isRepresentative": false,
+    "forms": [
+      {"form": "west", "displayName": "West Sea", "hasNormal": false, "isShiny": false, "isRepresentative": false},
+      {"form": "east", "displayName": "East Sea", "hasNormal": true, "isShiny": false, "isRepresentative": false}
+    ],
+    "individuals": [
+      {
+        "id": "e4f5a6b7-c8d9-4e0f-8a1b-2c3d4e5f6a7b",
+        "form": "east",
+        "displayName": "Gastrodon [East Sea]",
+        "isRaising": false,
+        "released": false,
+        "isShiny": false,
+        "caughtAt": "2026-10-30T08:55:14Z",
+        "nature": "modest",
+        "level": 100,
+        "gender": "female",
+        "ability": {"name": "storm-drain", "displayName": "Storm Drain", "isHidden": false},
+        "ivs": {"hp": 24, "attack": 7, "defense": 19, "specialAttack": 31, "specialDefense": 12, "speed": 28},
+        "stats": {"hp": 356, "attack": 160, "defense": 160, "specialAttack": 242, "specialDefense": 181, "speed": 111},
+        "moves": [
+          {"name": "rain-dance", "displayName": "Rain Dance", "level": 22},
+          {"name": "body-slam", "displayName": "Body Slam", "level": 29},
+          {"name": "muddy-water", "displayName": "Muddy Water", "level": 41},
+          {"name": "recover", "displayName": "Recover", "level": 54}
+        ]
+      }
+    ],
+    "detailsStatus": "ready",
+    "details": {
+      "types": [{"key": "water", "name": "Water"}, {"key": "ground", "name": "Ground"}],
+      "heightM": 0.9,
+      "weightKg": 29.9,
+      "baseStats": {"hp": 111, "attack": 83, "defense": 68, "specialAttack": 92, "specialDefense": 82, "speed": 39},
+      "abilities": [
+        {"name": "sticky-hold", "displayName": "Sticky Hold", "isHidden": false},
+        {"name": "storm-drain", "displayName": "Storm Drain", "isHidden": false},
+        {"name": "sand-force", "displayName": "Sand Force", "isHidden": true}
+      ],
+      "moves": [
+        {"name": "mud-slap", "displayName": "Mud-Slap", "methods": [{"method": "level-up", "level": 1}]},
+        {"name": "water-pulse", "displayName": "Water Pulse", "methods": [{"method": "level-up", "level": 1}, {"method": "level-up", "level": 7}]},
+        {"name": "mud-bomb", "displayName": "Mud Bomb", "methods": [{"method": "level-up", "level": 11}]},
+        {
+          "name": "hidden-power",
+          "displayName": "Hidden Power",
+          "methods": [{"method": "level-up", "level": 16}, {"method": "machine", "level": null}]
+        },
+        {"name": "rain-dance", "displayName": "Rain Dance", "methods": [{"method": "level-up", "level": 22}, {"method": "machine", "level": null}]},
+        {"name": "body-slam", "displayName": "Body Slam", "methods": [{"method": "level-up", "level": 29}]},
+        {"name": "muddy-water", "displayName": "Muddy Water", "methods": [{"method": "level-up", "level": 41}]},
+        {"name": "recover", "displayName": "Recover", "methods": [{"method": "level-up", "level": 54}]},
+        {"name": "earthquake", "displayName": "Earthquake", "methods": [{"method": "machine", "level": null}]},
+        {"name": "surf", "displayName": "Surf", "methods": [{"method": "machine", "level": null}]},
+        {"name": "mirror-coat", "displayName": "Mirror Coat", "methods": [{"method": "egg", "level": null}]},
+        {"name": "earth-power", "displayName": "Earth Power", "methods": [{"method": "tutor", "level": null}]}
+      ]
+    }
+  }
+}

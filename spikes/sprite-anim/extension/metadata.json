@@ -1,0 +1,8 @@
+{
+  "uuid": "ptb-sprite-spike@local",
+  "name": "PTB sprite spike",
+  "description": "PokeTokenBar spike: cycles preloaded, composited GIF frames in the top bar to measure smoothness and CPU cost.",
+  "shell-version": ["51"],
+  "url": "",
+  "version-name": "0.0.1"
+}

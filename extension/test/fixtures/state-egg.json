@@ -1,0 +1,90 @@
+{
+  "type": "state",
+  "meta": {
+    "protocolVersion": 1,
+    "helperVersion": "0.1.0",
+    "generatedAt": "2026-11-18T06:50:00Z",
+    "lastUpdated": "2026-11-18T06:49:58Z",
+    "isStale": false,
+    "fromCache": false,
+    "refreshing": false,
+    "errors": [],
+    "providers": [{"id": "claude_code", "displayName": "Claude Code", "shortName": "Claude", "reportsCost": true}]
+  },
+  "usage": {
+    "calendar": {"today": "2026-11-18", "weekStart": "2026-11-16", "monthStart": "2026-11-01"},
+    "combined": {
+      "today": {"tokens": 4100000, "input": 9120, "output": 41870, "cacheWrite": 312540, "cacheRead": 3736470, "cost": {"usd": 3.1839, "coverage": "estimated"}},
+      "week": {"tokens": 517120098, "input": 1137878, "output": 5275201, "cacheWrite": 27345980, "cacheRead": 483361039, "cost": {"usd": 343.4577, "coverage": "estimated"}},
+      "month": {"tokens": 2712153799, "input": 6018105, "output": 27901711, "cacheWrite": 141798908, "cacheRead": 2536435075, "cost": {"usd": 1798.3882, "coverage": "estimated"}},
+      "recentDaily": {
+        "start": "2026-10-29",
+        "tokens": [214386120, 176904533, 38117902, 0, 241552871, 268013446, 193470215, 227381090, 151206377, 22904618, 64310225, 259771802, 284095164, 0, 236442519, 198617043, 0, 47268331, 263904712, 249115386, 4100000],
+        "costUsd": [142.198, 116.4396, 25.3327, 0.0, 159.6065, 176.6729, 129.0178, 151.5365, 99.6274, 15.1457, 42.972, 172.4995, 186.9813, 0.0, 158.0033, 131.3738, 0.0, 31.4938, 176.0263, 164.2475, 3.1839],
+        "coverage": ["estimated", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "empty", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated"]
+      },
+      "monthDaily": {
+        "start": "2026-11-01",
+        "tokens": [0, 241552871, 268013446, 193470215, 227381090, 151206377, 22904618, 64310225, 259771802, 284095164, 0, 236442519, 198617043, 0, 47268331, 263904712, 249115386, 4100000],
+        "costUsd": [0.0, 159.6065, 176.6729, 129.0178, 151.5365, 99.6274, 15.1457, 42.972, 172.4995, 186.9813, 0.0, 158.0033, 131.3738, 0.0, 31.4938, 176.0263, 164.2475, 3.1839],
+        "coverage": ["empty", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "empty", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated"]
+      },
+      "burnTier": "fast",
+      "streak": {"days": 4, "includesToday": true}
+    },
+    "providers": {
+      "claude_code": {
+        "today": {"tokens": 4100000, "input": 9120, "output": 41870, "cacheWrite": 312540, "cacheRead": 3736470, "cost": {"usd": 3.1839, "coverage": "estimated"}},
+        "week": {"tokens": 517120098, "input": 1137878, "output": 5275201, "cacheWrite": 27345980, "cacheRead": 483361039, "cost": {"usd": 343.4577, "coverage": "estimated"}},
+        "month": {"tokens": 2712153799, "input": 6018105, "output": 27901711, "cacheWrite": 141798908, "cacheRead": 2536435075, "cost": {"usd": 1798.3882, "coverage": "estimated"}},
+        "recentDaily": {
+          "start": "2026-10-29",
+          "tokens": [214386120, 176904533, 38117902, 0, 241552871, 268013446, 193470215, 227381090, 151206377, 22904618, 64310225, 259771802, 284095164, 0, 236442519, 198617043, 0, 47268331, 263904712, 249115386, 4100000],
+          "costUsd": [142.198, 116.4396, 25.3327, 0.0, 159.6065, 176.6729, 129.0178, 151.5365, 99.6274, 15.1457, 42.972, 172.4995, 186.9813, 0.0, 158.0033, 131.3738, 0.0, 31.4938, 176.0263, 164.2475, 3.1839],
+          "coverage": ["estimated", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "empty", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated"]
+        },
+        "monthDaily": {
+          "start": "2026-11-01",
+          "tokens": [0, 241552871, 268013446, 193470215, 227381090, 151206377, 22904618, 64310225, 259771802, 284095164, 0, 236442519, 198617043, 0, 47268331, 263904712, 249115386, 4100000],
+          "costUsd": [0.0, 159.6065, 176.6729, 129.0178, 151.5365, 99.6274, 15.1457, 42.972, 172.4995, 186.9813, 0.0, 158.0033, 131.3738, 0.0, 31.4938, 176.0263, 164.2475, 3.1839],
+          "coverage": ["empty", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "empty", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated"]
+        },
+        "activeBlock": {"tokens": 4100000, "tokensPerMinute": 273333.33, "start": "2026-11-18T06:35:00Z", "end": "2026-11-18T11:35:00Z"},
+        "forecast": null
+      }
+    }
+  },
+  "limits": {
+    "isLimitWarning": false,
+    "providers": {
+      "claude_code": {
+        "available": false,
+        "updatedAt": null,
+        "isStale": false,
+        "authState": "missing",
+        "errorCode": "credentialsMissing",
+        "httpStatus": null,
+        "backoffUntil": null,
+        "plan": null,
+        "account": null,
+        "headlineKey": null,
+        "windows": []
+      }
+    }
+  },
+  "companion": {
+    "phase": "egg",
+    "mood": "egg",
+    "egg": {"used": 3100000, "threshold": 5000000, "imminent": false, "hatchDelayed": false},
+    "active": null,
+    "growthPercent": 62,
+    "representative": null,
+    "menuSubject": {"egg": true, "speciesId": null, "form": null, "shiny": false, "back": false, "sprite": {"key": "egg", "manifestPath": "/home/user/.cache/poketokenbar/sprites/egg/manifest.json", "status": "ready"}},
+    "inventory": {"rareCandy": 0},
+    "dexSummary": {"entries": 0, "ownedSpecies": 0, "shinySpecies": 0, "nationalTotal": 649, "badges": []},
+    "levelUpUntil": null,
+    "justEvolvedTo": null,
+    "justGraduated": null
+  },
+  "settingsApplied": {"refreshInterval": 120, "warnThreshold": 80, "critThreshold": 95, "growthDifficulty": 1.0, "weekStart": 1, "language": "en", "alwaysFacesBack": false}
+}
