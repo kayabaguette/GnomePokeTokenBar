@@ -141,6 +141,23 @@ Legend: `[sub:<model>]` = delegated subagent and its model. `[user]` = needs a u
 - [ ] **Gate:** review the spike results with the user, then adjust the plan.
 
 ### Phase 1 — Go usage core: Claude Code  `[sub:opus]`
+✅ 2026-11-18 in `helper/internal/{usage,claude}`, `cmd/ptb-usage-debug` and `scripts/oracle_usage.py`.
+- About 60 Swift tests were ported, with fault injection on the dedupe, the watermark, the inode and
+  the DST guards.
+- The orchestrator re-checked against a **frozen copy** of today's logs: Go = oracle = 215,612,450
+  tokens, with all five buckets equal.
+- Timings: cold scan 0.25 s, warm 0.04 s.
+
+Carry-overs for Phase 5:
+- Build "today" from a single scan, so the `FetchDaily` and enrichment values can't diverge
+  (protocol §5.2 invariant).
+- `Coverage` can't be decoded, so persist the inputs rather than the encoded coverage.
+- There is no shell-env fallback for `CLAUDE_CONFIG_DIR`. That is fine here, because the value equals
+  the default.
+
+Price note:
+- Haiku 5.5 is priced ×5 above 100K prompt tokens, per the `claude-api` skill.
+- The Mythos 5.1 cache-write price is inferred from the 1.25× rule.
 - [ ] Roots:
   - `CLAUDE_CONFIG_DIR` (comma-split), `$XDG_CONFIG_HOME/claude`, `~/.config/claude`, `~/.claude`;
   - dedupe after `EvalSymlinks`, case-sensitive;

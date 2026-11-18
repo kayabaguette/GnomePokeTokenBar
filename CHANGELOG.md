@@ -19,6 +19,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     300 s to 3600 s.
   - Decodes the response tolerantly.
   - Computes pace tiers, edge-triggered alerts and Rare Candy windows.
+- `helper/internal/usage` and `helper/internal/claude`: Claude Code usage core.
+  - Roots: `CLAUDE_CONFIG_DIR`, XDG, `~/.config/claude`, `~/.claude`.
+  - JSONL parser with upstream keep-max dedupe.
+  - Pricing table, with prices for Mythos 5.1/5.2 and Haiku 5.5 taken from the `claude-api` reference.
+  - Local-day, week and month bucketing; 21-day and month series; rolling 5 h block; burn tier;
+    5 h forecast; daily history ledger and streak.
+  - Incremental zlib JSON cache keyed by path, mtime, size and inode.
+  - Totals match an independent Python oracle (`scripts/oracle_usage.py`) token for token.
+- `helper/cmd/ptb-usage-debug`: prints today, week, month and series totals as JSON.
 - `helper/internal/pokeapi`: PokéAPI client.
   - Base index via GraphQL, with a self-healing fallback to REST.
   - Species, evolution chains (SSRF-guarded), details and localized names.
