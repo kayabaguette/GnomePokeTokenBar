@@ -180,7 +180,7 @@ func (s *Store) BuildState(in MoodInput) CompanionView {
 	v := CompanionView{
 		Mood:       s.mood(in, windowOpen),
 		Wallet:     s.wallet(),
-		Inventory:  Inventory{RareCandy: s.itemCount(itemRareCandy), Mint: s.itemCount(itemMint), ShinyCharm: s.itemCount(itemShinyCharm)},
+		Inventory:  Inventory{RareCandy: s.wireCount(itemRareCandy), Mint: s.wireCount(itemMint), ShinyCharm: s.wireCount(itemShinyCharm)},
 		Shop:       s.shopView(),
 		Bag:        s.bagView(),
 		DexSummary: s.dexSummary(),

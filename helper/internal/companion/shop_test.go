@@ -940,3 +940,13 @@ func TestShopAndBagMatchFixtureValues(t *testing.T) {
 		}
 	}
 }
+
+// Protocol §1.1 and decision §14.11: inventory counts are stored as they are, and only the wire
+// clamp of 2^53−1 applies to what the state sends.
+func TestInventoryCountsAreClampedOnTheWire(t *testing.T) {
+	s := shopStore(t, 0, 0, `,"inventory":{"mint":100000000000000000,"rareCandy":-2}`)
+	v := s.BuildState(MoodInput{Now: fixedNow})
+	eq(t, v.Inventory, Inventory{RareCandy: -2, Mint: maxWireInt}, "inventory")
+	eq(t, v.Shop.Entries[0].Owned, maxWireInt, "mint row")
+	eq(t, s.itemCount(itemMint), 100_000_000_000_000_000, "stored as is")
+}

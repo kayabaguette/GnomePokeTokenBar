@@ -116,6 +116,13 @@ func (s *Store) wallet() int { return max(0, s.st.UsedSinceInstall-s.st.SpentTok
 
 func (s *Store) itemCount(item string) int { return s.st.Inventory[item] }
 
+// maxWireInt is the largest integer the protocol sends (§1.1).
+const maxWireInt = 1<<53 - 1
+
+// wireCount is an inventory count as sent: counts are not clamped in the save (decision §14.11),
+// but the wire clamp of protocol §1.1 still applies.
+func (s *Store) wireCount(item string) int { return min(s.itemCount(item), maxWireInt) }
+
 func (s *Store) ownsShinyCharm() bool { return s.itemCount(itemShinyCharm) > 0 }
 
 // itemPrice is the scaled unit price; false for an item that is not sold (CS:174-176).
@@ -181,7 +188,7 @@ func (s *Store) Buy(item string, count int) (Purchase, error) {
 	s.st.SpentTokens += price * count
 	s.st.Inventory[item] += count
 	s.save()
-	return Purchase{Item: item, Count: count, Spent: price * count, Wallet: s.wallet(), Owned: s.itemCount(item)}, nil
+	return Purchase{Item: item, Count: count, Spent: price * count, Wallet: s.wallet(), Owned: s.wireCount(item)}, nil
 }
 
 // canBuyEgg: a tier on sale, an active Pokémon to release and the wallet for the scaled price.
@@ -286,10 +293,9 @@ func (s *Store) shopView() ShopView {
 	var entries []ShopEntry
 	for _, item := range itemKinds { // every ItemKind is sold
 		price, _ := s.itemPrice(item)
-		owned := s.itemCount(item)
 		entries = append(entries, ShopEntry{
-			Kind: "item", Item: strPtr(item), Price: price, Passive: itemPassive(item), Owned: owned,
-			Purchased: itemPassive(item) && owned > 0, CanBuy: s.canBuy(item), MaxCount: s.maxBuyCount(item),
+			Kind: "item", Item: strPtr(item), Price: price, Passive: itemPassive(item), Owned: s.wireCount(item),
+			Purchased: itemPassive(item) && s.itemCount(item) > 0, CanBuy: s.canBuy(item), MaxCount: s.maxBuyCount(item),
 		})
 	}
 	for _, tier := range eggShopTiers {
