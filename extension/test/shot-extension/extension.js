@@ -9,6 +9,7 @@
  * PTB_SHOT_SUITE selects what runs:
  *   home  (default) the Phase 6 home, chart, panel and right-click shots;
  *   dex   the Pokédex: search typing, wheel paging, detail, catch log, light;
+ *   recap the Activity click-cycle, heatmap and usage recap (recapSuite.js);
  *   cycle opens the Pokédex on a species whose getSpecies the stub delays and
  *         leaves the popover open, so the headless --cycle disable lands with
  *         the menu open and a command pending (the screen-lock case).
@@ -21,6 +22,8 @@ import Shell from 'gi://Shell';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+
+import {runRecap} from './recapSuite.js';
 
 Gio._promisify(Shell.Screenshot.prototype, 'screenshot');
 Gio._promisify(Shell.Screenshot.prototype, 'screenshot_area');
@@ -112,6 +115,8 @@ export default class ShotExtension extends Extension {
             return this._runDex();
         if (suite === 'cycle')
             return this._runCycle();
+        if (suite === 'recap')
+            return runRecap(this, START_DELAY_MS);
         return this._runHome();
     }
 
@@ -146,7 +151,7 @@ export default class ShotExtension extends Extension {
         }
 
         // 2. Hover the chart: today's bar is the last column.
-        const chart = indicator._popover?._usage?._chart;
+        const chart = indicator._popover?._usage?._activity?._chart;
         if (chart?.mapped) {
             let probeMotions = 0;
             let probeXY = '';
