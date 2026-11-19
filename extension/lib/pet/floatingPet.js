@@ -249,6 +249,8 @@ export class FloatingPet {
 
     /** A new protocol state: the sprite and the hover text follow it. */
     update(state) {
+        if (this._destroyed)
+            return;
         const subject = state?.companion?.menuSubject;
         this._subjectIsEgg = !subject || Boolean(subject.egg);
         const sprite = subject?.sprite;
@@ -311,6 +313,8 @@ export class FloatingPet {
     }
 
     _onSetting(key) {
+        if (this._destroyed)
+            return;
         switch (key) {
         case 'floating-pet-enabled':
         case 'floating-pet-agent-activity':
@@ -331,6 +335,8 @@ export class FloatingPet {
     }
 
     _onMotionSetting() {
+        if (this._destroyed)
+            return;
         // Power saver: a static frame and no motion (FPP:622-629); the bob reads motionAllowed.
         this._sprite.setPaused(this._powerProfiles.power_saver_enabled);
         if (!this._motionAllowed && this._controller.runPhase !== 'home') {
@@ -341,7 +347,6 @@ export class FloatingPet {
     }
 
     _setOverview(shown) {
-        console.debug(`${LOG}: pet overview ${shown}`);
         this._inOverview = shown;
         this.sync();
     }
@@ -428,8 +433,11 @@ export class FloatingPet {
             duration: M.RUN_DURATION_MS,
             mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
             onComplete: () => {
-                if (!this._destroyed)
-                    done();
+                if (this._destroyed)
+                    return;
+                this._placeBubble();
+                this._placeCallout();
+                done();
             },
         });
     }

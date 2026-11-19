@@ -14,7 +14,7 @@
  * With PTB_SHOT_PET_HOLD=1 it only shows the pet, arms agent timers, starts a
  * run and keeps the popover open, for the headless --cycle disable.
  *
- * Use with prepare-sandbox.sh eventsAfter = 26.
+ * Use with prepare-sandbox.sh eventsAfter = 34.
  */
 
 import Clutter from 'gi://Clutter';
@@ -171,6 +171,16 @@ export async function runPet(d) {
     await call('Report', ['sleeping', '', '']);
     log(`after malformed calls: ${petInfo(pet)}`);
 
+    // 4b. A done from the default home (bottom-right): it overlays the question, the pet runs to the
+    // pointer, the bubble is re-placed once the run lands, and the question comes back after 6 s.
+    await pointerTo(d, 700, 300);
+    await call('Report', ['done', 'cli', 'Build finished']);
+    await d._sleep(900);
+    log(`done from home: ${petInfo(pet)}; bubble at ${pet._bubble.x},${pet._bubble.y} w ${pet._bubble.width}`);
+    await d._shot('pet-done-from-home-dark.png', {x: 500, y: 150, width: 600, height: 380});
+    await d._sleep(6400);
+    log(`after the done: ${petInfo(pet)}; bubble ${JSON.stringify(pet._controller.bubble)}`);
+
     // 5. A click: answers the waiting agent, keeps the bob, opens the popover.
     await pointerTo(d, hx, hy);
     await button(d, Clutter.ButtonState.PRESSED);
@@ -222,19 +232,28 @@ export async function runPet(d) {
     await pointerTo(d, 400, 300);
 
     // 9. Stub events: hatch/evolve (flash, callout), then the limitAlert bubble.
-    await elapsedAt(d, 26.4);
+    await elapsedAt(d, 34.4);
     log(`hatch: indicator class '${indicator.get_style_class_name()}'`);
     await d._shot('panel-celebrate-dark.png', d._panelArea());
-    await elapsedAt(d, 27.5);
+    await elapsedAt(d, 35.5);
     log(`event callout: ${petInfo(pet)}; text '${pet._callout.text}'`);
     await d._shot('pet-event-dark.png', petArea(pet));
-    await elapsedAt(d, 31.6);
+    await elapsedAt(d, 39.6);
     log(`stub limitAlert: ${petInfo(pet)}; alert ${JSON.stringify(pet._controller.limitAlert)}`);
     await d._shot('pet-limit-warn-dark.png', petArea(pet));
-    pet.handleEvent({kind: 'limitAlert', windowKind: 'fiveHour', label: null, tier: 'warn', utilization: 91});
-    pet.handleEvent({kind: 'limitAlert', windowKind: 'sevenDay', label: null, tier: 'crit', utilization: 96});
+    // Through the extension's event entry point, with limit notifications off: the bubble is
+    // gated by floating-pet-bubble-alerts only (US:2176).
+    settings.set_boolean('limit-notifications', false);
+    const tray = () => Main.messageTray.getSources().map(src => src.count).reduce((a, b) => a + b, 0);
+    const trayBefore = tray();
+    ptb._onEvent({type: 'event', kind: 'limitAlert', providerId: 'claude_code', windowKey: 'claude.fiveHour',
+        windowKind: 'fiveHour', label: null, tier: 'warn', utilization: 91});
+    ptb._onEvent({type: 'event', kind: 'limitAlert', providerId: 'claude_code', windowKey: 'claude.sevenDay',
+        windowKind: 'sevenDay', label: null, tier: 'crit', utilization: 96});
     await d._sleep(500);
-    log(`batched pair: tier ${pet._controller.limitAlert?.tier} ${pet._controller.limitAlert?.utilization}`);
+    log(`batched pair (limit-notifications off): tier ${pet._controller.limitAlert?.tier} ` +
+        `${pet._controller.limitAlert?.utilization}; tray notifications ${trayBefore} → ${tray()}`);
+    settings.reset('limit-notifications');
     await d._shot('pet-limit-crit-dark.png', petArea(pet));
     await d._sleep(6200);
     log(`after TTL: alert ${pet._controller.limitAlert}`);
@@ -275,6 +294,28 @@ export async function runPet(d) {
     settings.set_boolean('floating-pet-enabled', true);
     await d._sleep(300);
     log(`switched on: ${petInfo(pet)}`);
+
+    // 11b. Display power-save through Mutter's DisplayConfig (the private bus's Mutter).
+    const mode = () => ptb._displayConfig?.get_cached_property('PowerSaveMode')?.unpack() ?? null;
+    log(`PowerSaveMode cached ${mode()}`);
+    const setMode = async m => {
+        try {
+            await Gio.DBus.session.call('org.gnome.Mutter.DisplayConfig', '/org/gnome/Mutter/DisplayConfig',
+                'org.freedesktop.DBus.Properties', 'Set', new GLib.Variant('(ssv)',
+                    ['org.gnome.Mutter.DisplayConfig', 'PowerSaveMode', new GLib.Variant('i', m)]),
+                null, Gio.DBusCallFlags.NO_AUTO_START, 2000, null);
+            return 'ok';
+        } catch (e) {
+            return e.message;
+        }
+    };
+    log(`set PowerSaveMode 3: ${await setMode(3)}`);
+    await d._sleep(800);
+    log(`display off: mode ${mode()}, pet visible ${pet._root.visible}, display on ${pet._displayOn}, ` +
+        `bar sprite paused ${indicator._sprite._paused}`);
+    log(`set PowerSaveMode 0: ${await setMode(0)}`);
+    await d._sleep(800);
+    log(`display on: mode ${mode()}, pet visible ${pet._root.visible}, bar sprite paused ${indicator._sprite._paused}`);
 
     // 12. Ctrl+click on the indicator: the secondary menu, not the popover.
     const [bx, by] = indicator.get_transformed_position();
