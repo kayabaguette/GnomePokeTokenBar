@@ -103,9 +103,10 @@ export function isClick(start, end, thresholdSq = CLICK_THRESHOLD_SQ) {
 
 /* ---- panel geometry (FPP:516-532) ---------------------------------------- */
 
-export function panelSize(petSize, showingBubble) {
+/** `scale` converts the logical chrome constants to stage px (St scale factor). */
+export function panelSize(petSize, showingBubble, scale = 1) {
     if (showingBubble)
-        return {width: Math.max(petSize, BUBBLE_MIN_WIDTH), height: petSize + BUBBLE_HEADROOM};
+        return {width: Math.max(petSize, BUBBLE_MIN_WIDTH * scale), height: petSize + BUBBLE_HEADROOM * scale};
     return {width: petSize, height: petSize};
 }
 
@@ -371,11 +372,21 @@ export const HEART_COLORS = {
 export const HEART_HEIGHT = HEART_ROWS.length * HEART_PIXEL;
 export const HEART_WIDTH = HEART_ROWS[0].length * HEART_PIXEL;
 
-/** The 17×16 art as non-premultiplied RGBA bytes (one byte quad per cell). */
-export function heartRgba() {
-    const w = HEART_ROWS[0].length;
-    const bytes = new Uint8Array(w * HEART_ROWS.length * 4);
-    HEART_ROWS.forEach((row, y) => {
+/* The speech bubble's tail in the same pixel style: its top row covers the
+ * bubble's 2 px bottom border, so the tail opens into the bubble. */
+export const TAIL_ROWS = [
+    'OWWWWWWWO',
+    '.OWWWWWO.',
+    '..OWWWO..',
+    '...OWO...',
+    '....O....',
+];
+
+/** Pixel art as non-premultiplied RGBA bytes, one byte quad per cell. */
+export function pixelArtRgba(rows) {
+    const w = rows[0].length;
+    const bytes = new Uint8Array(w * rows.length * 4);
+    rows.forEach((row, y) => {
         for (let x = 0; x < w; x++) {
             const c = HEART_COLORS[row[x]];
             if (!c)
@@ -385,6 +396,11 @@ export function heartRgba() {
         }
     });
     return bytes;
+}
+
+/** The 17×16 heart art. */
+export function heartRgba() {
+    return pixelArtRgba(HEART_ROWS);
 }
 
 /**

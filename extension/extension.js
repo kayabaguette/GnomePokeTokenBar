@@ -22,6 +22,8 @@ import {HelperClient, HelperError} from './lib/helperClient.js';
 import {setTranslations} from './lib/i18n.js';
 import {Indicator} from './lib/indicator.js';
 import {Notifier} from './lib/notifications.js';
+import {AgentBus} from './lib/pet/agentBus.js';
+import {FloatingPet} from './lib/pet/floatingPet.js';
 import {
     FORWARDED_KEYS, forwardedSettings, intlFirstDay, languageFromNames, resolveWeekStart,
 } from './lib/settingsForward.js';
@@ -32,6 +34,8 @@ import {Tooltip} from './lib/tooltip.js';
 const SETTINGS_DEBOUNCE_MS = 300; // protocol §2.2
 const DESKTOP_CALENDAR_SCHEMA = 'org.gnome.desktop.calendar';
 const LOG = 'PokeTokenBar';
+const CELEBRATED = ['hatch', 'evolve']; // M2 decision 32
+const DISPLAY_CONFIG = 'org.gnome.Mutter.DisplayConfig';
 
 export default class PokeTokenBarExtension extends Extension {
     enable() {
@@ -50,7 +54,7 @@ export default class PokeTokenBarExtension extends Extension {
         this._client = new HelperClient(this.path, {
             onHello: () => this._sendSettings(),
             onState: msg => this._onState(msg),
-            onEvent: event => this._notifier?.handle(event),
+            onEvent: event => this._onEvent(event),
             onStatus: status => this._onStatus(status),
         });
         this._sprites = new SpriteResolver(this._client);
@@ -58,6 +62,16 @@ export default class PokeTokenBarExtension extends Extension {
 
         this._indicator = new Indicator(this);
         Main.panel.addToStatusArea(this.uuid, this._indicator);
+
+        this._pet = new FloatingPet({
+            settings: this._settings,
+            theme: this._theme,
+            sprites: this._sprites,
+            context: () => this.context(),
+            openPopover: () => this._indicator?.menu.open(),
+        });
+        // Owned while enabled, released on disable (and so on every lock): protocol §15.
+        this._agentBus = new AgentBus(event => this._pet?.handleAgentEvent(event));
 
         this._settings.connectObject('changed', (_s, key) => this._onSettingChanged(key), this);
         this._desktopCalendar = this._lookupDesktopCalendar();
@@ -76,6 +90,17 @@ export default class PokeTokenBarExtension extends Extension {
             GLib.source_remove(this._debounceId);
             this._debounceId = 0;
         }
+        this._agentBus?.destroy();
+        this._agentBus = null;
+        this._pet?.destroy();
+        this._pet = null;
+        this._monitorManager?.disconnectObject(this);
+        this._monitorManager = null;
+        this._displayCancellable?.cancel();
+        this._displayCancellable = null;
+        this._displayConfig?.disconnectObject(this);
+        this._displayConfig = null;
+
         this._settings?.disconnectObject(this);
         this._desktopCalendar?.disconnectObject(this);
         getLoginManager().disconnectObject(this);
@@ -172,6 +197,15 @@ export default class PokeTokenBarExtension extends Extension {
     _onState(msg) {
         this._state = msg;
         this._indicator?.render();
+        this._pet?.update(msg);
+    }
+
+    /** Helper events reach the pet and the flash before the notification gate (floating-pet.md §4.3). */
+    _onEvent(event) {
+        this._pet?.handleEvent(event);
+        if (CELEBRATED.includes(event?.kind))
+            this._indicator?.celebrate();
+        this._notifier?.handle(event);
     }
 
     _onStatus(status) {
@@ -227,6 +261,44 @@ export default class PokeTokenBarExtension extends Extension {
         return value >= 1 && value <= 7 ? value : null;
     }
 
+    /**
+     * Display power-save (blanked, not locked): pause the bar sprite and hide
+     * the pet (M2 decision 31). The monitor manager signals the change but
+     * exposes no mode getter to GJS, so the mode is read from Mutter's own
+     * DisplayConfig PowerSaveMode property (0 on, 1–3 standby/suspend/off,
+     * -1 unknown), through an async proxy: a sync call would wait on this
+     * very main loop.
+     */
+    _watchPowerSave() {
+        this._monitorManager = global.backend.get_monitor_manager();
+        this._monitorManager.connectObject('power-save-mode-changed', () => this._syncDisplayOn(), this);
+        const cancellable = new Gio.Cancellable();
+        this._displayCancellable = cancellable;
+        Gio.DBusProxy.new_for_bus(Gio.BusType.SESSION, Gio.DBusProxyFlags.DO_NOT_AUTO_START, null,
+            DISPLAY_CONFIG, '/org/gnome/Mutter/DisplayConfig', DISPLAY_CONFIG, cancellable, (_o, res) => {
+                let proxy;
+                try {
+                    proxy = Gio.DBusProxy.new_for_bus_finish(res);
+                } catch (e) {
+                    if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        console.warn(`${LOG}: no display power-save state: ${e.message}`);
+                    return;
+                }
+                if (cancellable.is_cancelled())
+                    return;
+                this._displayConfig = proxy;
+                proxy.connectObject('g-properties-changed', () => this._syncDisplayOn(), this);
+                this._syncDisplayOn();
+            });
+    }
+
+    _syncDisplayOn() {
+        const mode = this._displayConfig?.get_cached_property('PowerSaveMode')?.unpack() ?? 0;
+        const on = mode <= 0;
+        this._indicator?.setDisplayOn(on);
+        this._pet?.setDisplayOn(on);
+    }
+
     /* ---- system events the helper cannot see (protocol §4) ------------- */
 
     _watchSystem() {
@@ -234,6 +306,8 @@ export default class PokeTokenBarExtension extends Extension {
             if (!aboutToSuspend)
                 this._client?.send('wake');
         }, this);
+
+        this._watchPowerSave();
 
         this._networkMonitor = Gio.NetworkMonitor.get_default();
         this._lastConnectivity = this._networkMonitor.connectivity;

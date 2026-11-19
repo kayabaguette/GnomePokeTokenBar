@@ -23,6 +23,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {capFrameRate} from './capFrameRate.js';
+import {fitRect, manifestVisibleTop} from './spriteFit.js';
 
 /* ---- Defaults (change these if the CPU or the look test fails) ---------- */
 
@@ -152,8 +153,11 @@ class PtbSpriteAnimator extends St.Widget {
         this._timerId = 0;
         this._paused = false;
         this._destroyed = false;
+        this._visibleTop = 0;
         /** Called with the path when a source cannot be loaded (cache cleared). */
         this.onLoadFailed = null;
+        /** Called after the box or the drawn image changed size (the floating pet's hit area). */
+        this.onLayout = null;
 
         this._themeContext = St.ThemeContext.get_for_stage(global.stage);
         this._themeContext.connectObject('notify::scale-factor', () => this._updateSize(), this);
@@ -246,6 +250,7 @@ class PtbSpriteAnimator extends St.Widget {
         const cogl = coglContext();
         const contents = frames.map(f =>
             uploadRgba(cogl, new GLib.Bytes(blob.subarray(f.offset, f.offset + size)), w, h, w * 4));
+        this._visibleTop = manifestVisibleTop(manifest);
         this._sprite = {
             width: w,
             height: h,
@@ -296,6 +301,7 @@ class PtbSpriteAnimator extends St.Widget {
                     pixbuf = pixbuf.add_alpha(false, 0, 0, 0);
                 const content = uploadRgba(coglContext(), pixbuf.read_pixel_bytes(),
                     pixbuf.width, pixbuf.height, pixbuf.rowstride);
+                this._visibleTop = 0; // plain PNGs carry no visibleTopFraction (protocol §8.2)
                 this._sprite = {
                     width: pixbuf.width,
                     height: pixbuf.height,
@@ -325,6 +331,7 @@ class PtbSpriteAnimator extends St.Widget {
 
     _showPlaceholder() {
         this._sprite = null;
+        this._visibleTop = 0;
         this._image.set_content(null);
         this._image.hide();
         this._placeholder.show();
@@ -342,20 +349,58 @@ class PtbSpriteAnimator extends St.Widget {
         const maxW = this._maxWidth * sf;
         let boxW = maxW;
         if (this._sprite) {
-            const {width, height} = this._sprite;
-            let scale = Math.min(maxW / width, boxH / height);
             // Integer upscaling only: 1.4× nearest-neighbour makes uneven pixels.
-            if (scale > 1)
-                scale = this._allowUpscale ? Math.floor(scale) : 1;
-            const w = Math.max(1, Math.round(width * scale));
-            const h = Math.max(1, Math.round(height * scale));
+            const fit = fitRect(maxW, boxH, this._sprite.width, this._sprite.height,
+                {upscale: this._allowUpscale ? 'integer' : 'none'});
+            const w = Math.max(1, Math.round(fit.width));
+            const h = Math.max(1, Math.round(fit.height));
             this._image.set_size(w, h);
+            this._imageSize = [w, h];
             if (!this._fixedWidth)
                 boxW = w;
-        } else if (!this._fixedWidth) {
-            boxW = boxH;
+        } else {
+            this._imageSize = null;
+            if (!this._fixedWidth)
+                boxW = boxH;
         }
+        this._boxSize = [boxW, boxH];
         this.set_size(boxW, boxH);
+        try {
+            this.onLayout?.();
+        } catch (err) {
+            console.error(`${LOG}: onLayout threw: ${err}`);
+        }
+    }
+
+    /** The egg glyph's size while nothing is on disk (the pet draws it at 0.62 × its size, CV:244). */
+    setPlaceholderSize(px) {
+        this._placeholder.style = px ? `font-size: ${Math.round(px)}px;` : null;
+    }
+
+    /** Change the box (the floating pet's size setting), in logical px. */
+    setBox(boxHeight, maxWidth) {
+        if (boxHeight === this._boxHeight && maxWidth === this._maxWidth)
+            return;
+        this._boxHeight = boxHeight;
+        this._maxWidth = maxWidth;
+        this._updateSize();
+    }
+
+    /**
+     * The drawn image inside the box, in actor px: centred, feet on the box
+     * bottom. The whole box while the egg placeholder shows.
+     */
+    get imageRect() {
+        const [bw, bh] = this._boxSize ?? [0, 0];
+        if (!this._imageSize)
+            return {x: 0, y: 0, width: bw, height: bh};
+        const [w, h] = this._imageSize;
+        return {x: Math.round((bw - w) / 2), y: bh - h, width: w, height: h};
+    }
+
+    /** The loaded manifest's visibleTopFraction, 0 for PNGs and old manifests (protocol §8.2). */
+    get visibleTopFraction() {
+        return this._visibleTop;
     }
 
     /* ---- playback ----------------------------------------------------- */
@@ -431,5 +476,6 @@ class PtbSpriteAnimator extends St.Widget {
         this._themeContext = null;
         this._sprite = null;
         this.onLoadFailed = null;
+        this.onLayout = null;
     }
 });

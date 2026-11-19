@@ -107,11 +107,37 @@
       <description>gauge colors every pace tier; attention only items running faster than pace; off none.</description>
     </key>
 
-    <!-- Floating pet: only the back-view toggle is in M1, because it also turns the top-bar sprite. -->
+    <!-- Floating pet (floating-pet.md §4.4). The back-view toggle also turns the top-bar sprite. -->
     <key name="always-faces-back" type="b">
       <default>false</default>
       <summary>Show the back view</summary>
       <description>Draw the companion facing away. Forwarded to the helper as alwaysFacesBack.</description>
+    </key>
+    <key name="floating-pet-enabled" type="b">
+      <default>false</default>
+      <summary>Show floating pet</summary>
+      <description>Show the companion over the desktop, above windows. Hidden in the overview and over fullscreen windows.</description>
+    </key>
+    <key name="floating-pet-size" type="i">
+      <range min="48" max="384"/>
+      <default>96</default>
+      <summary>Floating pet size (px)</summary>
+      <description>One side of the pet's square box in logical pixels. Preferences use steps of 8.</description>
+    </key>
+    <key name="floating-pet-bubble-alerts" type="b">
+      <default>true</default>
+      <summary>Show notifications as bubbles</summary>
+      <description>Limit alerts also show as a speech bubble over the pet, independently of limit-notifications.</description>
+    </key>
+    <key name="floating-pet-agent-activity" type="b">
+      <default>true</default>
+      <summary>React to agent activity</summary>
+      <description>Coding agents report working, waiting and done over D-Bus (io.github.poketokenbar.Agent).</description>
+    </key>
+    <key name="floating-pet-origin" type="m(dd)">
+      <default>nothing</default>
+      <summary>Floating pet position</summary>
+      <description>The pet's bottom-left corner in stage pixels; written when a drag ends. Unset means the bottom-right corner.</description>
     </key>
 
     <!-- Notifications -->

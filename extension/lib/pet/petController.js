@@ -18,7 +18,8 @@ import * as M from './petModel.js';
  * @property {() => void} openPopover
  * @property {(origin: {x, y}) => void} persistHome  pet bottom-left
  * @property {() => {x, y}} home                     the resolved home
- * @property {() => number} petSize
+ * @property {() => number} petSize                stage px
+ * @property {() => number} [scale]                  stage px per logical px (default 1)
  * @property {() => boolean} motionAllowed
  * @property {() => boolean} agentEnabled            floating-pet-enabled && agent-activity
  * @property {() => boolean} bubbleAlertsEnabled     floating-pet-enabled && bubble-alerts
@@ -152,8 +153,9 @@ export class PetController {
     /** Leave home for a spot next to the cursor; returns the panel and pet origins. */
     beginRun(cursor, workArea) {
         const size = this._d.petSize();
-        const panel = M.panelSize(size, true);
-        const origin = M.runPanelOrigin(cursor, panel, workArea);
+        const scale = this._d.scale?.() ?? 1;
+        const panel = M.panelSize(size, true, scale);
+        const origin = M.runPanelOrigin(cursor, panel, workArea, M.RUN_CURSOR_GAP * scale);
         this.runPhase = 'away';
         this.awayPetOrigin = M.petOrigin(origin, size, panel);
         return {panelOrigin: origin, petOrigin: this.awayPetOrigin};

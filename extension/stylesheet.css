@@ -1559,3 +1559,73 @@
 }
 
 .ptb-mint-sparkle { text-shadow: 0 0 4px rgba(246, 211, 45, 0.55); }
+
+/* ---- Celebration flash (M2 decision 32) ------------------------------- */
+
+/* A gold flash on hatch and evolve: St cross-fades between the two styles. */
+#panel .ptb-indicator { transition-duration: 300ms; }
+#panel .ptb-indicator.ptb-celebrate {
+    background-color: rgba(246, 211, 45, 0.38);
+    box-shadow: inset 0 0 0 1px rgba(246, 211, 45, 0.85);
+}
+
+.ptb-sprite-tile { transition-duration: 300ms; }
+.ptb-sprite-tile.ptb-celebrate {
+    border-color: rgba(246, 211, 45, 0.90);
+    background-gradient-start: rgba(246, 211, 45, 0.18);
+    background-gradient-end: rgba(246, 211, 45, 0.45);
+    box-shadow: 0 0 10px rgba(246, 211, 45, 0.55);
+}
+
+/* ---- Floating pet (floating-pet.md §1.5) ------------------------------- */
+
+/* Speech bubbles share the pixel heart's palette: white fill, a 2 px #202020
+ * outline, a hard 2 px drop and a pixel-art tail. The same in light and dark,
+ * like the sprites they talk for. */
+.ptb-pet-bubble {
+    padding: 5px 8px 6px 8px;
+    spacing: 2px;
+    border-radius: 6px;
+    border: 2px solid #202020;
+    background-color: #ffffff;
+    box-shadow: 0 2px 0 rgba(32, 32, 32, 0.30);
+}
+
+.ptb-pet-bubble-title {
+    width: 164px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #202020;
+}
+
+.ptb-pet-bubble-critical .ptb-pet-bubble-title { color: #a8202c; }
+
+.ptb-pet-bubble-body {
+    width: 164px;
+    font-size: 10px;
+    color: #505050;
+}
+
+/* The hover and event callout follows the shell theme, like the tooltips. */
+.ptb-pet-callout {
+    max-width: 260px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-feature-settings: "tnum";
+    text-align: center;
+    color: #ffffff;
+    background-color: rgba(28, 28, 31, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.ptb-light .ptb-pet-callout {
+    color: #222226;
+    background-color: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.ptb-pet-eye:checked { color: #f6d32d; }
+.ptb-light .ptb-pet-eye:checked { color: #9c6e03; }
