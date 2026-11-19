@@ -70,7 +70,7 @@ only (`gnome-extensions install`).
 
 ## Configuration
 
-Open preferences from the gear in the popover footer, or right-click the indicator. Settings: refresh
+Open preferences from the gear in the popover footer, or right-click the indicator and choose **Settings…**. Settings: refresh
 interval, animation quality, menu-bar items and limit color mode, used or remaining limits, chart
 period, week start, growth difficulty, warn / critical thresholds, and notification toggles.
 
