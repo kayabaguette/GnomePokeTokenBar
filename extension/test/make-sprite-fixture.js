@@ -34,6 +34,27 @@ function writeFile(path, bytes) {
     GLib.file_set_contents(path, bytes);
 }
 
+// protocol §8.2 visibleTopFraction: per frame, the first row with alpha > 16 in the central columns
+// (the whole width if the band is empty), as a share of the height; the median frame wins.
+function visibleTopFraction(chunks, w, h) {
+    const bandStart = Math.floor(w * 0.35);
+    const bandEnd = Math.min(w, Math.max(bandStart + 1, Math.floor(w * 0.65)));
+    const firstRow = (rgba, from, to) => {
+        for (let row = 0; row < h; row++) {
+            for (let col = from; col < to; col++) {
+                if (rgba[(row * w + col) * 4 + 3] > 16)
+                    return row;
+            }
+        }
+        return null;
+    };
+    const values = chunks.map(rgba => {
+        const row = firstRow(rgba, bandStart, bandEnd) ?? firstRow(rgba, 0, w);
+        return row === null ? 0 : row / h;
+    }).sort((a, b) => a - b);
+    return Math.round(values[Math.floor(values.length / 2)] * 10000) / 10000;
+}
+
 let built = 0;
 for (const id of ['25', '6', '94']) {
     const dir = GLib.build_filenamev([spikeOut, id]);
@@ -67,6 +88,7 @@ for (const id of ['25', '6', '94']) {
         Gio.File.new_for_path(GLib.build_filenamev([out, 'frame-000.png'])), Gio.FileCopyFlags.OVERWRITE, null, null);
     const manifest = {
         width: spike.width, height: spike.height, animated: frames.length > 1, rgba: 'frames.rgba', frames,
+        visibleTopFraction: visibleTopFraction(chunks, spike.width, spike.height),
     };
     writeFile(GLib.build_filenamev([out, 'manifest.json']), JSON.stringify(manifest));
     print(`stub-${id}: ${frames.length} frames ${spike.width}x${spike.height}, ${blob.length} bytes`);
