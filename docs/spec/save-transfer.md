@@ -3,6 +3,10 @@
 Source: upstream PokeTokenBar at 38e3e55 (v2.5.7). Target: the GNOME port (helper protocol 1, additive).
 The citations below were read in this session.
 
+**Status.** The open questions of the raw spec are resolved in §7 with the Milestone 3 decisions of `tasks/todo.md`
+("Milestone 3 plan"). The contract that came out of it is in `docs/protocol.md` (§4, §7.7, §11.2, §14 decisions 44 to 51,
+§15.1 for the D-Bus `Save1` interface). Where a sentence below still says "Accept?" or "open", §7 wins.
+
 **Abbreviations**
 - Upstream (Swift): `ST` = `Sources/PokeTokenBar/Core/SaveTransfer.swift`, `SS` = `Core/SaveSnapshots.swift`, `CS` = `Core/CompanionStore.swift`, `CM` = `Core/CompanionModel.swift`, `SV` = `UI/SettingsView.swift`, `LOC` = `Core/Localization.swift`, `LE` = `Core/LocalizationErrors.swift`, `STT` = `Tests/PokeTokenBarTests/SaveTransferTests.swift`, `SST` = `Tests/PokeTokenBarTests/SaveSnapshotTests.swift`, `DL` = `docs/reference/defect-log.md`.
 - Port (Go and JS): `persist.go` = `helper/internal/companion/persist.go`, `state.go`, `store.go`, `bag.go` (same package), `commands.go`, `build.go`, `data.go`, `daemon.go` = `helper/internal/daemon/*`.
@@ -253,8 +257,8 @@ The mapping needs these pieces:
    - So `GrowthDifficulty`, `SchemaVersion` and `Language` are always copied from the current state.
 2. **Legacy form-key aliases** in the import decode path: `unownForm`, `pendingUnownForm` and `representativeUnownForm`, for schema-1 or old schema-2 exports. Today the Unown letter is silently reset.
 3. **Header-first validation, size cap and error kinds** (§2.2). The port's `readEnvelope` has no 8 MiB cap, no `newerSchema` versus `notASaveFile` distinction, and does not require the six fields (`persist.go:157-170`).
-4. **Disguised Ditto (blocking caveat).**
-   - The reveal is not ported. An imported unrevealed Ditto at its threshold never evolves or graduates: the evolve loop breaks at `store.go:347-349`, and candy is blocked with `revealPending` (`bag.go:21-24`, protocol §5.4).
+4. **Disguised Ditto (was a blocking caveat; resolved by `prayers-ditto.md` §2, shipped in the same milestone).**
+   - Before the reveal is ported: An imported unrevealed Ditto at its threshold never evolves or graduates: the evolve loop breaks at `store.go:347-349`, and candy is blocked with `revealPending` (`bag.go:21-24`, protocol §5.4).
    - Usage keeps banking, so nothing is lost, but the companion is stuck until the reveal is ported.
    - Upstream rolls the disguise in shipping builds, since `dittoDisguiseRollingEnabled` defaults to `AppEnv.isBundledApp` (`CS:80`), at 1/128 for common lines with at least 2 forms (port mirror: `balance.go:155-157`), so real exports can contain one.
 5. **Providers.** Rebase replaces the ledger with the port's providers, so macOS-only provider ids such as Codex disappear harmlessly.
@@ -291,7 +295,7 @@ The mapping needs these pieces:
   - mirrors `ST:211-239` and the merges at `ST:241-268`;
   - additionally keeps `GrowthDifficulty`, `SchemaVersion` and `Language` from `current`.
 - `(*Store).ApplyImport(env, in) error`:
-  1. Write the pre-import backup **as an envelope** (deviation: it becomes importable, so the Import button can undo an import). Use `writeFileAtomic` (`persist.go:27-55`), the name `companion-state.pre-import-<local stamp>.json`, and keep 5. On error, return `backupFailed` and change nothing.
+  1. Write the pre-import backup **as an envelope** (decided deviation, §7 Q2: it reuses `encodeEnvelope`, so it costs nothing and the Import button can undo an import). Use `writeFileAtomic` (`persist.go:27-55`), the name `companion-state.pre-import-<local stamp>.json`, and keep 5. On error, return `backupFailed` and change nothing.
   2. `s.st = rebase(...)`.
   3. Reset the in-memory fields: `line = nil`, `prefetchedLineID = 0`, `hatchDelayed = false`, `warmPending = true`, `window = levelUpWindow{}`, `lastSeen*` and `pending` (`store.go:47-67`).
   4. `ensureProfiles()`, `seedDexCompletions()`, `save()` (today these run only in `Open`, `store.go:138-139`).
@@ -320,11 +324,11 @@ The mapping needs these pieces:
 
 - **Single writer.** The flock on `helper.lock` (protocol §2.1) means only the running helper may write the state dir, so import and restore must go through it, never through a second process.
 - **`exportSave`** writes outside the state dir. It does so atomically via a temp file plus rename in the target directory.
-  - **Uncertain:** whether rename works on a document-portal FUSE path (`/run/user/<uid>/doc/…`). Fall back to a direct write if `CreateTemp` fails there.
+  - **Uncertain:** whether rename works on a document-portal FUSE path (`/run/user/<uid>/doc/…`). Fall back to a direct write if `CreateTemp` fails there. (A Gio.File without a local path is refused before this point, §7 Q6.)
 - **`importSave`** re-reads the path, re-validates it, and compares the sha256 against `digest`; a mismatch gives `fileChanged`. This makes the two phases stateless and catches a file edited between preview and confirm.
 - **Rebase input** is `d.scanned ? d.usageInput(now) : UsageInput{}`, as in `daemon.go:858-862`.
   - **Divergence:** `usageInput` drops zero-token providers (`build.go:228-237`), while upstream keeps zero entries (`UsageStore.swift:337-343`).
-  - On a zero-usage day the port therefore takes the *defer* branch: the first non-zero observation becomes the baseline and is not credited. This matches the port's fresh-install behaviour (`store.go:242-250`). Accept it, or include zero entries for scanned providers (open question 4).
+  - On a zero-usage day the port therefore takes the *defer* branch: the first non-zero observation becomes the baseline and is not credited. This matches the port's fresh-install behaviour (`store.go:242-250`). **Decided (§7 Q4): keep the port's drop-zeros behaviour.**
 - **After `importSave` and `restoreSnapshot`:**
   - `emitState(true)`, then `reply`, then `warmPasses = 0` and `companionUpdate()`, which loads the line and prefetches;
   - re-sync the menu sprite;
@@ -350,7 +354,7 @@ Each message is English for the log; the UI maps the code.
 - **Paths only, never file contents.**
   - The profile `seed` is a uint64 above 2^53, and `JSON.parse` would corrupt it.
   - An 8 MiB file exceeds the 1 MiB line limit (protocol §1).
-  - If `Gtk.FileDialog` returns a `Gio.File` with no local path (`get_path() === null`, e.g. MTP or SMB through GVfs), show `Choose a local file.` For export, prefs could instead export to a temp file and `Gio.File.copy` it; that is optional (open question 6).
+  - If `Gtk.FileDialog` returns a `Gio.File` with no local path (`get_path() === null`, e.g. MTP or SMB through GVfs), show `Choose a local file.` **Decided (§7 Q6): such targets are refused**, for export and import alike; there is no temp-file-and-copy path.
 - **Extension disabled or screen locked.** The name has no owner, so prefs shows an `Adw.Banner`: `Turn on PokeTokenBar to back up or transfer your save.` All rows are insensitive except the banner.
   - A CLI fallback (`ptb-helper export` without the lock, because saves are atomic) is possible for export only. It is not recommended (Drop).
 - **Page:** an `Adw.PreferencesPage` "Backup & Transfer" with these groups:
@@ -366,13 +370,13 @@ Each message is English for the log; the UI maps the code.
   - `default_response = close_response = 'cancel'`, and `replace` uses `Adw.ResponseAppearance.DESTRUCTIVE` (ports `ImportConfirmPolicy`).
   - Results are shown as `Adw.Toast`s on the prefs window. Errors use a toast, or an `Adw.AlertDialog` for import/restore failures.
 - **Shared code.** `lib/saveTransferModel.js` is pure (no `gi://`, like `format.js:11` and `i18n.js:3`). It holds the file-name builder, the error-code → message map, the confirm-body builder (reusing `compact()` from `lib/format.js:37`), and the row model. Unit-test it on the host.
-- **Wording (port decision).** Replace "Mac" with "computer", e.g. `Replace this computer's progress?` and `Pick a file exported from another computer (macOS or GNOME) and continue here`. Also change `update the app` to `update the extension`, and replace "state folder" with `~/.local/state/poketokenbar` in the body.
+- **Wording (decided, §7 Q3).** Replace "Mac" with "computer", e.g. `Replace this computer's progress?` and `Pick a file exported from another computer (macOS or GNOME) and continue here`. Also change `update the app` to `update the extension`, and replace "state folder" with `~/.local/state/poketokenbar` in the body.
 
 ### 5.3 Atomic writes and the lock
 - Every write uses `writeFileAtomic`: temp file in the same directory, fsync, rename, then fsync of the directory (`persist.go:27-55`).
   - It covers the save, the snapshots, the pre-import backup and the export (except for the portal fallback).
 - All mutation happens on the owner goroutine of the lock holder. No extra mutex is needed (`store.go:30-35`).
-- **Gap:** protocol §11.3 says `meta.errors[] saveWrite` covers snapshot failures, but `autoSnapshotIfNeeded` only logs them (`persist.go:231-233`). Wire it, or correct the protocol text.
+- **Gap (resolved in phase 16):** protocol §11.3 said `meta.errors[] saveWrite` covers snapshot failures, but `autoSnapshotIfNeeded` only logs them (`persist.go:231-233`). The protocol text is corrected instead of wiring it: `saveWrite` covers the companion save only; an automatic snapshot failure is logged, a manual one returns the error from `createSnapshot`. (This is the one resolution here that is not in the plan's decision list.)
 - The import order is: backup, then swap the state in memory, then `save()`. A crash after the backup leaves the old save intact; a crash after `save()` leaves a complete new save.
 
 ---
@@ -437,14 +441,29 @@ Each message is English for the log; the UI maps the code.
 
 ---
 
-## 7. Open questions
-1. **Disguised Ditto on import.** Port the reveal in M3, or accept the documented stall with `revealPending`? A recommendation is needed before "Keep macOS import" is final.
-2. **The pre-import backup as an envelope** (deviation from `CS:2056`). It makes undo-by-import possible. Accept?
-3. **Wording:** "computer" for "Mac" and "extension" for "app", and showing the state path in the body (§5.2). Accept?
-4. **Zero-usage-day rebase** (§5.1). Keep the port's drop-zeros `usageInput`, or include zero entries for scanned providers to match upstream exactly?
-5. **`sourceDevice`:** `os.Hostname()` (simple) or the pretty hostname from `/etc/machine-info` (`PRETTY_HOSTNAME`)?
-6. **Non-local `Gio.File` targets:** error out, or copy through a temp file in prefs?
-7. **Snapshot sprite thumbnails in prefs** (upstream `SV:552-558`). The cost is a `getSprite` relay over D-Bus plus decoding the on-disk sprite manifest in prefs. The proposal drops them for M3 and uses a text-only row.
+## 7. Open questions (all resolved)
+
+Each answer is a Milestone 3 decision (`tasks/todo.md`, "Milestone 3 plan") unless it says otherwise.
+
+1. **Disguised Ditto on import.** Decided: the roll and the reveal ship in M3 (`prayers-ditto.md`), so a disguise in
+   an imported save resolves instead of stalling. Keep macOS import.
+2. **Pre-import backup as an envelope.** Decided: yes, kept 5, and importable as an envelope. The plan's condition
+   ("unless the spec shows it costs nothing") is met: the port already has `encodeEnvelope` and `writeFileAtomic`
+   (the snapshot writer, `persist.go:183-206`), so writing an envelope instead of a bare state removes code rather than
+   adding it, and the §4.3 date normalisation then applies to the backup for free. Upstream's bare file is **not**
+   reproduced. File name `companion-state.pre-import-<local stamp>.json`, in the state dir (not the snapshots dir).
+3. **Wording.** Decided: "computer" for "Mac" and "extension" for "app"; the body names
+   `~/.local/state/poketokenbar` instead of "state folder".
+4. **Zero-usage-day rebase.** Decided: keep the port's drop-zeros `usageInput`. The spec shows a mechanism difference
+   (upstream seeds `{provider: 0}`, the port defers the baseline to the first non-zero observation), but the
+   user-visible effect is bounded: only the tokens seen by the first scan that observes usage after an import on a zero
+   day are not credited, at most one scan interval, and it equals the port's fresh-install behaviour. It is not
+   proven to matter, so the port keeps its behaviour. A test pins it.
+5. **`sourceDevice`.** Decided: `os.Hostname()`. `appVersion` is the helper version.
+6. **Non-local `Gio.File` targets.** Decided: refused. If `get_path()` is null, prefs shows `Choose a local file.` and
+   nothing is sent. The helper requires an absolute path and answers `badArgs` otherwise.
+7. **Snapshot rows.** Decided: text-only (date, `Pokédex {dex} · {tokens} lifetime`, Restore). No sprite thumbnails and
+   no `getSprite` relay over D-Bus.
 
 ## 8. Recommended scope
 
@@ -459,10 +478,10 @@ Each message is English for the log; the UI maps the code.
 | Manual snapshot, list and restore | **Keep** | the files are already written by the port |
 | Restore that reads before the safety snapshot | **Keep** | `DL:1282-1289` |
 | Bare-state legacy snapshot listing (`SS:84-96`, `:111-123`) | **Drop** | the port never wrote bare snapshots |
-| Snapshot sprite thumbnails | **Drop (M3)** | relay cost; text rows suffice |
+| Snapshot sprite thumbnails | **Drop (M3)** | relay cost; text rows suffice (§7 Q7) |
 | Hatch-race tests (`STT:354-456`) | **Drop** | N/A: synchronous Store, memory-only data view |
 | CLI export fallback while the extension is off | **Drop** | extra surface; a banner suffices |
-| Ditto reveal | **Open (Q1)** | gates a perfect macOS import |
+| Ditto reveal | **Decided (Q1): ships in M3** | gates a perfect macOS import |
 
 ## 9. Work breakdown (about 6 days)
 

@@ -54,4 +54,4 @@ Ordered by value, mirroring the parity backlog in `tasks/todo.md`:
 - The `cost-state` ledger attribution is deferred. Upstream probably double-counts subagent cost. M1 uses table estimates only; unknown models show as unpriced.
 - Paths follow XDG: state in `$XDG_STATE_HOME/poketokenbar/`, caches in `$XDG_CACHE_HOME/poketokenbar/`; `PTB_STATE_DIR` overrides both.
 - A state-dir lock in the helper replaces upstream's single-instance check.
-- No import of macOS saves. Save field names stay identical to upstream so a later import stays cheap.
+- Milestone 1 did not import macOS saves. Milestone 3 supersedes that for envelope exports only (protocol §14 decision 44): a save exported by the macOS app imports, a bare `companion-state.json` copied from macOS does not.

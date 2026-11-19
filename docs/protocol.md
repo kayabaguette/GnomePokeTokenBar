@@ -1,15 +1,16 @@
 # Helper protocol (protocol version 1)
 
 Contract between the Go helper `ptb-helper` and the GNOME Shell 51 extension `poketokenbar@local`.
-Milestone 1 defined it; Milestone 2 (Bag, Shop, recap, heatmap, floating pet) extends it **additively**
+Milestone 1 defined it; Milestone 2 (Bag, Shop, recap, heatmap, floating pet) and Milestone 3 (item
+sprites, prayers, the Ditto reveal, save export, import and snapshots) extend it **additively**
 under §2.7, so the protocol stays at version 1. Implementers: Go daemon and companion, GJS UI.
 
 **Division of work.** The helper does all data work: usage scanning, official limits, the companion
 game, PokéAPI and sprite decoding. It sends raw values. The extension renders. It formats numbers,
 countdowns and relative times, translates UI strings, owns GSettings, posts notifications and
-restarts the helper. Game and usage rules live in `docs/spec/{usage,companion,bag-shop,recap-heatmap}.md`; screens live in
+restarts the helper. Game and usage rules live in `docs/spec/{usage,companion,bag-shop,recap-heatmap,items-medals,prayers-ditto,save-transfer}.md`; screens live in
 `docs/spec/ui.md` and `docs/spec/floating-pet.md`. This document only fixes the wire contract (plus
-the extension-side agent D-Bus interface, §15).
+the extension-side D-Bus interfaces, §15).
 
 ## 1. Transport
 
@@ -133,7 +134,8 @@ the current time. As a result:
 A `state` is emitted whenever any field other than `meta.generatedAt` would change:
 
 - a refresh starts or ends;
-- the companion changes (credit, hatch, evolve, graduate, candy, a purchase or an item use);
+- the companion changes (credit, hatch, evolve, graduate, candy, a purchase or an item use; in M3 also
+  a prayer, a Ditto reveal, a save import and a snapshot restore);
 - `setSettings` or `setRepresentative` is applied;
 - `menuSubject.sprite` changes status;
 - `levelUpUntil` expires;
@@ -155,6 +157,9 @@ extension replaces wholesale.
   finds the new Pokémon in the last state.
 - A `result` is written after any `state` its command produced. For `useCandy` the order is
   `state`, then the `evolve` or `graduate` events it caused, then the `result`.
+- `pray`, `importSave` and `restoreSnapshot` (M3) also write the `state` first, then the `result`. A
+  `dittoReveal` event follows the `state` that shows the revealed Ditto. Neither import nor restore emits any
+  event.
 - Writing a `result` or an `event` first flushes any coalesced, pending `state`. Coalescing never
   delays a state past a message that depends on it.
 
@@ -200,6 +205,10 @@ Milestone 2 uses exactly these: every addition in §3 to §12 marked "M2" is add
 `protocol` at 1. A new field of `state` or of a `result` is always present once the helper emits it
 (§1.1 Presence); "optional" applies to command args, `setSettings` fields and manifest fields.
 
+Milestone 3 uses the same rules: the `getSprite` `item` shape (§8.1), the `pray` and six save commands
+(§7.6, §7.7), the `dittoReveal` event kind, the fields `egg.prayers`, `hatch.prayers` and
+`Individual.prayers`, and the new error codes (§11.2). `protocol` stays at 1.
+
 Receivers ignore unknown fields, types and kinds. An unknown enum value takes the fallback listed in
 §12. The helper ignores unknown command args. Any rename, removal, type change or change of meaning
 bumps `protocol`.
@@ -238,7 +247,8 @@ command takes none.
 
 - Replies may arrive **out of order**; correlate them by `id`.
 - The helper serves commands concurrently, except the mutating ones (`setSettings`,
-  `setRepresentative`, `buyItem`, `buyEgg`, `useCandy`, `useMint`), which apply in arrival order.
+  `setRepresentative`, `buyItem`, `buyEgg`, `useCandy`, `useMint`, and in M3 `pray`, `importSave`,
+  `createSnapshot`, `restoreSnapshot`), which apply in arrival order.
 
 | `cmd` | `args` | Reply `data` | Reply sent | Ext. timeout |
 |---|---|---|---|---|
@@ -258,6 +268,13 @@ command takes none.
 | `planCandies` (M2) | §7.4 | §7.4 | immediately; read-only | 5 s |
 | `useCandy` (M2) | §7.4 | §7.4 | after applying and saving; the `state` and any `evolve` or `graduate` events come first | 10 s |
 | `useMint` (M2) | none | §7.4 | after saving; the `state` comes first | 10 s |
+| `pray` (M3) | none | §7.6 | after saving; the `state` comes first | 10 s |
+| `exportSave` (M3) | §7.7 | §7.7 | after the file is written | 10 s |
+| `inspectSave` (M3) | §7.7 | §7.7 | after the file is read and validated | 10 s |
+| `importSave` (M3) | §7.7 | §7.7 | after the backup and the save; the `state` comes first | 10 s |
+| `listSnapshots` (M3) | none | §7.7 | immediately (local files) | 5 s |
+| `createSnapshot` (M3) | none | §7.7 | after the file is written | 10 s |
+| `restoreSnapshot` (M3) | §7.7 | §7.7 | after the safety snapshot, the backup and the save; the `state` comes first | 10 s |
 
 - **`refresh`.**
   - `manual: true` bypasses the official-limits 429 backoff and the in-memory credential cache
@@ -452,7 +469,7 @@ day, stepping +1 calendar day from `start` (never +86,400 s, so DST is safe).
 | `bag` (M2) | Bag | Bag availability flags | Bag tab |
 | `sulkIdleSeconds` (M2) | int | idle time in **whole hours expressed in seconds** (a multiple of 3600), floored; `0` unless `mood` is `sulk`. The helper already knows the idle time (companion.md §9). | floating-pet hover suffix "Sulking for N hours/days" |
 | `dexSummary` | DexSummary | | dex empty state (§2.4), Collection tab header and medals (§3.3) |
-| `levelUpUntil` | ts \| null | end of the hatch, evolve or graduate window (4, 4 or 6 s) | celebration (§2.1 A) |
+| `levelUpUntil` | ts \| null | end of the hatch, evolve, graduate or Ditto-reveal window (4, 4, 6 or 5 s) | celebration (§2.1 A) |
 | `justEvolvedTo` | string \| null | display name of the new species during an evolve window | status line `statusEvolved(name)` |
 | `justGraduated` | string \| null | display name during a graduate window | orange one-line message (§2.1 A) |
 
@@ -465,6 +482,7 @@ day, stepping +1 calendar day from `start` (never +86,400 s, so DST is safe).
 | `imminent` | bool | `used` ≥ 90 % of `threshold`: "About to hatch!" and the wobble |
 | `hatchDelayed` | bool | the egg is ready, but the hatch waits for PokéAPI: orange warning |
 | `guarantee` (M2) | `uncommon` \| `rare` \| `null` | the rarity floor bought with a premium egg (bag-shop.md §1.8); `null` for a plain egg. Never `common` or `legendary`. | egg card badge in the rarity color |
+| `prayers` (M3) | int ≥ 0 | prayers counted for this egg, `0` for none. A placebo: it never changes a roll (prayers-ditto.md §1.1). It resets at hatch and survives a premium-egg rarity miss. | floating-pet hover line (`<count> · <quip>`); the extension derives the quip from the count |
 
 **Active:**
 
@@ -561,7 +579,7 @@ player owns that species shiny (`ownsShinySpecies`, companion.md §5.5).
 |---|---|---|
 | `candyMaxUse` | int | `min(stock, needed)`, where `needed = ceil(max(0, Σ stage costs − usedAtStage) / 100,000,000)` (bag-shop.md §2.2). `0` disables Rare Candy. It is `0` iff `candyBlocked` is not `null`. |
 | `canUseMint` | bool | an active Pokémon exists and the Mint stock is > 0. It does not need the evolution line. |
-| `candyBlocked` | CandyBlocked \| `null` | why `candyMaxUse` is 0, evaluated in this order: no active Pokémon gives `egg`; stock 0 gives `noStock`; the evolution line is not loaded gives `lineLoading`; a Ditto reveal is pending gives `revealPending` (the Ditto reveal is not ported, so only an imported or hand-edited save with a disguised Ditto at its threshold can produce it; the extension shows it like `lineLoading`); otherwise `null`. |
+| `candyBlocked` | CandyBlocked \| `null` | why `candyMaxUse` is 0, evaluated in this order: no active Pokémon gives `egg`; stock 0 gives `noStock`; the evolution line is not loaded gives `lineLoading`; a disguised Ditto is at its first-stage threshold and the reveal is waiting for evolution line 132 to load gives `revealPending` (a normal transient value once the helper rolls disguises, which it does from M3; it clears on the `state` that follows the fetch, or stays while offline; the extension shows it like `lineLoading`); otherwise `null`. |
 
 No per-count plan table is ever put in `state`; previews come from `planCandies` (§7.4).
 
@@ -591,16 +609,18 @@ The envelope is `{"type":"event","kind":"<kind>", …}`.
 - **M2 adds no event kind.** A candy that evolves or graduates the companion emits the usual `evolve`
   or `graduate`, before the `useCandy` result. The "+XP" and sparkle feedback is driven by the
   command **reply** (§7.4), because events are not replayed.
+- **M3 adds one kind, `dittoReveal`**, and one field on `hatch` (`prayers`).
 - The extension gates notifications with its own settings (`companion-notifications`,
   `limit-notifications`).
 
 | `kind` | Fields | Extension (ui.md §5) |
 |---|---|---|
-| `hatch` | `speciesId`, `form`, `displayName`, `rarity`, `isShiny`, `shinyOdds` (int; 48 if the Shiny Charm was owned at hatch time, else 64) | "Hatched!", or "Shiny Pokémon!" with odds taken from `shinyOdds`; celebration |
+| `hatch` | `speciesId`, `form`, `displayName`, `rarity`, `isShiny`, `shinyOdds` (int; 48 if the Shiny Charm was owned at hatch time, else 64), `prayers` (M3; int ≥ 0, the egg's prayer count at hatch, `0` for none) | "Hatched!", or "Shiny Pokémon!" with odds taken from `shinyOdds`; with `prayers` > 0 the body is the prayer text, which replaces the odds text; celebration |
 | `evolve` | `fromSpeciesId`, `fromDisplayName`, `speciesId`, `form`, `displayName`, `isShiny` | "Evolved!": `<from> evolved into <to>!`; celebration |
 | `graduate` | `speciesId`, `form`, `displayName`, `rarity`, `isShiny`, `entryId` (catch-log id) | "Graduated!"; celebration |
 | `candyGranted` | `item` (`rareCandy`), `count` (1 for session, 5 for weekly), `providerId`, `windowKey` (`claude.fiveHour` or `claude.sevenDay`), `windowKind` (`session` \| `weekly`) | Nothing, or a quiet notification. The Bag (M2) reflects the new stock through `companion.inventory`. |
-| `badge` | `key`, `badge` (`region` \| `regionShiny` \| `unown` \| `national` \| `nationalShiny`), `region` (Region \| null) | M1: an optional notification (dex medals are LATER). The helper emits it once per key ever: it persists `notifiedDexCompletions`, and first-run seeding never emits. |
+| `badge` | `key`, `badge` (`region` \| `regionShiny` \| `unown` \| `national` \| `nationalShiny`), `region` (Region \| null) | A notification, gated by `companion-notifications`. The dex medals are delivered (M1: Collection header strip, region chips, `dexSummary.badges`). The helper emits it once per key ever: it persists `notifiedDexCompletions`, and first-run seeding and a save import never emit. |
+| `dittoReveal` (M3) | `disguiseSpeciesId` (int, the original disguise), `disguiseDisplayName` (plain species name with no form label, `#<id>` if unknown), `speciesId` (132), `displayName` (localized Ditto name), `rarity` (Rarity, the loaded Ditto line's, rare), `isShiny` (the raw roll, now displayed) | "Huh? It's Ditto!" or the shiny variant; body names the disguise; the card plays the CSS flash plus a 🎭 label. No `shinyOdds`: charm ownership at hatch time is not saved. An immediate graduation from the carried XP adds a `graduate` after it. |
 | `limitAlert` | `providerId`, `windowKey`, `windowKind` (WindowKind), `label` (Window.label), `tier` (`warn` \| `crit`), `utilization` | "Limit warning" or "Limit imminent", body `<window> at <percent>`. `crit` uses urgency HIGH or CRITICAL (CRITICAL pierces Do Not Disturb) and plays a sound; `warn` is silent. |
 | `authExpired` | `providerId`, `errorCode` | Nothing required; the state banner covers it. Emitted when `authState` changes to `expired`. |
 | `error` | `code`, `message` | Log to the journal only. These are one-shot background failures (PokéAPI unreachable, a save write failed). Ongoing conditions live in `meta.errors`. |
@@ -690,6 +710,7 @@ individuals and no form ownership.
 | `ivs` | Stats | |
 | `stats` | Stats \| null | actual stats at `level` (companion.md §3.4); `null` when details are unavailable |
 | `moves` | `[{name, displayName, level}]` | known moves, at most 4 |
+| `prayers` (M3) | int ≥ 0 | prayers counted before this individual hatched (`DexEntry.prayers`, or the active Pokémon's); `0` for none. The individual card shows "Born after N prayers" only when > 0. |
 
 **Stats** is `{hp, attack, defense, specialAttack, specialDefense, speed}`, all ints.
 
@@ -776,11 +797,14 @@ Types: **Item** = `rareCandy` \| `mint` \| `shinyCharm`. **CandyResult** = `evol
   - `plan` is `null` when the clamped count is 0 (also for `count` ≤ 0, an egg, no stock, or a line that is
     not loaded): the extension shows no preview. A `count` that is not an int is `badArgs`.
 - **`useCandy`.** A `count` above `candyMaxUse` is **clamped**, not rejected (upstream semantics).
-  `consumed` is the number of candies actually spent (less than the clamped count only for a disguised
-  Ditto, which M2 does not emit); `xp` = `consumed × 100,000,000`; `result` is `graduated` if the
+  `consumed` is the number of candies actually spent (less than the clamped count only when a disguised
+  Ditto's reveal threshold cuts the batch short, which M3 emits); `xp` = `consumed × 100,000,000`; `result` is `graduated` if the
   companion graduated, `evolved` if its stage rose, else `progressed`. Validation order: `badArgs`
   (`count` not an int or < 1), `noActive`, `noStock`, `notReady` (the evolution line is not loaded, or a
   Ditto reveal is pending). The reply order is `state`, then `evolve` or `graduate` events, then `result`.
+  The candy that reaches a disguised Ditto's threshold returns `progressed`: the reveal itself runs in the
+  helper's follow-up update, so its `state` and `dittoReveal` event arrive after (or, offline, long after)
+  the `result`, and `bag.candyBlocked` is `revealPending` meanwhile.
 - **`useMint`.** Errors in order: `noActive`, `noStock`. It works while the line is loading. `nature` is
   the new nature id (§12). The roll never returns the previous nature, and the displayed stats change
   with it (companion.md §3.4).
@@ -826,6 +850,107 @@ Computation rules are recap-heatmap.md §1.3.
 - The extension re-sends `getRecap` while the recap is visible and a new `state` changes
   `usage.combined.today.tokens` or the day. It ignores a reply that is not for its latest request.
 
+### 7.6 `pray` (M3)
+
+| `cmd` | `args` | Reply `data` |
+|---|---|---|
+| `pray` | none | `{count}` |
+
+- `count` is the new `companion.egg.prayers`: the counter goes up by one, with no limit and no cooldown, and the
+  helper **saves on every prayer** (prayers-ditto.md §1.1). The `state` comes first, so `egg.prayers` already
+  shows the new count when the `result` arrives.
+- A prayer never reads the RNG and changes no roll.
+- While a Pokémon is active the command fails with `notEgg`, and nothing changes. Upstream is a silent no-op; the
+  reply needs a code. `noActive` means the inverse (§11.2) and is never used here. The extension ignores `notEgg`:
+  it only happens when a click races a hatch.
+- Only an egg click on the floating pet sends it (decision 39). The 30-prayer usage-refresh throttle is
+  extension-side and uses the existing `refresh` command with `manual: false`.
+
+### 7.7 Save commands (M3)
+
+Types: **Summary** = `{dexCount, lifetimeTokens}` (`dex.count` and `usedSinceInstall`). **SnapshotSummary** =
+`{id, date, dexCount, lifetimeTokens, speciesId, shiny, form}`:
+- `id`: the snapshot file name, `companion-snapshot-<yyyy-MM-dd-HHmmss>[-N].json`;
+- `date`: ts, the envelope's `exportedAt`;
+- `speciesId`: int or `null` (an egg);
+- `shiny`: `displaysShiny`, so a disguised Ditto is not spoiled;
+- `form`: the species-resolved form id or `null` (§5.5).
+
+Every `path` is an **absolute path to a local file**, chosen by the user in the preferences window. Only paths
+cross the wire, never file contents: the profile `seed` is a uint64 that `JSON.parse` would corrupt, and a save
+can be 8 MiB against the 1 MiB line limit (§1). A relative path is `badArgs`.
+
+| `cmd` | `args` | Reply `data` |
+|---|---|---|
+| `exportSave` | `path` | `{path, bytes, summary: Summary}` |
+| `inspectSave` | `path` | `{digest, schema, appVersion, exportedAt, sourceDevice, incoming: Summary, current: Summary}` |
+| `importSave` | `path`, `digest` | `{summary: Summary}` |
+| `listSnapshots` | none | `{snapshots: SnapshotSummary[]}` |
+| `createSnapshot` | none | `{snapshot: SnapshotSummary}` |
+| `restoreSnapshot` | `id` | `{summary: Summary}` |
+
+- **Envelope.** `exportSave` writes `{appVersion, exportedAt, format: "poketokenbar.save", schema: 2,
+  sourceDevice, state}` (save-transfer.md §1.1), pretty-printed with sorted keys. `appVersion` is the helper
+  version, `sourceDevice` is the host name (`os.Hostname()`), and **every date, `exportedAt` and the dates inside
+  `state` included, is UTC whole seconds with `Z`** (§1.1), so a macOS build can read the file. It is written atomically
+  (temp file and rename in the target directory) and `bytes` is its size. Only the progress is exported, never
+  `growthDifficulty`, the usage ledger or the caches.
+- **`inspectSave`** reads and validates the file and changes nothing. `digest` is the lowercase hex sha256 of the
+  file bytes; `schema` is the envelope's; `exportedAt` is a ts; `incoming` summarises the file, `current` the
+  save in use. The extension shows both in the confirmation dialog.
+- **`importSave`** re-reads the file, re-validates it, and compares its sha256 with `digest`: a different file gives
+  `fileChanged`, so the two phases are stateless and an edit between preview and confirm is caught. Order:
+  1. write the **pre-import backup**, mandatory; on failure `backupFailed` and nothing changes;
+  2. replace the progress (the rules below) and save;
+  3. emit the `state`, then reply with the new `summary`.
+- **`restoreSnapshot`** validates `id` (`^companion-snapshot-[0-9-]+\.json$`; else `badArgs`) and checks it is
+  in the list (else `notFound`). It reads and validates the chosen file **first**, then takes a safety snapshot of
+  the current state (a failure is ignored), then runs the same steps as `importSave`. The safety snapshot may
+  prune the oldest file, which is why the chosen one is read before it.
+- **Validation order** (header first, so a future body that does not parse still reports its schema):
+  1. file larger than 8 MiB (8,388,608 bytes): `fileTooLarge`, before parsing;
+  2. the `{format, schema}` header does not decode, or `format` is not `poketokenbar.save`: `notASaveFile`;
+  3. `schema` above 2: `newerSchema`;
+  4. the full envelope does not decode (all six fields are required, and `exportedAt` must be an ISO date):
+     `notASaveFile`;
+  5. the state is sanitized (tokens clamped to 0…10^15, an active Pokémon drops the egg fields, and so on) and
+     read leniently, including the legacy Unown keys `unownForm`, `pendingUnownForm` and
+     `representativeUnownForm`. A schema-1 file is accepted.
+- **What an import replaces and keeps.** Progress is replaced: tokens, `spentTokens`, egg and its prayers, the
+  active Pokémon, the representative, the dex, `collectedFinals`, the inventory and the badge history
+  (`notifiedDexCompletions`, `dexCompletionsSeeded`). The device ledger is re-seeded from this computer's usage
+  today, so usage before the import is never credited. The account ledger is merged (per-key maximum for
+  `candyGrantTier`, an epoch rule for `candyWindowEpoch`, OR for `candyFeatureSeeded`). **Kept from the current
+  state:** `growthDifficulty` (replacing it would rescale the imported progress at the next `setSettings`),
+  `schemaVersion` and `language`. Existing badges become history without a notification.
+- **Snapshots.** They are the same envelope, in `<state dir>/.snapshots/companion-state.json/`. The helper takes
+  one automatically at most every 12 hours (when the state is not trivial) and `createSnapshot` takes one on demand
+  with no interval check; the newest **10** are kept, manual ones included. `listSnapshots` is newest first and
+  returns at most 10.
+- **Pre-import backup.** `companion-state.pre-import-<local yyyy-MM-dd-HHmmss>.json` in the state dir, newest 5
+  kept. It is an **envelope**, so it can be imported again to undo an import (decision 47).
+- **Errors**, besides `badArgs` and `internal`:
+
+  | `code` | Command | Meaning |
+  |---|---|---|
+  | `notASaveFile` | `inspectSave`, `importSave`, `restoreSnapshot` | not a save file, or an unreadable envelope |
+  | `newerSchema` | same | made by a newer version; the message names the schema found |
+  | `fileTooLarge` | same | larger than 8 MiB |
+  | `fileChanged` | `importSave` | the file's sha256 differs from `digest` |
+  | `backupFailed` | `importSave`, `restoreSnapshot` | the pre-import backup could not be written; nothing changed |
+  | `notFound` | `restoreSnapshot` | `id` is not in the snapshot list |
+  | `fileNotFound` | every file command | the path does not exist |
+  | `permissionDenied` | every file command | no read or write permission |
+  | `noSpace` | every file command | out of disk space (`ENOSPC`, `EDQUOT`) |
+  | `ioError` | every file command | any other file error |
+
+  Messages are English, for the log; the extension maps the code to its own text.
+- Import and restore reset the in-memory game state (line, prefetch, celebration window). They change no
+  settings, rescale nothing and emit no event. The reply follows the `state`; the helper then runs a normal
+  update, which loads the evolution line and the menu sprite.
+- A single helper holds the state-dir lock (§2.1), so only the running helper can write the save: the commands
+  go through the extension (§15.1), never through a second process.
+
 ## 8. Sprites
 
 ### 8.1 `getSprite`
@@ -837,6 +962,11 @@ Computation rules are recap-heatmap.md §1.3.
   - `back`: default `false`.
   - `animated`: default `true`.
   - Or `{"egg": true}` for the egg.
+  - Or `{"item": "<name>"}` (M3) for a Shop or Bag item icon. `name` is the PokéAPI sprite file stem
+    (`rare-candy`, `shiny-charm`): lowercase letters, digits and `-` only; anything else is `badArgs`. The three
+    shapes are mutually exclusive; if several are present, `egg` wins, then `item`, then `speciesId`. The
+    **extension owns the name table** (`rareCandy` → `rare-candy`, `shinyCharm` → `shiny-charm`); `mint` has no
+    sprite upstream, so it is never requested and keeps its 🌿. No field was added to `shop` or `inventory`.
 - **Reply `data`.**
   - `key`: the asset actually served.
   - `status`: `ready` or `fallback`.
@@ -844,6 +974,10 @@ Computation rules are recap-heatmap.md §1.3.
     - an animated sprite gives its `sprites/<key>/manifest.json`;
     - a static sprite (dex cells, static fallbacks, the egg) gives the plain file `sprites/<key>.png`,
       with no manifest. A path ending in `.png` is a single static image.
+- **Item reply** (M3): `{key: "item-<name>", status: "ready", manifestPath: "<cacheDir>/sprites/item-<name>.png"}`,
+  a plain static file. Items have no fallback chain, so the status is always `ready`. A 404 or an offline start
+  with nothing cached is `unavailable`; a permanent 404 is remembered for the session, so it is not refetched. The
+  extension keeps the emoji and retries when the popover next opens. The helper does not prefetch item sprites.
 - **Fallbacks** (companion.md §8.3).
   - A missing shiny falls back to plain, a missing animation to static.
   - A back sprite falls back to front after a 404, for good. After a transient failure the front is
@@ -857,7 +991,7 @@ Computation rules are recap-heatmap.md §1.3.
   - Static, as upstream: dex cells, evolution lines, the form picker and the catch log.
 - **Keys** follow companion.md §8.2: `<asset>-[back-][sh](a|s)`.
   - `asset` is `<id>` for the default form, else `<id>-<form>`.
-  - The egg's key is `egg`.
+  - The egg's key is `egg`; an item's key is `item-<name>` (M3).
   - Examples: `25-a`, `25-sha`, `12-shs`, `423-s`, `492-sky-s`, `25-back-a`.
 - **Notification icons.** For a notification icon, request the static sprite (`animated: false`) and
   use the returned `.png` path as a `Gio.FileIcon`.
@@ -1030,14 +1164,17 @@ The extension tries `new Intl.Locale(tag).getWeekInfo?.().firstDay`, then the `w
 | `code` | Meaning | Extension |
 |---|---|---|
 | `unknownCommand` | `cmd` not recognized | log it; it is a bug |
-| `badArgs` | an arg is missing, out of range or of the wrong type (including a `scope` or `offset` of `getRecap`, and an unknown `item`) | log it; it is a bug |
+| `badArgs` | an arg is missing, out of range or of the wrong type (including a `scope` or `offset` of `getRecap`, an unknown `item`, an invalid `getSprite` item name, a relative save `path` and a malformed snapshot `id`) | log it; it is a bug |
 | `notOwned` | `setRepresentative` for a species or form the player does not own | keep the previous UI state |
-| `notReady` | data the command depends on is still loading: `useCandy` while the evolution line is not loaded (or a Ditto reveal is pending). No M1 command returned it. | keep the button disabled until the next `state` (`bag.candyBlocked`) |
+| `notReady` | data the command depends on is still loading: `useCandy` while the evolution line is not loaded (or a Ditto reveal is pending, `revealPending`). No M1 command returned it. | keep the button disabled until the next `state` (`bag.candyBlocked`) |
 | `insufficientFunds` (M2) | `buyItem` or `buyEgg`: the wallet is below the total price, or `count` is above `maxCount` | refresh from the next `state`; the button should already have been hidden |
 | `alreadyOwned` (M2) | `buyItem` for a passive item (Shiny Charm) the player already owns | refresh from the next `state` |
 | `noActive` (M2) | `buyEgg`, `useCandy` or `useMint` while an egg is incubating | refresh from the next `state` |
 | `noStock` (M2) | `useCandy` or `useMint` with a count of 0 in the inventory | refresh from the next `state` |
-| `unavailable` | remote data is unobtainable and nothing is cached (`getSprite` while offline) | placeholder; retry when the view reopens or after `networkUp` |
+| `notEgg` (M3) | `pray` while a Pokémon is active | ignore it: the click raced a hatch; refresh from the next `state` |
+| `notASaveFile`, `newerSchema`, `fileTooLarge`, `fileChanged`, `backupFailed`, `notFound` (M3) | save commands (§7.7) | show the mapped message in the Backup & Transfer page; nothing was changed |
+| `fileNotFound`, `permissionDenied`, `noSpace`, `ioError` (M3) | every save command that touches a file (§7.7) | show the mapped message |
+| `unavailable` | remote data is unobtainable and nothing is cached (`getSprite` while offline, including an item sprite) | placeholder or emoji; retry when the view reopens or after `networkUp` |
 | `internal` | unexpected helper error | log it and show a generic error |
 
 `timeout` and `helperExited` are produced only by the extension; they never appear on the wire.
@@ -1050,7 +1187,7 @@ show `message`.
 | `code` | Condition |
 |---|---|
 | `usageScan` | a provider's daily scan failed, so `lastUpdated` stops advancing (usage.md §6.2) |
-| `saveWrite` | the companion save or a snapshot could not be written |
+| `saveWrite` | the companion save could not be written. An automatic snapshot failure is only logged; a manual one is the error of `createSnapshot` (§7.7). |
 | `cacheWrite` | the usage cache could not be written (not fatal) |
 
 ### 11.4 Limits error codes (`errorCode`, `authExpired.errorCode`)
@@ -1102,6 +1239,9 @@ M1 prices from the pricing table only, so `reported` does not occur yet.
 
 They live in `extension/test/fixtures/`.
 - Each file holds one wire message, pretty-printed; `events.ndjson` is the exception and is compact.
+- The M3 fields are `companion.egg.prayers` (in `state-egg.json`), `hatch.prayers`, `Individual.prayers` (in
+  `species.json`) and the `dittoReveal` event. Until the Go phases that implement them land, the Go contract test
+  strips them through `m3Pending` (`helper/internal/daemon/contract_test.go`); the extension stub serves them already.
 - The M2 fields are in the state fixtures and the four new result files. The recap files were generated
   from the heatmap grid and the catch log with the stub's `make_recap`, under assertions (totals equal
   the week and bucket sums; the heatmap equals `monthDaily` and `recentDaily` where they overlap).
@@ -1121,7 +1261,11 @@ They live in `extension/test/fixtures/`.
 | `recap-week.json` (M2) | `getRecap` `week`, offset 0: 2026-11-16…22, in progress, 3 of 7 days elapsed, no graduates (the empty strip) |
 | `recap-week-prev.json` (M2) | `getRecap` `week`, offset −1: a complete week with a previous-period total and one graduate |
 | `recap-year.json` (M2) | `getRecap` `year`, offset 0: 12 buckets (three with data, future months without), 5 graduates of which 4 are listed, `previousTotal: null`, `canGoBack: false` |
-| `events.ndjson` | One compact line per event kind. These are standalone examples, and the `badge` line does not match the fixture world. |
+| `events.ndjson` | One compact line per event kind (M3: `hatch` carries `prayers`, and a `dittoReveal` line was added). These are standalone examples, and the `badge` line does not match the fixture world. |
+| `pray.json` (M3) | `pray` result: `{count: 38}` |
+| `inspect-save.json` (M3) | `inspectSave` result for a macOS export (schema 2, "Jane's MacBook Pro") against the `state-active.json` world |
+| `list-snapshots.json` (M3) | `listSnapshots` result: three snapshots, newest first, one with no species (an egg) and one shiny with a form |
+| `export-save.json`, `import-save.json`, `create-snapshot.json` (M3) | the `exportSave`, `importSave` and `createSnapshot` results. `restoreSnapshot` replies like `importSave`. |
 
 ## 14. Decisions taken here (versus upstream and the specs)
 
@@ -1171,6 +1315,7 @@ Bag and Shop, 17 to 22 recap and heatmap, 23 to 29 floating pet, 30 to 32 polish
 23. **The pet is a chrome actor** restacked just above `global.window_group`. A single `sync()` hides
     it for the overview, fullscreen, power-save and the settings screen. No wire impact.
 24. **An egg click opens the popover**; prayers are deferred, so there is no `pray` command.
+    **Superseded in M3 by decision 39.**
 25. **Agents report over an extension-owned D-Bus object**, `io.github.poketokenbar.Agent`, interface
     `io.github.poketokenbar.Agent1`, with `Report(sss)` and `OpenUrl(s)`. Hooks use `busctl`. There is
     no URL scheme handler and no `.desktop` file (§15).
@@ -1185,6 +1330,51 @@ Bag and Shop, 17 to 22 recap and heatmap, 23 to 29 floating pet, 30 to 32 polish
 32. **Hatch and evolve play a CSS celebration flash**, driven by the existing `hatch` and `evolve`
     events. No wire impact.
 
+**Milestone 3 decisions** (approved 2026-11-19, `tasks/todo.md` "Milestone 3 plan"; specs
+`docs/spec/{items-medals,prayers-ditto,save-transfer}.md`). Items 37 and 38 are item sprites and medals, 39 to 43
+prayers and Ditto, 44 to 51 save transfer.
+
+37. **Item sprites are a third `getSprite` shape**, `{"item": "<name>"}`, mutually exclusive with `egg` and
+    `speciesId` (order: `egg`, `item`, `speciesId`). The extension owns the name table; Mint keeps 🌿; the helper
+    does not prefetch (§8.1).
+38. **The Pokédex completion medals were delivered in M1.** M3 only adds the missing tests and corrects the docs that
+    said LATER (§6 `badge`, ui.md §5.1 and §9). The strip layout is unchanged; no new wire field.
+39. **An egg click prays.** `pray` is a mutating command with the new error `notEgg` (never `noActive`), which the
+    extension ignores. The context-menu Open still opens the popover. Supersedes decision 24 (§7.6).
+40. **Prayer fields are always present once emitted:** `egg.prayers`, `hatch.prayers` and `Individual.prayers`. The
+    helper saves on every prayer. The wobble and the 🙏 particles are skipped when animations are off, the prayer is
+    still counted. "Born after N prayers" uses `ngettext`.
+41. **The Ditto disguise roll is on in the helper** (`DittoDisguiseEnabled` set in the daemon; the `Options` default
+    stays off so the parity tests keep their draw counts). Line 132 is pre-warmed while a disguise is active.
+42. **The reveal runs synchronously in the helper's update** (`revealIfNeeded`), with no race guard. `useCandy` that
+    reaches the threshold returns `progressed`. `bag.candyBlocked` is `revealPending` while the fetch of line 132
+    is pending (§5.4, §7.4). `active` carries no disguise field, and a disguised species counts toward dex badges, as
+    upstream.
+43. **`dittoReveal` is a new event kind** (§6). Its card effect is the existing CSS flash plus a 🎭 label. The
+    window `levelUpUntil` is 5 s.
+44. **Save files are envelopes, schema 2, with UTC whole-second dates** (`2006-01-02T15:04:05Z`), so a GNOME export
+    imports on macOS. `sourceDevice` is `os.Hostname()`. **Supersedes the M1 decision "No import of macOS saves"
+    (`SPEC.md`):** an envelope exported by the macOS app imports; a bare `companion-state.json` copied from macOS
+    stays unsupported (no envelope, Apple reference-date doubles).
+45. **Import validates the header first** (8 MiB cap, then `format`, then `schema`, then the full envelope), with the
+    error codes of §11.2. The legacy Unown keys are read as forms.
+46. **An import keeps the current `growthDifficulty`, `schemaVersion` and `language`** and re-seeds the device ledger.
+    On a zero-usage day the helper keeps its drop-zeros behaviour (the first non-zero observation is the baseline and
+    is not credited), unlike upstream, which seeds zero entries; the difference is at most one scan interval of tokens.
+47. **A pre-import backup is mandatory, kept 5, and written as an envelope** (upstream writes a bare state), so it is
+    importable. It reuses the snapshot writer, so it costs nothing.
+48. **Snapshots:** automatic every 12 h, newest 10 kept, manual ones included in that count. Rows are text-only. A
+    restore reads the chosen file before taking the safety snapshot.
+49. **Import is two-phase and path-only.** `inspectSave` returns a sha256 `digest`; `importSave` compares it
+    (`fileChanged`). Contents never cross the wire. A non-local `Gio.File` target is refused by the preferences
+    window (`Choose a local file.`); the helper requires an absolute path.
+50. **Save UI lives in the preferences window and reaches the helper through the extension**, over the D-Bus
+    interface `Save1` on the same bus name as `Agent1` (§15.1). There is no CLI fallback while the extension is off;
+    the page shows a banner instead. Dialog wording says "computer" and "extension", and names
+    `~/.local/state/poketokenbar`.
+51. **`meta.errors` `saveWrite` covers the companion save only.** The earlier text also named snapshots, but an
+    automatic snapshot failure is only logged; the protocol text is corrected rather than the code widened (§11.3).
+
 Details settled while merging the specs into this document:
 
 33. `sulkIdleSeconds` is floored to whole hours so the 60 s tick does not emit a state every minute
@@ -1195,6 +1385,9 @@ Details settled while merging the specs into this document:
 36. `settingsApplied.shopDifficulty` is always present even though the `setSettings` arg is optional.
 
 ## 15. Agent D-Bus interface (extension side, not the helper protocol)
+
+This section describes `Agent1`. The preferences window's save relay, `Save1`, sits on the same bus name and is
+described in §15.1.
 
 Coding agents such as Claude Code report their activity to the **extension**, not to the helper: the
 helper's stdio belongs to the extension and the helper holds the state-dir lock (§2.1), so a hook
@@ -1263,3 +1456,70 @@ so it silently strips quotes: checked, `NameHasOwner "'org.freedesktop.DBus'"` r
 label such as `'x'` would lose its quotes. `busctl … s "'org.freedesktop.DBus'"` passes the string
 literally (`false`), and an empty string is fine. `busctl` exits 1 at once when the extension is not
 running, and `|| true` swallows it.
+
+### 15.1 Save relay (`Save1`, M3)
+
+The preferences window runs in its own GTK process (`prefs.js`) and cannot reach the helper: the helper's stdio
+belongs to the shell extension and the state-dir lock (§2.1) blocks a second helper. The extension therefore
+exports a second interface that relays the six save commands (§7.7). Like §15 it is not part of protocol
+versioning and changes only additively.
+
+| Item | Value |
+|---|---|
+| Bus | session |
+| Well-known name | `io.github.poketokenbar.Agent` (the same name, owned once, in the same `enable()`) |
+| Object path | `/io/github/poketokenbar/Save` |
+| Interface | `io.github.poketokenbar.Save1` |
+
+**Same name, sibling object.** One name keeps one ownership lifecycle: the preferences window checks
+`NameHasOwner` once to learn whether the extension is running, and both interfaces appear and vanish together on
+`enable()`, `disable()` and screen lock. A second well-known name would add nothing, because a session bus has no
+per-name access policy: any process of the same user can call either interface, and the same user can already
+rewrite `~/.local/state/poketokenbar`. A separate object path and interface keep `Agent1`, the fire-and-forget
+hook surface with its sanitizer, apart from `Save1`, a request and reply surface whose replies carry the save
+summaries.
+
+```xml
+<node>
+  <interface name="io.github.poketokenbar.Save1">
+    <method name="ExportSave">
+      <arg type="s" name="path" direction="in"/>
+      <arg type="s" name="reply" direction="out"/>
+    </method>
+    <method name="InspectSave">
+      <arg type="s" name="path" direction="in"/>
+      <arg type="s" name="reply" direction="out"/>
+    </method>
+    <method name="ImportSave">
+      <arg type="s" name="path" direction="in"/>
+      <arg type="s" name="digest" direction="in"/>
+      <arg type="s" name="reply" direction="out"/>
+    </method>
+    <method name="ListSnapshots">
+      <arg type="s" name="reply" direction="out"/>
+    </method>
+    <method name="CreateSnapshot">
+      <arg type="s" name="reply" direction="out"/>
+    </method>
+    <method name="RestoreSnapshot">
+      <arg type="s" name="id" direction="in"/>
+      <arg type="s" name="reply" direction="out"/>
+    </method>
+  </interface>
+</node>
+```
+
+**Behaviour:**
+- It is a **whitelist**: exactly these six methods, each mapped to the helper command of the same name (§7.7).
+  There is no generic passthrough, so no other local process can send shop or game commands.
+- **Paths only.** A method takes a path or an id, never file contents (§7.7). The window gets a path from
+  `Gtk.FileDialog`; a `Gio.File` with no local path (`get_path()` is `null`, for example MTP or SMB through GVfs)
+  is refused in the window before any call.
+- The reply is the command's `data` object as a JSON string. A helper error becomes the D-Bus error
+  `io.github.poketokenbar.Save1.Error.<code>` with the helper's message, `<code>` being a §11.2 code. The
+  extension's own `timeout` and `helperExited` pass through the same way.
+- Calls are asynchronous in the extension (`<Method>Async(params, invocation)`) and are served in arrival order
+  with the rest of the helper's mutating commands.
+- While the extension is off or the screen is locked the name has no owner and a call fails at once with "The name
+  is not activatable"; the Backup & Transfer page then shows a banner and disables its rows. Nothing is
+  D-Bus-activated and there is no service file.

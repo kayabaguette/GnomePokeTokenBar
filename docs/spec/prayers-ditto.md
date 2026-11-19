@@ -1,7 +1,11 @@
 # M3 spec: Prayers and Ditto disguise reveal
 
-Read-only extraction from upstream Swift (`/home/user/Documents/01_Projects/PokeTokenBar`) against the
-GNOME port (`/home/user/Documents/01_Projects/PokeTokenBar-GNOME`, after M2).
+Read-only extraction from the upstream Swift app (the PokeTokenBar macOS repository; `file:line` cites below) against
+the GNOME port (this repository, after M2).
+
+**Status.** The open questions of the raw spec are resolved in §4 with the Milestone 3 decisions of `tasks/todo.md`
+("Milestone 3 plan"). The contract that came out of it is in `docs/protocol.md` (§4, §5.4, §6, §7.2, §7.6, §11.2,
+§14 decisions 39 to 43).
 
 **Citation legend.** Paths are under `Sources/PokeTokenBar/` unless they start with `Tests/`.
 
@@ -38,9 +42,9 @@ GNOME port (`/home/user/Documents/01_Projects/PokeTokenBar-GNOME`, after M2).
    threshold: `applyUsage` breaks there (`helper/internal/companion/store.go:347-349`), the bag shows
    `revealPending`, and usage keeps banking. `store.go:23-25`, protocol §5.4 and `hatch_test.go:279-291`
    all document this on purpose.
-   - Today it is reachable only through a save that came from the macOS app. Save import is not ported
-     (`SPEC.md` "Not yet ported" #8), so whether a macOS save can actually reach the port is
-     **unverified**.
+   - Today it is reachable only through a save that came from the macOS app. Save import is delivered in M3
+     (`docs/spec/save-transfer.md`), so a macOS envelope export can carry a disguise into the port; the reveal
+     must therefore ship in the same milestone (decision 42).
 
 ---
 
@@ -313,6 +317,9 @@ The port already mirrors the shiny rules: `dex.go:95`, `dex.go:239`, `shop.go:25
      `maxRareCandyUseCount = 0` and `useRareCandy` returns `.unavailable` (`CS:1179-1182`);
    - the candy call that reaches the threshold returns `.progressed`, because the reveal is async.
    - The Go port already has this (`bag.go:21-49`, `bag.go:138-140`).
+  - **Port wording (decided):** `bag.candyBlocked = revealPending` means the roll is on, the disguise is at its
+    first threshold and the reveal waits for line 132 (the fetch is pending). It is a normal transient value, not an
+    import-only state.
 
 ### 2.5 Reveal copy and animation
 
@@ -352,7 +359,7 @@ The port already mirrors the shiny rules: `dex.go:95`, `dex.go:239`, `shop.go:25
   records a `wantLine 132` and the warm chain re-runs `Update`, the same path as `loadCurrentLine`.
   - This miss path is *inferred* from the `dataCache` doc comment and the `wantLine` kind; the view's
     `Line` method itself was not read.
-  - **Optional:** pre-warm line 132 whenever a disguise is active, so the reveal lands in the same pass.
+  - **Decided:** pre-warm line 132 whenever a disguise is active, so the reveal lands in the same pass.
     It is one extra cached line.
 - **No generation guard and no `isRevealing` flag.** The Store is single-owner and synchronous
   (`store.go:31-35`). The upstream race test cannot be reached here (see §3.4).
@@ -386,10 +393,12 @@ The port already mirrors the shiny rules: `dex.go:95`, `dex.go:239`, `shop.go:25
 - Add `dittoReveal` to `COMPANION_EVENTS` (`extension/lib/pet/floatingPet.js:46`), so the callout pops.
 - Add `dittoReveal` to `CELEBRATED` (`extension/extension.js:37`) for the existing CSS flash
   (M2 decision 32).
-- **Optional:** a 🎭 label burst on the card's `_fxLayer`, reusing `shop/feedbackFx.js`.
+- **Decided:** a 🎭 label on the card's `_fxLayer`, reusing `shop/feedbackFx.js`, on top of the CSS flash.
 - The bag keeps showing `revealPending` like `lineLoading`; no new text.
 
 ### 2.7 Protocol text to change
+
+**Done in phase 16:** every item below is merged into `docs/protocol.md`.
 
 - **§5.4 `candyBlocked`:** `revealPending` = "a disguised Ditto reached its reveal threshold and the
   reveal waits for line 132 (offline, or the same pass)". Drop the "imported or hand-edited only"
@@ -486,7 +495,7 @@ The Swift `seedDisguise` fixture (`T/DittoTests.swift:104-117`):
 | `T/PokemonFormTests.swift:274-296` | Burmy 412 `sandy` disguise, used 900M, difficulty 1: after `Update`, base 132 and `form` nil |
 | `T/PetEventLineTests.swift:142-153` | seed 2466, `hatch(1)`, `applyUsage(130M)`: `dittoReveal.isShiny` true, `disguiseDisplayName` `Bulb` (en: `You thought it was Bulb — it was a shiny Ditto!`) |
 | `T/ShinyCharmTests.swift:63-69` | JS: no reveal body contains `64` or `48` |
-| `T/SaveSnapshotTests.swift:128-156` | snapshot summary uses `displaysShiny`. Port only if the Go snapshot summary is ever surfaced; today it is not (backup UI is LATER). |
+| `T/SaveSnapshotTests.swift:128-156` | snapshot summary uses `displaysShiny`. Ported in M3 with `listSnapshots` (`save-transfer.md` §6). |
 
 ### 3.4 Go tests that flip or are dropped
 
@@ -509,27 +518,26 @@ The Swift `seedDisguise` fixture (`T/DittoTests.swift:104-117`):
 
 ---
 
-## 4. Open questions
+## 4. Open questions (all resolved)
 
-1. **Enable the disguise roll in production?** Upstream ships it on (bundled app). The recommendation is
-   on, for parity; it also resolves any disguise a macOS-origin save may carry (unverified path, §0.5).
-   Alternative: a hidden GSettings key.
-2. **`pray` while active:** a new error `notEgg`, or a silent `{count: 0}` reply like upstream?
-   Recommendation: `notEgg`, which the extension ignores.
-3. **Save per prayer:** upstream saves on every click. Rapid clicking means an atomic write plus fsync
-   per click in Go. Keep parity unless profiling shows cost; the fallback is a 1 s debounce flushed on
-   shutdown.
-4. **`Born after 1 prayers`:** upstream has no singular. Using `ngettext` is a harmless deviation.
-5. **Reduced motion:** upstream ignores it for prayers. Does the port's pet honour
-   `St.Settings.enable_animations` elsewhere? If it does, skip the wobble and particles but still count.
-   Unverified.
-6. **The 🎭 card burst:** CSS flash only, as decision 32 does for hatch and evolve, or also an emoji burst?
-   Recommendation: flash plus a 🎭 label via `feedbackFx`.
-7. **Badge from a disguised species** (§2.2): keep parity, or exclude the disguised active entry from
-   completion checks? Recommendation: parity. It is rare (1/128 of common multi-form hatches) and the
-   species is usually already owned.
-8. **Pre-warm line 132** while a disguise is active (one extra cached line), so the reveal never waits a
-   pass?
+Each answer is a Milestone 3 decision (`tasks/todo.md`, "Milestone 3 plan") unless it says otherwise.
+
+1. **Enable the disguise roll in production?** Decided: yes. `DittoDisguiseEnabled: true` in `daemon.go:177`;
+   the `Options` default stays false so parity tests keep their draw counts. No GSettings key.
+2. **`pray` while active.** Decided: the new error code `notEgg` (never `noActive`, which means the inverse). The
+   extension ignores it (a click racing a hatch).
+3. **Save per prayer.** Decided: save on every prayer, as upstream does. A debounce is only a fallback if profiling
+   shows a cost; none is planned.
+4. **`Born after 1 prayers`.** Decided: use `ngettext` ("Born after %d prayer" / "Born after %d prayers"). A harmless
+   deviation; the hover count already has a singular upstream (`L10N:1396`).
+5. **Reduced motion.** Decided: the wobble and the 🙏 particles are skipped when animations are off
+   (`St.Settings.enable_animations` false); the prayer is still counted, the hover text still rebuilds and the
+   usage-refresh milestone still runs. Upstream ignores reduced motion here; this is a deliberate deviation.
+6. **The 🎭 card burst.** Decided: the existing CSS celebration flash (decision 32) plus a 🎭 label through
+   `shop/feedbackFx.js`. No other emoji burst.
+7. **Badge from a disguised species.** Decided: keep upstream parity (the disguised species counts toward badges).
+8. **Pre-warm line 132.** Decided: yes, whenever a disguise is active, so the reveal lands in the same pass when the
+   line is cached. `revealIfNeeded` runs in `Update`; `profile.rebaseForSpeciesIdentity` is added.
 
 ## 5. Recommended scope
 
@@ -546,7 +554,7 @@ The Swift `seedDisguise` fixture (`T/DittoTests.swift:104-117`):
 | Reveal notification and callout | **Keep** | Strings plus one event kind |
 | 🎭 / ✨ card burst | **Keep, simplified** | The flash already exists; the emoji burst is optional polish |
 | Upstream async race guard (`activeGeneration`, `isRevealingDitto`) | **Drop** | Unreachable in the synchronous Store |
-| Snapshot-summary shiny rule | **Drop for now** | No snapshot UI in the port yet |
+| Snapshot-summary shiny rule | **Keep (M3)** | The snapshot list ships in M3 (`save-transfer.md` §3.4); it uses `displaysShiny` |
 | Badge exclusion for a disguise | **Drop** | Keep upstream behaviour |
 
 ## 6. Work breakdown

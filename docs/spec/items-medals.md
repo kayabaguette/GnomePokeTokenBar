@@ -2,7 +2,10 @@
 
 Upstream refs: `CM` = Core/CompanionModel.swift, `CS` = Core/CompanionStore.swift, `PR` = Core/PokedexRegion.swift,
 `LOC` = Core/Localization.swift, `SL` = UI/SpriteLoader.swift, `CV` = UI/CompanionView.swift, `SV` = UI/ShopView.swift,
-`BV` = UI/BagView.swift. Port refs are repo-relative to PokeTokenBar-GNOME. All paths verified by reading, nothing run.
+`BV` = UI/BagView.swift. Port refs are repo-relative to this repository. All paths verified by reading, nothing run.
+
+**Status.** The open questions of the raw spec are resolved in §3 with the Milestone 3 decisions of `tasks/todo.md`
+("Milestone 3 plan"). The contract that came out of it is in `docs/protocol.md` (§8.1, §14 decisions 37 and 38).
 
 ## 0. Headline: what is already done in the port
 
@@ -11,7 +14,7 @@ Upstream refs: `CM` = Core/CompanionModel.swift, `CS` = Core/CompanionStore.swif
   The daemon never exposes it: `cmdSprite` (`internal/daemon/spritework.go:149-175`) accepts only `{egg:true}` or `speciesId`.
   The extension shows emoji for every item (`extension/lib/shop/shopModel.js:19-44`, `shopWidgets.js:22 iconTile`).
   The egg icon already uses a sprite (`shopView.js:90-101`, `EGG_ICON_SIZE = 26`).
-- **Medals: mostly done in the port**, although docs still mark them LATER (`protocol.md:603`, `ui.md:499,634`).
+- **Medals: done in the port (M1)**. The docs marked them LATER; phase 16 reconciled `protocol.md` §6 and `ui.md` §5.1, §9.
   - Helper: `companion/dex.go:114-210` (`earnedBadges`, `checkDexCompletions`, `seedDexCompletions`), `views.go:297-310`
     (`dexSummary.badges`), `events.go:55 BadgeEvent`, with tests in `dex_test.go:56-185`.
   - Extension: `dex/dexModel.js:431-465` (`regionMedal`, `headerMedals`), `dex/dexView.js:265-285` (header medals),
@@ -171,18 +174,30 @@ JS: `dexModel.test.js:360-368` and `viewModel.test.js:154` already cover medals 
 ### 2.9 Gaps to verify in the port (all small)
 1. Chip fill, stroke and 0.5 opacity at owned 0 (§2.4) match upstream; the port uses "tiles with a progress line" (`stylesheet.css:631`), a deliberate deviation. Check `ui.md` for the recorded decision before changing it.
 2. Header medals: yellow 0.14/0.5 style is in `stylesheet.css:621-628`; verify the tooltip strings match §2.5.
-3. Docs: `protocol.md:603`, `ui.md:499`, `ui.md:634`, `companion.md` still say LATER; update them to done. The `badge` event description should say it is consumed.
+3. Docs: `protocol.md` §6 and `ui.md` §5.1 and §9 said LATER. **Done in phase 16**; the `badge` event row now says it is consumed. (`companion.md` has no LATER mention.)
 4. Notification punctuation (curly vs straight apostrophe) and the `🏅`/`✨` emoji in titles are present; confirm the Shell notification does not drop emoji in the title.
 5. Confirm `badge` notifications respect the same "companion-notifications" setting as `graduate` (`viewModel.js:416`).
 
-## 3. Open questions
-1. Item sprite tint and size: keep the existing 34 px tile with a 30 px sprite, or enlarge? (Upstream is 30 pt with no tile; the tile is a port addition.) Recommendation: keep.
-2. Is `St.Icon` nearest-neighbour at 30 px on GNOME 51? Needs a screenshot test on the real shell (see 1.4); if not, use `Clutter.Image`.
-3. Should offline start show emoji forever, or retry? Upstream retries on the next view appearance only. Recommendation: same.
-4. Should the helper prefetch `rare-candy` and `shiny-charm` at startup, so the first Shop view has no emoji flash? Upstream does not. Recommendation: no; the cost is two requests, but it adds a startup network path.
-5. Medal docs say LATER while the code exists: was the medal strip built on purpose in M2? Confirm it is accepted, so M3 only reconciles docs.
-6. Should the Unown and national tiers get a progress readout? Upstream has none; `dexNationalLabel`/`dexUnownLabel` are dead strings. Recommendation: do not invent one.
-7. Apostrophe style for the notification msgids (straight upstream, curly in the port).
+## 3. Open questions (resolved; one needs a real-shell check)
+
+Each answer is a Milestone 3 decision (`tasks/todo.md`, "Milestone 3 plan") unless it says otherwise.
+
+1. **Tile and size.** Decided: keep the existing 34 px tile with a 30 px sprite inside. The tile is a port addition and
+   stays (spec recommendation; nothing in the plan changes it).
+2. **Is `St.Icon` nearest-neighbour at 30 px on GNOME 51?** **Not resolved: needs a screenshot on a real shell.** The
+   plan: phase 19 renders it in the nested shell. If linear filtering shows, switch the tile to `St.Widget` with a
+   `Clutter.Image`. The wire contract does not depend on the answer.
+3. **Offline start.** Decided: the emoji stays and the resolver retries the next time the popover opens (upstream
+   behavior; `sprites.js:44-47` forgets failed entries).
+4. **Prefetch.** Decided: no. The helper does not prefetch `rare-candy` or `shiny-charm` (decision "no prefetch").
+5. **Medal docs say LATER while the code exists.** Decided: the medals were built in M1 and are accepted as delivered.
+   M3 adds the missing tests (§2.8 diff) and reconciles the docs. The strip layout stays as it is. Verified in phase 16
+   against `helper/internal/companion/dex.go` (`earnedBadges` :147, `checkDexCompletions` :174,
+   `seedDexCompletions` :193) and `extension/lib/dex/dexModel.js` (`regionMedal` :438, `headerMedals` :455),
+   `extension/lib/viewModel.js` (`badgeText` :385), `extension/stylesheet.css` (`.ptb-dex-medal` :621).
+6. **Progress readout for Unown and national.** Decided: none (upstream has none; the two labels are dead strings).
+7. **Apostrophe in the notification msgids.** Decided: keep the curly apostrophe the port already ships
+   (`viewModel.js:385-400`); the msgids follow the code. There is no `.pot` yet, so nothing else changes.
 
 ## 4. Recommended scope
 | Sub-feature | Verdict | Reason |
@@ -192,7 +207,7 @@ JS: `dexModel.test.js:360-368` and `viewModel.test.js:154` already cover medals 
 | Mint sprite | **Drop** | None exists upstream; emoji stays (`CM:190-191`). |
 | Egg icon | **Done** | Already a sprite (`shopView.js:90`). Only verify the crop is applied. |
 | Helper prefetch of item sprites | **Drop** | Not upstream; adds a startup network path. |
-| Medal rules, seeding, `badge` event, header strip | **Done** | Verify and fix the docs only (§2.9). |
+| Medal rules, seeding, `badge` event, header strip | **Done (M1)** | Verify; the docs are fixed (§2.9). |
 | New progress UI for Unown or national | **Drop** | Not upstream; dead strings upstream. |
 | Chip restyle to match upstream capsule | **Drop unless asked** | Port uses tiles by design; check the recorded decision. |
 
