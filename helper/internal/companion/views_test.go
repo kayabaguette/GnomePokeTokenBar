@@ -108,9 +108,6 @@ var m2Pending = []string{
 	".inventory.mint",
 	".inventory.shinyCharm",
 	".egg.guarantee",
-
-	// Pet fields (phase 11)
-	".sulkIdleSeconds",
 }
 
 func withoutPending(want map[string]bool) map[string]bool {
