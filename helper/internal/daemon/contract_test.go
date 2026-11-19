@@ -118,10 +118,9 @@ var m2Pending = []string{}
 
 // m3Pending is the same mechanism for the Milestone 3 contract (prayers, the Ditto reveal): fixture
 // file -> dotted paths the Go structs do not carry yet. A path segment that meets an array applies
-// to every element. Phase 17 (prayers and the Ditto reveal) deletes its lines. The save-transfer and
-// item-sprite results have no Go type yet, so no fixture of theirs is decoded here: phase 18 adds
-// checkResult calls for pray, inspect-save, list-snapshots, export-save, import-save and
-// create-snapshot.
+// to every element. Phase 17 (prayers and the Ditto reveal) deletes its lines. The pray and
+// item-sprite results have no Go type yet, so no fixture of theirs is decoded here (pray.json still
+// needs its checkResult call); the save-transfer results are checked in TestContractDrift.
 var m3Pending = map[string][]string{
 	"state-egg.json": {"companion.egg.prayers"},
 	"species.json":   {"data.individuals.prayers"},

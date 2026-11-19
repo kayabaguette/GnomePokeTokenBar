@@ -3,6 +3,7 @@ package companion
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -407,6 +408,7 @@ func TestMacOSExportImportsAndRoundTrips(t *testing.T) {
 			t.Errorf("re-export carries %q", gone)
 		}
 	}
+	checkKeepsMacKeys(t, fixture, data)
 	back := decodeOK(t, data).st
 	if !reflect.DeepEqual(back.Active, st.Active) || !reflect.DeepEqual(back.Dex, st.Dex) || !reflect.DeepEqual(back.CandyWindowEpoch, st.CandyWindowEpoch) ||
 		back.UsedSinceInstall != st.UsedSinceInstall || deref(back.RepresentativeForm) != "exclamation" {
@@ -416,6 +418,58 @@ func TestMacOSExportImportsAndRoundTrips(t *testing.T) {
 	applyOK(t, other, data, UsageInput{})
 	if other.Summary() != (Summary{3, 52_800_000_000}) || deref(other.st.Active.Form) != "question" {
 		t.Fatalf("second import %+v", other.Summary())
+	}
+}
+
+// checkKeepsMacKeys compares the re-export with the macOS fixture as JSON, so the check does not
+// go through the Go structs: every key macOS wrote on the active Pokémon, its profile (with ivs and
+// moves) and each dex entry comes back with the same value, unownForm as form, and the file holds
+// no null (Swift's synthesized decoders would read a null required key as a failure).
+func checkKeepsMacKeys(t *testing.T, fixture, export []byte) {
+	t.Helper()
+	parse := func(b []byte) map[string]any {
+		var v map[string]any
+		dec := json.NewDecoder(strings.NewReader(string(b)))
+		dec.UseNumber()
+		if err := dec.Decode(&v); err != nil {
+			t.Fatal(err)
+		}
+		return v["state"].(map[string]any)
+	}
+	mac, gnome := parse(fixture), parse(export)
+	compare := func(where string, want, got map[string]any) {
+		for k, w := range want {
+			key := k
+			if k == "unownForm" {
+				key = "form"
+			}
+			if g, ok := got[key]; !ok || !reflect.DeepEqual(g, w) {
+				t.Errorf("%s.%s: macOS %v, re-export %v", where, key, w, g)
+			}
+		}
+	}
+	macActive, gnomeActive := mac["active"].(map[string]any), gnome["active"].(map[string]any)
+	macProfile, gnomeProfile := macActive["profile"].(map[string]any), gnomeActive["profile"].(map[string]any)
+	delete(macActive, "profile")
+	compare("active", macActive, gnomeActive)
+	// growthTokens is re-derived from usedAtStage under this computer's difficulty and only ever
+	// grows (ensureProfiles, as upstream's migration after applySave); the level is kept.
+	w, _ := macProfile["growthTokens"].(json.Number).Int64()
+	g, _ := gnomeProfile["growthTokens"].(json.Number).Int64()
+	if g < w {
+		t.Errorf("active.profile.growthTokens: macOS %d, re-export %d", w, g)
+	}
+	delete(macProfile, "growthTokens")
+	compare("active.profile", macProfile, gnomeProfile)
+	macDex, gnomeDex := mac["dex"].([]any), gnome["dex"].([]any)
+	if len(macDex) != len(gnomeDex) {
+		t.Fatalf("dex %d → %d", len(macDex), len(gnomeDex))
+	}
+	for i := range macDex {
+		compare(fmt.Sprintf("dex[%d]", i), macDex[i].(map[string]any), gnomeDex[i].(map[string]any))
+	}
+	if strings.Contains(string(export), "null") {
+		t.Error("the re-export contains a null")
 	}
 }
 

@@ -318,3 +318,30 @@ func TestImportReseedsTheLedgerFromThisComputersUsage(t *testing.T) {
 		t.Fatalf("wallet %v, want the usage since the import (+500)", got)
 	}
 }
+
+// save-transfer.md §7 Q4 (protocol decision 46): an import on a day with no usage yet defers the
+// baseline, because usageInput drops zero providers. The first non-zero scan becomes the baseline
+// and is not credited; only what follows is.
+func TestImportOnAZeroUsageDayDefersTheBaseline(t *testing.T) {
+	h := newHarness(t, "")
+	h.usage.set(0)
+	h.usage.history[1] = 5_000 // usage data exists (hasUsageData), none of it today
+	imp := filepath.Join(t.TempDir(), "in.json")
+	raw := copyFixture(t, imp)
+	const wallet = 52_800_000_000 - 1_500_000_000
+	h.start()
+	h.sendSettings(1, false)
+	h.expect("fresh", wait, isFreshState)
+	h.send(cmdLine(2, "importSave", map[string]any{"path": imp, "digest": sha(raw)}))
+	h.expect("import", wait, isResult(2))
+	for i, c := range []struct {
+		today, wallet int64
+	}{{300, wallet}, {800, wallet + 500}} {
+		h.usage.set(c.today)
+		h.send(fmt.Sprintf(`{"id":%d,"cmd":"refresh","args":{"manual":true}}`, 3+i))
+		h.expect("refresh", wait, isResult(int64(3+i)))
+		if got := h.lastState().num("companion", "wallet"); got != float64(c.wallet) {
+			t.Fatalf("usage %d: wallet %v, want %d", c.today, got, c.wallet)
+		}
+	}
+}
