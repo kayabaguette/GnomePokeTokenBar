@@ -1,7 +1,6 @@
 package companion
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -26,10 +25,17 @@ const (
 
 // writeFileAtomic writes data to a temp file in the same directory, fsyncs it and renames it over
 // path, so a crash never leaves a partial file.
-func writeFileAtomic(path string, data []byte) error {
+func writeFileAtomic(path string, data []byte) error { return writeFile(path, data, false) }
+
+// writeFile is writeFileAtomic; with direct, a directory that refuses the temp file gets a plain
+// write of path instead (an export into a document-portal mount, save-transfer.md §5.1).
+func writeFile(path string, data []byte, direct bool) error {
 	dir := filepath.Dir(path)
 	f, err := os.CreateTemp(dir, ".tmp-"+filepath.Base(path)+"-*")
 	if err != nil {
+		if direct {
+			return os.WriteFile(path, data, 0o600)
+		}
 		return err
 	}
 	tmp := f.Name()
@@ -105,24 +111,17 @@ func (s *Store) save() {
 
 // ---------------------------------------------------------------- snapshots
 
-type envelope struct {
-	AppVersion   string          `json:"appVersion"`
-	ExportedAt   string          `json:"exportedAt"`
-	Format       string          `json:"format"`
-	Schema       int             `json:"schema"`
-	SourceDevice string          `json:"sourceDevice"`
-	State        json.RawMessage `json:"state"`
-}
-
 type snapshotInfo struct {
-	path string
-	id   string // file name
-	date time.Time
+	path    string
+	id      string // file name
+	date    time.Time
+	summary SnapshotSummary
 }
 
 func (s *Store) snapshotDir() string { return filepath.Join(s.dir, ".snapshots", stateFileName) }
 
-// listSnapshots returns the readable snapshots, newest first (SS:62-103). Unreadable files are skipped.
+// listSnapshots returns the snapshots that decode as envelopes, newest first by date then id
+// (SS:62-103). Unreadable files are skipped, so they are never counted or pruned.
 func (s *Store) listSnapshots() []snapshotInfo {
 	entries, err := os.ReadDir(s.snapshotDir())
 	if err != nil {
@@ -135,15 +134,11 @@ func (s *Store) listSnapshots() []snapshotInfo {
 			continue
 		}
 		path := filepath.Join(s.snapshotDir(), name)
-		env, ok := readEnvelope(path)
-		if !ok {
-			continue
-		}
-		date, err := time.Parse(time.RFC3339, env.ExportedAt)
+		_, env, err := ReadSave(path)
 		if err != nil {
 			continue
 		}
-		out = append(out, snapshotInfo{path: path, id: name, date: date})
+		out = append(out, snapshotInfo{path: path, id: name, date: env.ExportedAt, summary: snapshotSummary(name, env.ExportedAt, &env.st)})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if !out[i].date.Equal(out[j].date) {
@@ -154,38 +149,27 @@ func (s *Store) listSnapshots() []snapshotInfo {
 	return out
 }
 
-func readEnvelope(path string) (envelope, bool) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return envelope{}, false
-	}
-	var env envelope
-	if json.Unmarshal(data, &env) != nil || env.Format != envelopeFormat || env.Schema > envelopeSchema {
-		return envelope{}, false
-	}
-	if _, ok := parseObject(env.State); !ok {
-		return envelope{}, false
-	}
-	return env, true
-}
-
 func (s *Store) latestValidSnapshot() (state, bool) {
 	for _, snap := range s.listSnapshots() {
-		if env, ok := readEnvelope(snap.path); ok {
-			if st, ok := decodeState(env.State); ok {
-				return st, true
-			}
+		if _, env, err := ReadSave(snap.path); err == nil {
+			return env.st, true
 		}
 	}
 	return state{}, false
 }
 
-// createSnapshot writes an envelope snapshot named after the local time, with a -N suffix on a
-// clash, then prunes to the newest ten (SS:134-174).
+// createSnapshot writes a snapshot (see writeSnapshot).
 func (s *Store) createSnapshot(now time.Time) error {
+	_, err := s.writeSnapshot(now)
+	return err
+}
+
+// writeSnapshot writes an envelope snapshot named after the local time, with a -N suffix on a
+// clash, then prunes to the newest ten (SS:134-174). It returns the file name.
+func (s *Store) writeSnapshot(now time.Time) (string, error) {
 	dir := s.snapshotDir()
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+		return "", err
 	}
 	base := snapshotPrefix + now.Local().Format(snapshotStampLayout)
 	name := base + ".json"
@@ -195,20 +179,12 @@ func (s *Store) createSnapshot(now time.Time) error {
 		}
 		name = fmt.Sprintf("%s-%d.json", base, n)
 	}
-	stateJSON, err := encodeState(&s.st)
+	data, err := encodeEnvelope(&s.st, now, s.appVersion, hostName(), false)
 	if err != nil {
-		return err
-	}
-	host, _ := os.Hostname()
-	data, err := json.MarshalIndent(envelope{
-		AppVersion: s.appVersion, ExportedAt: now.UTC().Format(time.RFC3339), Format: envelopeFormat,
-		Schema: envelopeSchema, SourceDevice: host, State: stateJSON,
-	}, "", "  ")
-	if err != nil {
-		return err
+		return "", err
 	}
 	if err := writeFileAtomic(filepath.Join(dir, name), data); err != nil {
-		return err
+		return "", err
 	}
 	s.newestSnapshot = now
 	if snaps := s.listSnapshots(); len(snaps) > maxSnapshots {
@@ -216,7 +192,7 @@ func (s *Store) createSnapshot(now time.Time) error {
 			_ = os.Remove(old.path)
 		}
 	}
-	return nil
+	return name, nil
 }
 
 // autoSnapshotIfNeeded snapshots a non-trivial state when the newest snapshot is ≥ 12 h old

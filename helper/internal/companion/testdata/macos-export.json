@@ -1,0 +1,136 @@
+{
+  "appVersion" : "2.5.7",
+  "exportedAt" : "2026-11-17T21:04:12Z",
+  "format" : "poketokenbar.save",
+  "schema" : 2,
+  "sourceDevice" : "Jane’s MacBook Pro",
+  "state" : {
+    "active" : {
+      "baseID" : 201,
+      "dittoRevealed" : false,
+      "hasGrowthBoost" : false,
+      "isShiny" : true,
+      "nature" : "modest",
+      "pathIDs" : [
+        201
+      ],
+      "plannedPathIDs" : [
+        201
+      ],
+      "profile" : {
+        "abilityIsHidden" : false,
+        "abilityName" : "levitate",
+        "abilitySlot" : 1,
+        "gender" : "genderless",
+        "growthTokens" : 1234567,
+        "instanceID" : "6B1F0C2E-58A4-4D7E-9C11-3F2A7B9D0E45",
+        "ivs" : {
+          "attack" : 12,
+          "defense" : 31,
+          "hp" : 7,
+          "specialAttack" : 30,
+          "specialDefense" : 0,
+          "speed" : 19
+        },
+        "level" : 12,
+        "moves" : [
+          {
+            "learnedAtLevel" : 1,
+            "name" : "hidden-power"
+          }
+        ],
+        "seed" : 18000000000000000001
+      },
+      "rarity" : "common",
+      "stageIndex" : 0,
+      "totalForms" : 1,
+      "unownForm" : "question",
+      "usedAtStage" : 1234567
+    },
+    "candyFeatureSeeded" : true,
+    "candyGrantTier" : {
+      "claude.fiveHour" : 1
+    },
+    "candyWindowEpoch" : {
+      "claude.fiveHour" : "2026-11-17T20:00:00.512345+00:00"
+    },
+    "claimedTodayTokensByProvider" : {
+      "claude_code" : 4200000,
+      "codex" : 1300000
+    },
+    "collectedFinals" : [
+      "1:3"
+    ],
+    "dex" : [
+      {
+        "baseID" : 1,
+        "caughtAt" : "2026-10-02T08:15:30Z",
+        "chainOrder" : [
+          1,
+          2,
+          3
+        ],
+        "finalID" : 3,
+        "id" : "0D9C7A41-2B3E-4F60-8A1B-5C6D7E8F9012",
+        "isShiny" : false,
+        "names" : {
+          "1" : {
+            "en" : "Bulbasaur",
+            "ja" : "フシギダネ"
+          },
+          "2" : {
+            "en" : "Ivysaur",
+            "ja" : "フシギソウ"
+          },
+          "3" : {
+            "en" : "Venusaur",
+            "ja" : "フシギバナ"
+          }
+        },
+        "namesVersion" : 1,
+        "nature" : "bold",
+        "rarity" : "common"
+      },
+      {
+        "baseID" : 201,
+        "caughtAt" : "2026-11-01T19:45:00Z",
+        "chainOrder" : [
+          201
+        ],
+        "finalID" : 201,
+        "id" : "A7E2C9B4-1D3F-4E5A-B6C7-D8E9F0A1B2C3",
+        "isShiny" : true,
+        "rarity" : "common",
+        "unownForm" : "exclamation"
+      },
+      {
+        "baseID" : 16,
+        "chainOrder" : [
+          16,
+          17
+        ],
+        "finalID" : 17,
+        "id" : "F1E2D3C4-B5A6-4978-8695-A4B3C2D1E0F9",
+        "isShiny" : false,
+        "rarity" : "common",
+        "releasedAt" : "2026-11-10T07:00:00Z"
+      }
+    ],
+    "dexCompletionsSeeded" : true,
+    "eggUsage" : 0,
+    "installBaselineSet" : true,
+    "inventory" : {
+      "mint" : 1,
+      "rareCandy" : 3
+    },
+    "language" : "ja",
+    "lastDate" : "2026-11-17",
+    "notifiedDexCompletions" : [
+
+    ],
+    "representativeSpeciesID" : 201,
+    "representativeUnownForm" : "exclamation",
+    "spentTokens" : 1500000000,
+    "usedSinceInstall" : 52800000000
+  }
+}
