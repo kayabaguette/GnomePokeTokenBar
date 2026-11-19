@@ -89,6 +89,7 @@ export class ActivityPanel {
         this.actor.add_child(this._heatmap);
 
         this._click = new Clutter.ClickGesture();
+        this._click.set_required_button(Clutter.BUTTON_PRIMARY);
         this._click.connect('may-recognize', () => {
             const {x, y} = this._click.get_coords_abs();
             return !inside(this._windowButton, x, y) && !inside(this._dotsButton, x, y);

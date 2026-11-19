@@ -382,7 +382,7 @@ export class RecapView {
             if (!this._alive || !this._open || seq !== this._seq)
                 return;
             if (data?.scope !== args.scope || data?.offset !== args.offset)
-                return;
+                throw new Error(`reply for ${data?.scope}/${data?.offset}, not ${args.scope}/${args.offset}`);
             this._recap = data;
             this._failed = false;
             this._render();

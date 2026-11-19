@@ -202,15 +202,22 @@ export async function runRecap(d, startDelayMs) {
     await d._sleep(500);
     log(`previous: offset=${recap._offset} period='${recap._period.text}' next sensitive=${recap._next.reactive}`);
     await d._shot(`${prefix}recap-week-prev-dark.png`, d._menuArea(indicator));
-    await clickAt(d, ...center(recap._current));
-    log(`this week: offset=${recap._offset}`);
 
+    // A scope change starts on the running period (offset -1 → 0).
     for (const scope of ['month', 'year']) {
         await clickAt(d, ...center(recap._scopes._buttons.get(scope)));
         await d._sleep(500);
-        log(`${scope}: offset=${recap._offset} period='${recap._period.text}' total='${recap._total.text}' ` +
+        log(`${scope}: offset=${recap._offset} (want 0) period='${recap._period.text}' total='${recap._total.text}' ` +
             `chips=${recap._chips.get_n_children()} prev sensitive=${recap._prev.reactive}`);
         await d._shot(`${prefix}recap-${scope}-dark.png`, d._menuArea(indicator));
+        if (scope === 'month') {
+            await clickAt(d, ...center(recap._prev));
+            log(`month previous: offset=${recap._offset} period='${recap._period.text}'`);
+            await clickAt(d, ...center(recap._current));
+            log(`this month: offset=${recap._offset} (want 0) period='${recap._period.text}'`);
+            await clickAt(d, ...center(recap._prev));
+            log(`month previous again: offset=${recap._offset}`);
+        }
     }
 
     const back = recap.actor.get_first_child().get_first_child();
@@ -225,6 +232,19 @@ export async function runRecap(d, startDelayMs) {
     await openMenu(d, indicator);
     log(`after reopen: recap open=${recap.isOpen} scroll visible=${popover._scroll.visible}`);
 
+    // 8b. A secondary click on the panel does not cycle.
+    await reveal(d, popover, panel.actor);
+    const before = settings.get_string('activity-view');
+    const [px, py] = center(panel._readout);
+    d._movePointer(px, py);
+    await d._sleep(200);
+    d._click(Clutter.BUTTON_SECONDARY);
+    await d._sleep(400);
+    log(`secondary click: activity-view ${before} -> ${settings.get_string('activity-view')} (want unchanged) ` +
+        `menu open=${indicator.menu.isOpen}`);
+    if (!indicator.menu.isOpen)
+        await openMenu(d, indicator);
+
     // 9. Light scheme: heatmap and recap.
     iface.set_string('color-scheme', 'prefer-light');
     await d._sleep(1500);
@@ -236,6 +256,9 @@ export async function runRecap(d, startDelayMs) {
     popover.openRecap();
     await d._sleep(800);
     await d._shot(`${prefix}recap-week-light.png`, d._menuArea(indicator));
+    recap._setScope('month');
+    await d._sleep(600);
+    await d._shot(`${prefix}recap-month-light.png`, d._menuArea(indicator));
     recap._setScope('year');
     await d._sleep(600);
     await d._shot(`${prefix}recap-year-light.png`, d._menuArea(indicator));
