@@ -9,7 +9,8 @@
  *   - a method outside the whitelist (UnknownMethod);
  *   - the same calls through `busctl --user`, spawned with this process's
  *     environment, so it reaches the sandbox bus too;
- *   - disable → the name has no owner (ServiceUnknown); enable → served again.
+ *   - a call left pending in the helper at disable is answered helperExited;
+ *   - disable → the name has no owner (NameHasNoOwner); enable → served again.
  *   It refuses to run unless XDG_RUNTIME_DIR is the sandbox's own.
  *   Each check logs `ptb-shot: backup: PASS …` or a console.error FAIL.
  *
@@ -19,13 +20,14 @@
  *   the file chooser when one opens) and the banner while the extension is
  *   off. Clicks are window-relative coordinates read from the first shot:
  *   PTB_SHOT_BACKUP_TAB, PTB_SHOT_BACKUP_EXPAND, PTB_SHOT_BACKUP_RESTORE,
- *   PTB_SHOT_BACKUP_CANCEL, PTB_SHOT_BACKUP_CONFIRM, PTB_SHOT_BACKUP_IMPORT
+ *   PTB_SHOT_BACKUP_CANCEL, PTB_SHOT_BACKUP_CONFIRM, PTB_SHOT_BACKUP_IMPORT,
+ *   PTB_SHOT_BACKUP_CREATE, PTB_SHOT_BACKUP_EXPORT
  *   ("x,y" each), plus PTB_SHOT_BACKUP_FILE and PTB_SHOT_BACKUP_OPEN in screen
  *   coordinates for the file chooser. Values used on 2026-11-19 (640x576
  *   window at 320,128): TAB 410,22 EXPAND 320,391 RESTORE 540,447
- *   CANCEL 235,371 CONFIRM 403,371 IMPORT 522,211 FILE 475,258 OPEN 1021,656.
- *   The chooser is the sandbox's own portal (Nautilus); it lists $HOME, so
- *   its shots stay in .sandbox and are never published.
+ *   CANCEL 235,371 CONFIRM 403,371 IMPORT 522,211 FILE 475,258 OPEN 1021,656
+ *   CREATE 530,336 EXPORT 522,143. The chooser is the sandbox's own portal
+ *   (Nautilus) and lists the real $HOME, so it is never screenshotted.
  */
 
 import Clutter from 'gi://Clutter';
@@ -33,6 +35,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 Gio._promisify(Gio.DBusConnection.prototype, 'call');
 Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async');
@@ -50,6 +53,8 @@ let failures = 0;
  * cancelled and a new one starts. Module state survives that, so the new run
  * resumes after the disable instead of starting over. */
 let stage = 'start';
+/** A Save1 call left pending in the helper across the disable (resumeBackup awaits it). */
+let pendingAtDisable = null;
 
 function log(msg) {
     console.log(`ptb-shot: backup: ${msg}`);
@@ -169,7 +174,21 @@ export async function runBackup(d) {
     check(methods.join(',') === 'CreateSnapshot,ExportSave,ImportSave,InspectSave,ListSnapshots,RestoreSnapshot',
         'busctl introspect: exactly six methods', methods.join(','));
 
-    // 6. Disabled: no owner; enabled again: served (resumeBackup, in the restarted run).
+    // 6. A call still pending in the helper at disable: the stub's `stubSilent` never answers,
+    //    so ListSnapshots is sent as that, and the disable must still answer the caller.
+    const client = Extension.lookupByUUID(TARGET)?._client;
+    if (client) {
+        const request = client.request.bind(client);
+        client.request = (cmd, args, options) => (cmd === 'listSnapshots'
+            ? request('stubSilent', undefined, {timeoutMs: 60_000})
+            : request(cmd, args, options));
+        pendingAtDisable = call('ListSnapshots');
+        await d._sleep(800);
+    } else {
+        check(false, 'target helper client found');
+    }
+
+    // 7. Disabled: no owner; enabled again: served (resumeBackup, in the restarted run).
     stage = 'disabled';
     Main.extensionManager.disableExtension(TARGET);
 }
@@ -177,7 +196,9 @@ export async function runBackup(d) {
 async function resumeBackup(d) {
     stage = 'resumed';
     log('resumed after the disable');
-    let r = await call('ListSnapshots');
+    let r = await pendingAtDisable;
+    check(r && !r.ok && r.name === `${ERR}helperExited`, 'a call pending at disable is answered helperExited', r?.name);
+    r = await call('ListSnapshots');
     check(!r.ok && r.name === 'org.freedesktop.DBus.Error.NameHasNoOwner', 'disabled → NameHasNoOwner', r.name);
     const b = await busctl('call', BUS, PATH, IFACE, 'ListSnapshots');
     check(b.status !== 0, 'disabled → busctl fails at once', b.err);
@@ -316,7 +337,6 @@ export async function runBackupPrefs(d) {
         await d._sleep(3000);
         const others = otherWindows(prefs);
         log(`windows after Import…: ${others.map(w => `${w.get_wm_class()}:${w.get_title()}`).join(', ') || 'none'}`);
-        await d._shot('backup-4-chooser.png');
         if (others.length > 0) {
             // GTK file chooser: Ctrl+L opens the location entry; type the path; Enter picks it.
             ctrlKey(d, Clutter.KEY_l);
@@ -325,7 +345,6 @@ export async function runBackupPrefs(d) {
             await d._sleep(400);
             d._key(Clutter.KEY_Return);
             await d._sleep(2500);
-            await d._shot('backup-5a-chooser-folder.png');
             // The portal chooser opens the folder: pick the file, then Open (screen coordinates).
             const file = coords('PTB_SHOT_BACKUP_FILE');
             const open = coords('PTB_SHOT_BACKUP_OPEN');
@@ -340,6 +359,31 @@ export async function runBackupPrefs(d) {
             await d._sleep(1000);
             await d._shot('backup-5b-after-escape.png', area());
         }
+    }
+
+    // Create snapshot; then Export opens the save chooser, which is closed unanswered.
+    const create = coords('PTB_SHOT_BACKUP_CREATE');
+    if (create) {
+        await clickAt(d, r, create);
+        await d._sleep(900);
+        await d._shot('backup-8-created-toast.png', area());
+        await d._sleep(5000);
+    }
+    const exp = coords('PTB_SHOT_BACKUP_EXPORT');
+    if (exp) {
+        await clickAt(d, r, exp);
+        await d._sleep(3000);
+        const others = otherWindows(prefs);
+        log(`windows after Export…: ${others.map(w => `${w.get_wm_class()}:${w.get_title()}`).join(', ') || 'none'}`);
+        // Typing into the save chooser did not reach it (the keys went to the prefs window's search),
+        // so the chooser is only opened, checked by its title, and dismissed with Escape.
+        const chooser = others.find(w => w.get_title() === 'Export save');
+        chooser?.activate(global.get_current_time());
+        await d._sleep(800);
+        d._key(Clutter.KEY_Escape);
+        await d._sleep(1500);
+        log(`windows after closing the chooser: ${otherWindows(prefs).length}`);
+        await d._shot('backup-9-after-export-dismissed.png', area());
     }
 
     // The banner: the extension off while the window is open, then on again (resumeBackupPrefs).
