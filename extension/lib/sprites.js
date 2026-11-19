@@ -9,6 +9,8 @@
 export function spriteRequestKey(req) {
     if (req?.egg)
         return 'egg';
+    if (req?.item !== undefined)
+        return `item-${req.item}`;
     return JSON.stringify([req.speciesId, req.form ?? null, Boolean(req.shiny), Boolean(req.back),
         req.animated !== false]);
 }
