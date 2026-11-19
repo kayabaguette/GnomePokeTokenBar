@@ -42,6 +42,9 @@ ln -sr %{buildroot}%{_libexecdir}/poketokenbar/ptb-helper %{buildroot}%{_datadir
 %{_libexecdir}/poketokenbar/
 
 %changelog
+* Thu Nov 19 2026 PokeTokenBar-GNOME maintainers - 0.2.0-1
+- Milestone 2: Shop and Bag, usage recap and heatmap, floating pet with agent bubbles over D-Bus
+
 * Wed Nov 18 2026 PokeTokenBar-GNOME maintainers - 0.1.1-1
 - Wider popover; the overlay scrollbar no longer covers the content
 
