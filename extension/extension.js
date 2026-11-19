@@ -82,16 +82,17 @@ export default class PokeTokenBarExtension extends Extension {
         this._desktopCalendar?.connectObject('changed::week-start-day', () => this._scheduleSettings(), this);
         this._watchSystem();
 
-        // The shell does not disable extensions on exit: stop the helper first so a late event
-        // cannot reach the message tray after the shell has started tearing it down.
-        global.context.connectObject('prepare-shutdown', () => this._client?.stop(), this);
+        // The shell does not disable extensions on exit; the panel destroying our indicator is the
+        // first sign of it (see _onShellTeardown). disable() disconnects this before its own destroy.
+        this._indicator.connectObject('destroy', () => this._onShellTeardown(), this);
 
         this._indicator.render();
         this._client.start();
     }
 
     disable() {
-        global.context.disconnectObject(this);
+        this._notifier?.close(); // nothing is posted once disable has begun, not even a late catch
+        this._indicator?.disconnectObject(this);
         this._client?.stop();
         this._client = null;
 
@@ -201,6 +202,23 @@ export default class PokeTokenBarExtension extends Extension {
 
     setActivityView(view) {
         this._settings.set_string('activity-view', view);
+    }
+
+    /**
+     * Shell exit, observed on GNOME Shell 51: after "Shutting down GNOME Shell" the shell destroys
+     * its UI (the panel takes our indicator, then the message tray and the date menu go), and only
+     * then emits `shutdown`. The shell's own first `shutdown` handler spins a nested main loop,
+     * which still delivers helper lines; a notification posted from there reaches the destroyed
+     * date menu (JS ERROR in dateMenu.js _sync). MetaContext::prepare-shutdown never arrived before
+     * exit, so this hook stops everything that could post: the notifier first (a stop rejects
+     * pending icon requests, whose catch would post), then the helper.
+     */
+    _onShellTeardown() {
+        console.log(`${LOG}: the shell is tearing down its UI; stopping the helper`);
+        this._notifier?.close();
+        this._indicator = null; // being destroyed by the panel: no more renders
+        this._client?.stop();
+        this._client = null;
     }
 
     /* ---- helper messages ---------------------------------------------- */

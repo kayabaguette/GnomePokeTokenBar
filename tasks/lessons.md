@@ -71,3 +71,35 @@
   - A fix to one instance of a pattern greps the whole tree for the pattern in the same change.
   - Teardown checks have to keep an effect in flight while the disable lands, rather than relying
     on timing luck.
+
+## 2026-11-19 — A shutdown hook that was never seen firing hid a shutdown JS ERROR
+
+- **What happened.** At shell exit a helper event reached `Notifier._post` after the date menu was
+  destroyed (`this._settings is null` in `dateMenu.js _sync`). Commit 7903471 had stopped the helper
+  on `MetaContext::prepare-shutdown` and reported the error gone. It came back in phase 22.
+- **Root cause (logged in the sandbox, GNOME Shell 51).**
+  - After "Shutting down GNOME Shell" the shell destroys `uiGroup`, the panel (and our indicator),
+    the date menu and the message tray, then emits `global::shutdown`.
+  - `main.js`'s first `shutdown` handler spins a nested main loop. That loop still runs our
+    stdout `read_line_async` callback, so an event line written around exit is dispatched there.
+  - `prepare-shutdown` never reached our handler before the process exited.
+- **Why the earlier fix and its check missed it.**
+  - The fix assumed a signal order nobody observed: the handler had no log, so a passing run could
+    not tell "hook stopped the helper" from "no event landed in the ~40 ms window".
+  - The run passes only when an event line is in flight at exit. The stub emits one per second,
+    so whether a run hits that window depends on timing.
+- **Fix.**
+  - Teardown hook on our own indicator's `destroy` when it fires outside `disable()` (disable
+    disconnects it first). It closes the notifier, drops the indicator, then stops the helper, and
+    logs one line.
+  - `Notifier.close()` refuses every later post, including an icon lookup that settles after a stop.
+    It leaves the tray alone, since destroying our source would reach the dead date menu.
+  - `disable()` closes the notifier first as well.
+- **Rule.**
+  - Prove a lifecycle hook fires on the exact path before calling the bug fixed. Log the hook, and
+    show the trigger in the same run: the stub's write time against "Shutting down", plus a log of
+    the dispatch or the refusal.
+  - Inject each defence alone (`p-nohook`, `p-nostop`, `p-noclose` in the phase 22a runs). Only
+    the no-hook build reproduced the error.
+  - For shell-exit behaviour, trust only signals seen in the sandbox log. On 51 the panel destroying
+    our indicator is the first one we own.

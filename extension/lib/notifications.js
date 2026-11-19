@@ -56,11 +56,13 @@ export class Notifier {
     constructor(deps) {
         this._deps = deps;
         this._source = null;
-        this._destroyed = false;
+        this._closed = false;
     }
 
     /** Handle one protocol event. */
     handle(event) {
+        if (this._closed)
+            return;
         if (event?.kind === 'error') {
             console.warn(`${LOG}: helper reported ${event.code}: ${event.message}`);
             return;
@@ -100,8 +102,8 @@ export class Notifier {
     }
 
     _post({title, body}, urgency, gicon, withSound) {
-        if (this._destroyed)
-            return;
+        if (this._closed)
+            return; // also an icon lookup that settles after close()
         try {
             const source = this._ensureSource();
             const params = {source, title, body, urgency};
@@ -116,8 +118,16 @@ export class Notifier {
         }
     }
 
+    /**
+     * Refuse every post from now on and leave the message tray alone: at shell exit the tray and
+     * the date menu are already destroyed, and destroying our source would reach them too.
+     */
+    close() {
+        this._closed = true;
+    }
+
     destroy() {
-        this._destroyed = true;
+        this.close();
         this._source?.destroy();
         this._source = null;
     }
