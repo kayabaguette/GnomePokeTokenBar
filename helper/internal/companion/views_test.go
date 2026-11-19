@@ -101,14 +101,6 @@ func hasChild(parent string, set map[string]bool) bool {
 // here; from then on the shape check covers it. Groups are separated by blank lines so parallel
 // phases do not touch the same lines.
 var m2Pending = []string{
-	// Bag and Shop (phase 10)
-	".wallet",
-	".shop",
-	".bag",
-	".inventory.mint",
-	".inventory.shinyCharm",
-	".egg.guarantee",
-
 	// Pet fields (phase 11)
 	".sulkIdleSeconds",
 }
