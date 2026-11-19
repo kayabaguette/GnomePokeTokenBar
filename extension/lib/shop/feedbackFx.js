@@ -117,3 +117,47 @@ export function playSparkle(layer) {
         popInOut(star, SPARKLE_IN_MS, SPARKLE_HOLD_MS);
     }
 }
+
+/* CV:718-723, :866-875: the 🎭 springs in top-centre 0.25 s after the flash
+ * starts and fades out over 0.5 s from 2.6 s. Upstream lifts it 12 pt above
+ * the tile; the scroll view would clip that, so it rides the top edge like
+ * the XP capsule. */
+const MASK_DELAY_MS = 250;
+const MASK_IN_MS = 400;
+const MASK_FADE_AT_MS = 2600;
+const MASK_OUT_MS = 500;
+
+/** The Ditto reveal's 🎭 over the sprite tile (M3 decision 43), on top of the CSS flash. */
+export function playRevealMask(layer) {
+    const mask = transient(new St.Label({style_class: 'ptb-reveal-mask', text: '🎭', opacity: 0}));
+    layer.add_child(mask);
+    const [, natW] = mask.get_preferred_width(-1);
+    const [, natH] = mask.get_preferred_height(-1);
+    const [w] = layerSize(layer);
+    mask.set_position(Math.round((w - natW) / 2), -CAPSULE_LIFT * themeScale());
+    mask.set_pivot_point(0.5, 0.5);
+    mask.set_scale(0.4, 0.4);
+    mask.translation_y = Math.round(natH * 0.15);
+    mask.ease({
+        opacity: 255,
+        scale_x: 1,
+        scale_y: 1,
+        translation_y: 0,
+        delay: MASK_DELAY_MS,
+        duration: MASK_IN_MS,
+        mode: Clutter.AnimationMode.EASE_OUT_BACK,
+        onStopped: finished => {
+            if (!finished || mask._ptbGone) {
+                dispose(mask);
+                return;
+            }
+            mask.ease({
+                opacity: 0,
+                delay: MASK_FADE_AT_MS - MASK_DELAY_MS - MASK_IN_MS,
+                duration: MASK_OUT_MS,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: () => dispose(mask),
+            });
+        },
+    });
+}

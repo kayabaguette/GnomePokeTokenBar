@@ -6,7 +6,7 @@
  * protocol §5–§6, §11–§12.
  */
 
-import {_, fmt} from './i18n.js';
+import {_, fmt, ngettext} from './i18n.js';
 import {
     compact, costText, displayPercent, growthText, percent,
 } from './format.js';
@@ -339,6 +339,13 @@ export function helperStatusText(status) {
 export function notificationText(event) {
     switch (event?.kind) {
     case 'hatch':
+        // A prayed-over egg swaps the body for the prayer joke, odds text included (CS:1806-1813).
+        if (event.prayers > 0) {
+            return {
+                title: event.isShiny ? _('✨ Shiny Pokémon!') : _('🥚 Hatched!'),
+                body: prayerHatchBody(event.displayName, event.prayers, Boolean(event.isShiny), event.rarity),
+            };
+        }
         if (event.isShiny) {
             return {
                 title: _('✨ Shiny Pokémon!'),
@@ -346,6 +353,18 @@ export function notificationText(event) {
             };
         }
         return {title: _('🥚 Hatched!'), body: fmt(_('%s hatched from the egg!'), event.displayName)};
+    case 'dittoReveal':
+        // No odds: charm ownership at hatch time is not saved (L10N:1449-1453).
+        if (event.isShiny) {
+            return {
+                title: _('🎭✨ Huh? A shiny Ditto!'),
+                body: fmt(_('You thought it was %s — it was a shiny Ditto!'), event.disguiseDisplayName),
+            };
+        }
+        return {
+            title: _('🎭 Huh? It’s Ditto!'),
+            body: fmt(_('You thought it was %s — it was Ditto all along!'), event.disguiseDisplayName),
+        };
     case 'evolve':
         return {
             title: _('✨ Evolved!'),
@@ -382,6 +401,26 @@ export function notificationText(event) {
     }
 }
 
+/**
+ * Hatch body once the egg was prayed over; the joke follows the outcome
+ * (L10N:1418-1432). Branch order: shiny legendary, legendary, shiny, common,
+ * then uncommon or rare.
+ */
+export function prayerHatchBody(name, prayers, shiny, rarity) {
+    if (shiny && rarity === 'legendary')
+        return fmt(ngettext('%d prayer… heaven went all in. Shiny %s!', '%d prayers… heaven went all in. Shiny %s!', prayers), prayers, name);
+    if (rarity === 'legendary')
+        return fmt(ngettext('%d prayer… it worked?! %s hatched!', '%d prayers… it worked?! %s hatched!', prayers), prayers, name);
+    if (shiny)
+        return fmt(ngettext('%d prayer AND it’s shiny?! %s hatched!', '%d prayers AND it’s shiny?! %s hatched!', prayers), prayers, name);
+    if (rarity === 'common') {
+        return fmt(ngettext('%d prayer later: %s. Heaven must be swamped today.',
+            '%d prayers later: %s. Heaven must be swamped today.', prayers), prayers, name);
+    }
+    return fmt(ngettext('%d prayer later: %s. Let’s call it half a miracle.',
+        '%d prayers later: %s. Let’s call it half a miracle.', prayers), prayers, name);
+}
+
 function badgeText(event) {
     const region = regionName(event.region);
     switch (event.badge) {
@@ -410,6 +449,7 @@ export function notificationGate(kind) {
     case 'authExpired':
         return 'limit-notifications';
     case 'hatch':
+    case 'dittoReveal':
     case 'evolve':
     case 'graduate':
     case 'candyGranted':
