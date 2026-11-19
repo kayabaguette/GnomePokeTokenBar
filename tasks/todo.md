@@ -404,6 +404,82 @@ have caught the original portal incident.
 11. Save export and import.
 12. 8-language translations (generated from the Swift `t(ko,en,…)` tuples into `.po`).
 
+## Milestone 2 plan (approved 2026-11-19)
+
+Scope chosen by the user:
+- Bag + Shop.
+- Recap + 16-week heatmap.
+- Floating pet, with agent bubbles over D-Bus fed by Claude Code hooks, hidden over fullscreen.
+- M1 polish: Ctrl+click, pause on display sleep, celebration flash.
+
+Specs: `docs/spec/bag-shop.md`, `docs/spec/recap-heatmap.md` and `docs/spec/floating-pet.md`. Each cites Swift `file:line`
+and lists the tests to port with their expected values.
+
+### Decisions (orchestrator defaults, approved with the plan)
+
+- **Bag/Shop:**
+  - a "loading" disabled reason for candy use;
+  - no inventory clamp;
+  - prefs apply immediately, with no draft + Save;
+  - protocol additions are optional and additive: amend §9.2, no bump;
+  - `shopDifficulty` is persisted in `settings-applied.json`;
+  - Mint changes the displayed stats, as upstream does;
+  - the shiny odds in the hatch notification follow the Shiny Charm.
+- **Recap/Heatmap:**
+  - fix the upstream empty-heatmap trap: the caption and click target stay;
+  - the recap overlays the live series;
+  - best-day ties go to the earliest day;
+  - no cost in readouts;
+  - the state budget is 9 KB;
+  - `formatRange` only if GJS supports it.
+- **Pet:**
+  - `addChrome` restacked just above `global.window_group`;
+  - one `sync()` hides it for the overview, fullscreen, power-save and settings;
+  - an egg click opens the popover (prayers are deferred);
+  - D-Bus name `io.github.poketokenbar.Agent`, interface `…Agent1`, with `Report(sss)` and
+    `OpenUrl(s)`; hooks use `busctl`; no URL handler;
+  - agent state is not persisted across a lock;
+  - passive JSONL detection is deferred;
+  - integer sprite scaling when possible;
+  - never edit `~/.claude/settings.json`: the README gives the hooks block.
+- **Polish:**
+  - Ctrl+click opens the secondary menu;
+  - pause on `power-save-mode-changed`;
+  - a CSS celebration flash on hatch and evolve.
+
+### Phases
+
+- [ ] 9. Contract `[sub:sonnet]`:
+  - make the specs repo-relative and apply the decisions;
+  - merge the protocol additions into `docs/protocol.md`;
+  - fixtures;
+  - stub-helper commands and fields.
+- [ ] 10. Go Bag/Shop (`companion` and the daemon commands, about 104 ported tests) `[sub:opus, worktree]`.
+- [ ] 11. Go recap/heatmap and pet helper fields (`sulkIdleSeconds`, `visibleTopFraction`)
+  `[sub:sonnet, worktree]`.
+- [ ] 12. Extension Shop and Bag tabs, plus the `shop-difficulty` prefs row
+  `[sub:opus + frontend-design, worktree, stub]`.
+- [ ] 13. Extension recap screen, heatmap, Activity click-cycle, Details button and `activity-view`
+  `[sub:opus + frontend-design, worktree, stub]`.
+- [ ] 14. Extension floating pet, D-Bus agent object, tracker and polish `[sub:opus + frontend-design]`. Runs after
+  12 and 13 are merged.
+- [ ] 15. Integration `[sub:sonnet]` + review:
+  - real helper in the sandbox;
+  - RPM 0.2.0;
+  - README with the hooks block and fixture screenshots;
+  - CHANGELOG and SPEC.
+
+Acceptance for every phase:
+- whole-module `go test -race ./...` and the `gjs -m` tests;
+- sandbox `--cycle`: 0 JS ERROR, 0 CRITICAL, ISOLATION OK;
+- the orchestrator reads the diff before merging into `feature/m2`.
+
+User checks after 0.2.0:
+- the CPU gate with two animated sprites;
+- dragging the pet;
+- the pet hides over fullscreen;
+- the hooks block produces bubbles.
+
 ## Validation (every phase)
 
 - `go vet ./...` and `go test -race ./...`.
