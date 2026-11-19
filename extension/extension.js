@@ -69,6 +69,7 @@ export default class PokeTokenBarExtension extends Extension {
             sprites: this._sprites,
             context: () => this.context(),
             openPopover: () => this._indicator?.menu.open(),
+            request: (cmd, args) => this.request(cmd, args),
         });
         // Owned while enabled, released on disable (and so on every lock): protocol §15.
         this._agentBus = new AgentBus(event => this._pet?.handleAgentEvent(event));

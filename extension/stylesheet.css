@@ -1607,6 +1607,10 @@
 }
 
 /* The hover and event callout follows the shell theme, like the tooltips. */
+/* The 🙏 rising off a prayed-over egg (FPP:1104-1186): a faint warm halo, as
+ * if lit from above, keeps it legible over any window. */
+.ptb-pet-prayer { text-shadow: 0 0 5px rgba(255, 236, 170, 0.80); }
+
 .ptb-pet-callout {
     max-width: 260px;
     padding: 6px 10px;

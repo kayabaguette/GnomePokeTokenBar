@@ -16,6 +16,10 @@ import * as M from './petModel.js';
  * @property {(fn: Function, ms: number) => any} setTimer
  * @property {(id: any) => void} clearTimer
  * @property {() => void} openPopover
+ * @property {(onCount: (count: number) => void) => void} pray
+ *           sends `pray`; calls back with the reply's count (never on an error)
+ * @property {() => void} spawnPrayer              one 🙏 particle and one wobble
+ * @property {() => void} refreshUsage             `refresh` with manual: false
  * @property {(origin: {x, y}) => void} persistHome  pet bottom-left
  * @property {() => {x, y}} home                     the resolved home
  * @property {() => number} petSize                stage px
@@ -55,6 +59,10 @@ export class PetController {
         this._eventTimer = null;
         this._eventSeq = 0;
         this._lastSeenSeq = 0;
+
+        // Prayer refresh throttle, in memory only (FPP:850-891).
+        this.lastRefreshedMilestone = 0;
+        this.lastPrayerRefreshAt = null;
     }
 
     /* ---- derived state ------------------------------------------------- */
@@ -219,12 +227,40 @@ export class PetController {
 
     /* ---- clicks (FPP:504-513) ------------------------------------------- */
 
-    /** A primary click answers waiting agents, then opens the popover (eggs too). */
+    /** A primary click answers waiting agents, then prays over an egg or opens the popover. */
     petClicked(subjectIsEgg) {
         if (this.tracker.dismissBubble())
             this._agentDidChange();
-        if (M.clickAction(subjectIsEgg) === 'openPopover')
+        if (M.clickAction(subjectIsEgg) === 'pray')
+            this._pray();
+        else
             this._d.openPopover();
+    }
+
+    /**
+     * PetClickRouter.handle(.pray) (FPP:872-887). The particle and the wobble
+     * fire on the click, unless motion is off (M3 decision 40); the hover
+     * rebuild and the refresh milestone run on the reply's count, because the
+     * count lives in the helper (prayers-ditto.md §1.5).
+     */
+    _pray() {
+        if (this._d.motionAllowed())
+            this._d.spawnPrayer();
+        this._d.pray(count => this.prayed(count));
+    }
+
+    /** The helper counted a prayer: `count` is the new egg.prayers. */
+    prayed(count) {
+        this._d.changed(); // didPray: the hover text shows the new count
+        const milestone = M.prayerRefreshMilestone(count);
+        if (milestone < this.lastRefreshedMilestone)
+            this.lastRefreshedMilestone = milestone; // a new egg started over
+        const now = this._d.now();
+        if (M.shouldRefreshOnPrayer(count, this.lastRefreshedMilestone, this.lastPrayerRefreshAt, now)) {
+            this.lastRefreshedMilestone = milestone;
+            this.lastPrayerRefreshAt = now;
+            this._d.refreshUsage();
+        }
     }
 
     /** The context menu's Open always opens. */
