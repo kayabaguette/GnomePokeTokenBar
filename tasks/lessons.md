@@ -33,3 +33,18 @@
   - Run the **whole module** (`go test -race ./...`) as the acceptance check, not only the package.
   - Timing tests poll for the expected condition with a deadline instead of sampling once.
   - Fake-clock margins must leave room for a loaded machine (seconds, not hundreds of ms).
+
+## 2026-11-19 — `isolation: worktree` targets the session's primary repo, not the project repo
+
+- **What happened.** The orchestrator session's working directory is the upstream Swift repo
+  (`../PokeTokenBar`). Four Phase 10–13 agents were spawned with `isolation: "worktree"`. The harness
+  created their worktrees in the **Swift** repo, at `main`, with no `helper/` and no `feature/m2`. Each
+  agent noticed and created its own worktree of this repo (`../PokeTokenBar-GNOME-wt/*`,
+  `../ptbg-shop`). No damage was done, but it relied on luck: an agent could have edited the
+  read-only Swift repo or the shared `feature/m2` working tree.
+- **Rule.**
+  - Don't use `isolation: "worktree"` from a session rooted elsewhere.
+  - Each parallel brief names the exact worktree to create:
+    `git -C <this repo> worktree add <short path> -b <branch> feature/m2`.
+    Keep the path short so the sandbox's 108-byte socket path still fits.
+  - The brief also forbids editing the shared working tree.
