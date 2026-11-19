@@ -104,6 +104,7 @@ export class FloatingPet {
         this._stSettings.connectObject('notify::enable-animations', () => this._onMotionSetting(), this);
         this._powerProfiles.connectObject('notify::power-saver-enabled', () => this._onMotionSetting(), this);
 
+        this._sprite.setPaused(this._powerProfiles.power_saver_enabled);
         this._relayout();
     }
 

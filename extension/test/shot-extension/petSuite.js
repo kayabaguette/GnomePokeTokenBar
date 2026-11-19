@@ -275,6 +275,28 @@ export async function runPet(d) {
     settings.set_boolean('floating-pet-enabled', true);
     await d._sleep(300);
     log(`switched on: ${petInfo(pet)}`);
+
+    // 12. Ctrl+click on the indicator: the secondary menu, not the popover.
+    const [bx, by] = indicator.get_transformed_position();
+    const [bw, bh] = indicator.get_transformed_size();
+    await pointerTo(d, Math.round(bx + bw / 2), Math.round(by + bh / 2));
+    d._key(Clutter.KEY_Control_L); // creates the virtual keyboard
+    const t = GLib.get_monotonic_time();
+    d._keyboard.notify_keyval(t, Clutter.KEY_Control_L, Clutter.KeyState.PRESSED);
+    await d._sleep(100);
+    d._click(Clutter.BUTTON_PRIMARY);
+    await d._sleep(500);
+    d._keyboard.notify_keyval(GLib.get_monotonic_time(), Clutter.KEY_Control_L, Clutter.KeyState.RELEASED);
+    log(`ctrl+click: secondary ${indicator._secondary.isOpen}, popover ${indicator.menu.isOpen}`);
+    if (indicator._secondary.isOpen)
+        await d._shot('secondary-ctrl-click-dark.png', d._menuArea({menu: indicator._secondary}));
+    indicator._secondary.close();
+    indicator.menu.close();
+    await d._sleep(300);
+    d._click(Clutter.BUTTON_PRIMARY);
+    await d._sleep(500);
+    log(`plain click: secondary ${indicator._secondary.isOpen}, popover ${indicator.menu.isOpen}`);
+    indicator.menu.close();
     log('done');
 }
 
