@@ -146,17 +146,21 @@ export function playRevealMask(layer) {
         delay: MASK_DELAY_MS,
         duration: MASK_IN_MS,
         mode: Clutter.AnimationMode.EASE_OUT_BACK,
+        // An interrupted ease means the card is being torn down: its parent destroys the
+        // mask, and destroying it from inside that stop would edit Clutter's transition
+        // table mid-iteration (a GLib-CRITICAL at disable).
         onStopped: finished => {
-            if (!finished || mask._ptbGone) {
-                dispose(mask);
+            if (!finished || mask._ptbGone)
                 return;
-            }
             mask.ease({
                 opacity: 0,
                 delay: MASK_FADE_AT_MS - MASK_DELAY_MS - MASK_IN_MS,
                 duration: MASK_OUT_MS,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: () => dispose(mask),
+                onStopped: done => {
+                    if (done)
+                        dispose(mask);
+                },
             });
         },
     });

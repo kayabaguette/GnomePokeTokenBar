@@ -36,8 +36,7 @@ export const HOME_INSET = 24;
 /* Prayers (prayers-ditto.md §1.4; FPP:264-290, :1044-1186). */
 export const PRAYERS_PER_REFRESH = 30;      // L.prayersPerQuip
 export const PRAYER_REFRESH_INTERVAL_S = 30;
-export const PRAYER_FLIGHT_MS = 1000;       // float and fade, ease-out
-export const PRAYER_LIFETIME_MS = 1100;     // a particle is gone only once invisible
+export const PRAYER_FLIGHT_MS = 1000;       // float and fade, ease-out; the particle goes when it ends
 /* One-shot wobble keyframes (FPP:1046-1054): degrees, linear, 300 ms in all. */
 export const WOBBLE_KEYFRAMES = [
     {angle: -9, ms: 60},

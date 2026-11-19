@@ -638,8 +638,11 @@ export class FloatingPet {
             opacity: 0,
             duration: M.PRAYER_FLIGHT_MS,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onStopped: () => {
-                if (!glyph._ptbGone)
+            // Only a finished flight removes itself: an interrupted one is being torn down
+            // with its parent (disable, hide), and destroying it from inside that stop
+            // would edit Clutter's transition table mid-iteration.
+            onStopped: finished => {
+                if (finished && !glyph._ptbGone)
                     glyph.destroy();
             },
         });
