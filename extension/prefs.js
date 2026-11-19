@@ -279,8 +279,65 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
         setScale(draft);
         sync();
 
+        this._shopPrices(group, settings);
+
         group.add(this._switchRow(settings, 'companion-notifications', _('Companion notifications'),
             _('Hatching, evolving, graduating, Rare Candy and Pokédex medals')));
         return group;
+    }
+
+    /* Shop prices (bag-shop.md §3.4): the same log slider as growth, but it
+     * applies as it moves, with no draft and no Save (M2 decision 12). Prices
+     * are derived, so nothing is rescaled; the extension debounces the forward. */
+    _shopPrices(group, settings) {
+        const stored = () => P.clampDifficulty(settings.get_double('shop-difficulty'));
+
+        const head = new Adw.ActionRow({
+            title: _('Shop prices'),
+            subtitle: _('Scales every price in the Shop. Applies right away.'),
+        });
+        const value = new Gtk.Label({css_classes: ['numeric', 'dim-label'], valign: Gtk.Align.CENTER});
+        head.add_suffix(value);
+        group.add(head);
+
+        const scale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: new Gtk.Adjustment({lower: 0, upper: 1, step_increment: 0.01, page_increment: 0.1}),
+            draw_value: false,
+            hexpand: true,
+        });
+        scale.add_mark(P.difficultyPosition(P.DIFFICULTY_DEFAULT), Gtk.PositionType.BOTTOM, null);
+        scale.update_property([Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
+            [_('Shop prices'), _('Lower: Cheap, higher: Expensive')]);
+        const box = new Gtk.Box({spacing: 10, margin_start: 12, margin_end: 12, margin_top: 6, margin_bottom: 6});
+        box.append(new Gtk.Label({label: _('Cheap'), css_classes: ['dim-label', 'caption']}));
+        box.append(scale);
+        box.append(new Gtk.Label({label: _('Expensive'), css_classes: ['dim-label', 'caption']}));
+        group.add(new Adw.PreferencesRow({child: box, activatable: false, title: _('Shop prices')}));
+
+        let syncing = false;
+        const show = v => {
+            value.label = P.difficultyValueText(v);
+            syncing = true;
+            scale.set_value(P.difficultyPosition(v));
+            syncing = false;
+        };
+        scale.connect('value-changed', () => {
+            if (syncing)
+                return;
+            const v = P.difficultyAtPosition(scale.get_value());
+            value.label = P.difficultyValueText(v);
+            if (v !== stored())
+                settings.set_double('shop-difficulty', v);
+        });
+        this._watch('shop-difficulty', () => {
+            // Our own write lands here too: leave the knob where the hand is.
+            const v = stored();
+            if (P.difficultyAtPosition(scale.get_value()) !== v)
+                show(v);
+            else
+                value.label = P.difficultyValueText(v);
+        });
+        show(stored());
     }
 }

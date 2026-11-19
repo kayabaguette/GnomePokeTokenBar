@@ -45,15 +45,15 @@ test('intlFirstDay tolerates missing APIs', () => {
 test('forwarded set has every protocol field with the right types', () => {
     const values = {
         'refresh-interval': 120, 'warn-threshold': 80, 'crit-threshold': 95,
-        'growth-difficulty': 1.25, 'always-faces-back': false,
+        'growth-difficulty': 1.25, 'always-faces-back': false, 'shop-difficulty': 0.5,
     };
     const set = S.forwardedSettings(k => values[k], 'en', 1);
     assert.deepEqual(set, {
         refreshInterval: 120, warnThreshold: 80, critThreshold: 95, growthDifficulty: 1.25,
-        weekStart: 1, language: 'en', alwaysFacesBack: false,
+        weekStart: 1, language: 'en', alwaysFacesBack: false, shopDifficulty: 0.5,
     });
     assert.deepEqual(S.FORWARDED_KEYS.sort(), ['always-faces-back', 'crit-threshold', 'growth-difficulty',
-        'refresh-interval', 'warn-threshold', 'week-start']);
+        'refresh-interval', 'shop-difficulty', 'warn-threshold', 'week-start']);
 });
 
 run('settingsForward.test.js');
