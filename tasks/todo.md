@@ -449,19 +449,19 @@ and lists the tests to port with their expected values.
 
 ### Phases
 
-- [ ] 9. Contract `[sub:sonnet]`:
+- [x] 9. Contract `[sub:sonnet]`:
   - make the specs repo-relative and apply the decisions;
   - merge the protocol additions into `docs/protocol.md`;
   - fixtures;
   - stub-helper commands and fields.
-- [ ] 10. Go Bag/Shop (`companion` and the daemon commands, about 104 ported tests) `[sub:opus, worktree]`.
-- [ ] 11. Go recap/heatmap and pet helper fields (`sulkIdleSeconds`, `visibleTopFraction`)
+- [x] 10. Go Bag/Shop (`companion` and the daemon commands, about 104 ported tests) `[sub:opus, worktree]`.
+- [x] 11. Go recap/heatmap and pet helper fields (`sulkIdleSeconds`, `visibleTopFraction`)
   `[sub:sonnet, worktree]`.
-- [ ] 12. Extension Shop and Bag tabs, plus the `shop-difficulty` prefs row
+- [x] 12. Extension Shop and Bag tabs, plus the `shop-difficulty` prefs row
   `[sub:opus + frontend-design, worktree, stub]`.
-- [ ] 13. Extension recap screen, heatmap, Activity click-cycle, Details button and `activity-view`
+- [x] 13. Extension recap screen, heatmap, Activity click-cycle, Details button and `activity-view`
   `[sub:opus + frontend-design, worktree, stub]`.
-- [ ] 14. Extension floating pet, D-Bus agent object, tracker and polish `[sub:opus + frontend-design]`. Runs after
+- [x] 14. Extension floating pet, D-Bus agent object, tracker and polish `[sub:opus + frontend-design]`. Runs after
   12 and 13 are merged.
 - [ ] 15. Integration `[sub:sonnet]` + review:
   - real helper in the sandbox;
@@ -537,3 +537,14 @@ User checks after 0.2.0:
 - `make pack`: 40 entries, no `test/` files.
 - **Still open:** CPU gate in the real session (awaits the user, `spikes/sprite-anim/measure-cpu.sh`)
   and the end-to-end run in the real session.
+
+### 2026-11-19: Milestone 2 merged on feature/m2
+
+- Phases 9–14 are merged on `feature/m2`: contract and fixtures; Go Bag/Shop; Go recap/heatmap and pet
+  helper fields; extension Shop and Bag tabs; recap screen, heatmap and Activity click-cycle; floating
+  pet, agent D-Bus object, Ctrl+click, power-save pause and celebration flash.
+- Follow-up fixes after the merges: stepper reset after buy/use, recap cycling on the primary button
+  only, inventory clamp on the wire, helper stop on shell shutdown, pet bubble re-placement and
+  power-saver at enable, sandbox isolation check counting live shells only.
+- Phase 15 (docs, version 0.2.0, fixture screenshots) is prepared; the user's checks remain: CPU gate
+  with two animated sprites, dragging the pet, hiding over fullscreen, hooks producing bubbles.

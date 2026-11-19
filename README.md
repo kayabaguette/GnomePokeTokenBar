@@ -3,9 +3,9 @@
 Port of [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) (macOS) to GNOME Shell 51 on Fedora Linux.
 It tracks Claude Code token usage and turns it into a Pokémon companion in the top bar.
 
-**Status:** Milestone 1 complete, current version 0.1.1 (Claude Code only).
+**Status:** Milestone 2 complete, current version 0.2.0 (Claude Code only).
 
-## Features (Milestone 1)
+## Features
 
 - **Top-bar indicator:** the animated companion sprite plus optional labels (tokens, cost, official
   limit %, growth %), colored by pace. Right-click opens a menu.
@@ -15,6 +15,15 @@ It tracks Claude Code token usage and turns it into a Pokémon companion in the 
 - **Companion:** egg, hatch, evolve, graduate. Candies accrue from limit windows.
 - **Pokédex:** paged grid with search, rarity / region / shiny filters and sorting; species detail with
   forms, the individual's profile and stats, and *Set as representative*; a paged catch log; region badges.
+- **Shop and Bag:** spend the tokens you have used on Mint, Rare Candy, the Shiny Charm and premium eggs;
+  use Rare Candy and Mint from the Bag. A *Shop prices* slider in Settings rescales the prices.
+- **Usage recap and heatmap:** click the Activity row to switch between the daily bars and a 16-week
+  heatmap; *Details* opens a week / month / year recap card.
+- **Floating pet:** your Pokémon on the desktop, draggable, with hover, petting and speech bubbles for
+  limit alerts and events. Coding agents can make it work, ask and celebrate through D-Bus bubbles
+  fed by Claude Code hooks (see below).
+- **Ctrl+click** on the indicator opens the secondary menu; the bar sprite pauses in power-save mode
+  and flashes on hatch and evolve.
 - **Notifications** for limit alerts (warn / critical) and companion events.
 - **Preferences** (libadwaita) for every setting above.
 
@@ -31,6 +40,18 @@ The numbers are sample values and the sprites are placeholder drawings, not real
 |---|---|
 | ![Pokédex grid](docs/screenshots/pokedex-grid-dark.png) | ![Species detail](docs/screenshots/pokedex-species-detail-dark.png) |
 
+| Shop | Bag |
+|---|---|
+| ![Shop tab](docs/screenshots/shop-dark.png) | ![Bag tab](docs/screenshots/bag-dark.png) |
+
+| 16-week heatmap | Weekly recap |
+|---|---|
+| ![Activity heatmap](docs/screenshots/popover-heatmap-dark.png) | ![Weekly recap card](docs/screenshots/recap-week-dark.png) |
+
+| Floating pet with an agent bubble (dark) | (light) |
+|---|---|
+| ![Floating pet, dark](docs/screenshots/pet-agent-bubble-dark.png) | ![Floating pet, light](docs/screenshots/pet-agent-bubble-light.png) |
+
 ## Install
 
 ### From RPM (recommended)
@@ -42,10 +63,12 @@ make rpm
 sudo dnf install dist/gnome-shell-extension-poketokenbar-*.rpm
 ```
 
-Upgrading to a newer version: `sudo dnf upgrade dist/...rpm`. To reinstall the same version
+Upgrading to a newer version, for example from 0.1.x:
+`sudo dnf upgrade dist/gnome-shell-extension-poketokenbar-0.2.0-1.fc45.x86_64.rpm`. To reinstall the same version
 (rebuilt from the working tree), use `sudo dnf reinstall dist/...rpm`.
 
-Then log out and back in (Wayland cannot reload extensions), and run:
+Then log out and back in (Wayland cannot reload extensions; an upgrade only takes effect after that),
+and run:
 
 ```
 gnome-extensions enable poketokenbar@local
@@ -160,9 +183,12 @@ from a label such as `'x'`.
 - Claude Code only; English UI (strings are wrapped for translation).
 - Official limits go stale when Claude Code is idle longer than the token lifetime (the token is never
   refreshed).
-- Notifications are cleared on screen lock, because the shell disables extensions then.
-- Not yet ported: shop, bag and Rare Candy use, usage recap. See `SPEC.md`.
-- The floating pet does not pray over the egg yet: a click on the egg opens the popover.
+- Notifications are cleared on screen lock, because the shell disables extensions then. Agent bubble
+  state is lost on lock for the same reason.
+- The floating pet hides over fullscreen windows, and its hit area is a rectangle around the sprite.
+- HiDPI and multi-monitor setups are less tested.
+- Not ported yet: prayers, the Ditto reveal, other providers, multiple Claude accounts, save
+  export/import, and the eight UI languages. See `SPEC.md`.
 
 ## Development
 

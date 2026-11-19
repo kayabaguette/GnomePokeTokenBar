@@ -21,24 +21,31 @@ Claude Code only. Delivered:
 - Notifications, libadwaita preferences, Go helper with disk-cached PokéAPI data and sprites,
   Fedora RPM.
 
+## Milestone 2 delivered (v0.2.0)
+
+Claude Code only. Delivered:
+
+- Shop and Bag tabs: Mint, Rare Candy, Shiny Charm, premium eggs, with the shop-prices setting.
+- Usage recap (week, month, year) and the 16-week heatmap, with the Activity click-cycle.
+- Floating desktop pet: drag, hover callout, petting hearts, limit-alert and event bubbles.
+- Agent activity over D-Bus (`io.github.poketokenbar.Agent`), fed by user-installed Claude Code hooks.
+- Indicator polish: Ctrl+click menu, power-save pause, hatch/evolve flash.
+
 Plan and history: `tasks/todo.md`.
 
 ## Not yet ported
 
 Ordered by value, mirroring the parity backlog in `tasks/todo.md`:
 
-1. Bag and Rare Candy use (candies accrue but cannot be spent).
-2. Shop: Mint, Shiny Charm, premium eggs.
-3. Floating desktop pet.
-4. Additional providers (Codex, Gemini CLI, OpenCode, Cursor, others).
-5. Usage recap.
-6. Activity heatmap and streak badge.
-7. Multi-account Claude.
-8. Session-key limits.
-9. Ditto disguise.
-10. Prayers.
-11. Save export and import.
-12. Translations beyond English.
+1. Item sprites in the Shop and Bag (emoji today).
+2. Prayers.
+3. Ditto disguise reveal.
+4. Passive agent detection (from session logs, without hooks).
+5. Additional providers (Codex, Gemini CLI, OpenCode, Cursor, others).
+6. Multi-account Claude.
+7. Session-key limits.
+8. Save export and import.
+9. Translations beyond English.
 
 ## Deliberate deviations from upstream
 

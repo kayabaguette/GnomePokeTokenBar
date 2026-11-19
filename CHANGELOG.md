@@ -5,8 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
 ### Added
 
+- Shop and Bag tabs (`docs/spec/bag-shop.md`): spend tokens on Mint, Rare Candy, the Shiny Charm and
+  premium eggs, and use Rare Candy and Mint from the Bag. Quantity stepper, confirm dialogs, disabled
+  reasons, and a *Shop prices* preferences slider (`shop-difficulty`). Helper commands serve the rules.
+- Usage recap and 16-week heatmap (`docs/spec/recap-heatmap.md`): clicking the Activity row cycles the
+  bars and a heatmap (`activity-view` setting) with a hover readout; a *Details* button opens the recap
+  (week, month, year, with previous-period navigation). Helper `getRecap` and `usage.combined.heatmap`.
 - Floating desktop pet (Milestone 2, `docs/spec/floating-pet.md`):
   - a chrome actor restacked just above the windows, under the top bar, menus and banners; one
     `sync()` hides it in the overview, over fullscreen windows, while the display sleeps and when
@@ -32,6 +40,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the sandbox's private bus only.
 - Indicator: Ctrl+click opens the secondary menu; the bar sprite pauses while the display is in
   power-save; hatch and evolve flash the bar and the companion card.
+
+### Fixed
+
+- The helper is stopped when the shell prepares to shut down, so it no longer outlives the session.
+- Pet bubbles are re-placed after a run, and late callbacks are guarded.
+- The pet honours the power-saver profile at enable.
+- Shop stepper resets to x1 after a successful buy or use; recap cycles on the primary button only and
+  shows bad recap replies; inventory counts are clamped on the wire.
+
+### Changed
+
+- The *Show back view* preference moves into the *Floating pet* group.
+- Sandbox isolation check counts only live-session shells.
+
+## [0.1.1] - 2026-11-18
+
+### Fixed
+
+- The popover is wider (384 px) and its scrolling views keep a right-hand lane for the overlay
+  scrollbar, which used to cover the content.
+
+## [0.1.0] - 2026-11-18
+
+### Added
 
 - `make rpm`: builds an installable Fedora RPM (`packaging/gnome-shell-extension-poketokenbar.spec`) from the
   working tree; the helper is installed in `/usr/libexec/poketokenbar/` and symlinked into the extension.
@@ -94,8 +126,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- The popover is wider (384 px) and its scrolling views keep a right-hand lane for the overlay
-  scrollbar, which used to cover the content.
 - Disabling the extension with the popover open, as happens when the screen locks, logged a
   `CRITICAL`: the menu closed after the indicator had already dropped its references. The menu
   signal is now disconnected first, and late callbacks are guarded.
