@@ -1062,3 +1062,233 @@
 .ptb-info-item {
     font-feature-settings: "tnum";
 }
+
+/* === M2: Shop & Bag === */
+/* bag-shop.md §3. The wallet is the one loud element: a warm, coin-colored
+ * ground under big tabular digits. Item cards stay quiet; each icon sits on
+ * a small patch of its own color, like the companion tile's ground. */
+
+.ptb-shop, .ptb-bag {
+    padding: 6px 20px 10px 8px; /* right side: lane for the overlay scrollbar */
+}
+
+.ptb-shop { spacing: 10px; }
+.ptb-shop-list { spacing: 8px; }
+.ptb-bag, .ptb-bag-list { spacing: 8px; }
+
+.ptb-wallet {
+    spacing: 1px;
+    padding: 10px 12px 11px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(246, 211, 45, 0.26);
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(246, 211, 45, 0.07);
+    background-gradient-end: rgba(255, 120, 0, 0.15);
+}
+
+.ptb-wallet-number {
+    font-size: 26px;
+    font-weight: 800;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.5px;
+    color: #f9e27d;
+}
+
+.ptb-light .ptb-wallet {
+    border-color: rgba(200, 136, 0, 0.32);
+    background-gradient-start: rgba(246, 211, 45, 0.14);
+    background-gradient-end: rgba(255, 163, 72, 0.20);
+}
+
+.ptb-light .ptb-wallet-number { color: #222226; }
+
+.ptb-shop-card {
+    spacing: 7px;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.ptb-light .ptb-shop-card { background-color: rgba(0, 0, 0, 0.04); }
+
+.ptb-shop-card-header { spacing: 10px; }
+.ptb-shop-card-info { spacing: 2px; }
+.ptb-shop-name-row { spacing: 6px; }
+.ptb-shop-name { font-weight: bold; }
+.ptb-shop-tier-badge { font-size: 0.64em; }
+.ptb-shop-note { margin-top: 2px; }
+
+.ptb-shop-owned {
+    font-size: 0.78em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+    color: rgba(255, 255, 255, 0.70);
+}
+
+.ptb-light .ptb-shop-owned { color: rgba(34, 34, 38, 0.72); }
+
+/* Item icon on its color patch (gray for the plain egg). */
+.ptb-item-tile {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(154, 153, 150, 0.30);
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(154, 153, 150, 0.06);
+    background-gradient-end: rgba(154, 153, 150, 0.22);
+}
+
+.ptb-item-emoji { font-size: 18px; }
+
+.ptb-item-tint-rareCandy {
+    border-color: rgba(145, 65, 172, 0.42);
+    background-gradient-start: rgba(145, 65, 172, 0.08);
+    background-gradient-end: rgba(145, 65, 172, 0.30);
+}
+
+.ptb-item-tint-mint, .ptb-item-tint-egg-uncommon {
+    border-color: rgba(51, 209, 122, 0.36);
+    background-gradient-start: rgba(51, 209, 122, 0.06);
+    background-gradient-end: rgba(51, 209, 122, 0.24);
+}
+
+.ptb-item-tint-shinyCharm {
+    border-color: rgba(246, 211, 45, 0.45);
+    background-gradient-start: rgba(246, 211, 45, 0.08);
+    background-gradient-end: rgba(246, 211, 45, 0.28);
+}
+
+.ptb-item-tint-egg-rare {
+    border-color: rgba(53, 132, 228, 0.42);
+    background-gradient-start: rgba(53, 132, 228, 0.08);
+    background-gradient-end: rgba(53, 132, 228, 0.28);
+}
+
+/* Control row: price, then the button, or the inline confirmation. */
+.ptb-shop-controls { spacing: 8px; }
+.ptb-price-label { padding-top: 1px; }
+
+.ptb-price-value {
+    font-size: 0.86em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+}
+
+.ptb-effect-hint { font-feature-settings: "tnum"; }
+.ptb-confirm-text { padding-right: 2px; }
+
+.ptb-owned-seal { icon-size: 14px; color: #57e389; }
+.ptb-owned-text { font-size: 0.78em; font-weight: bold; color: #57e389; }
+.ptb-light .ptb-owned-seal, .ptb-light .ptb-owned-text { color: #1b7a42; }
+
+.ptb-precious-text { font-weight: bold; color: #ffa348; }
+.ptb-light .ptb-precious-text { color: #b54000; }
+
+.ptb-control-button {
+    padding: 3px 11px;
+    border-radius: 7px;
+    font-size: 0.86em;
+    font-weight: 600;
+}
+
+.ptb-control-bordered {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ptb-control-bordered:hover, .ptb-control-bordered:focus { background-color: rgba(255, 255, 255, 0.16); }
+
+.ptb-control-prominent {
+    color: #ffffff;
+    background-color: -st-accent-color;
+}
+
+.ptb-control-prominent:hover, .ptb-control-prominent:focus {
+    background-color: st-transparentize(-st-accent-color, 0.15);
+}
+
+.ptb-control-precious {
+    color: #ffffff;
+    background-color: #e66100;
+}
+
+.ptb-control-precious:hover, .ptb-control-precious:focus { background-color: #ff7800; }
+
+.ptb-control-flat { color: rgba(255, 255, 255, 0.72); }
+.ptb-control-flat:hover, .ptb-control-flat:focus { background-color: rgba(255, 255, 255, 0.08); }
+
+.ptb-control-button:insensitive {
+    color: rgba(255, 255, 255, 0.34);
+    border-color: rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.ptb-light .ptb-control-bordered { border-color: rgba(0, 0, 0, 0.12); background-color: rgba(0, 0, 0, 0.04); }
+.ptb-light .ptb-control-bordered:hover, .ptb-light .ptb-control-bordered:focus { background-color: rgba(0, 0, 0, 0.09); }
+.ptb-light .ptb-control-flat { color: rgba(34, 34, 38, 0.72); }
+.ptb-light .ptb-control-flat:hover, .ptb-light .ptb-control-flat:focus { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-light .ptb-control-prominent, .ptb-light .ptb-control-precious { color: #ffffff; }
+
+.ptb-light .ptb-control-button:insensitive {
+    color: rgba(34, 34, 38, 0.34);
+    border-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* ×N stepper: a small pill, minus, count, plus. */
+.ptb-stepper {
+    padding: 1px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ptb-stepper-button {
+    padding: 3px 6px;
+    border-radius: 999px;
+}
+
+.ptb-stepper-button:hover, .ptb-stepper-button:focus { background-color: rgba(255, 255, 255, 0.12); }
+.ptb-stepper-button:insensitive { color: rgba(255, 255, 255, 0.28); }
+.ptb-stepper-icon { icon-size: 12px; }
+
+.ptb-stepper-value {
+    min-width: 28px;
+    text-align: center;
+    font-size: 0.86em;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+}
+
+.ptb-light .ptb-stepper { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-light .ptb-stepper-button:hover, .ptb-light .ptb-stepper-button:focus { background-color: rgba(0, 0, 0, 0.08); }
+.ptb-light .ptb-stepper-button:insensitive { color: rgba(34, 34, 38, 0.28); }
+
+.ptb-candy-preview { spacing: 1px; }
+
+/* Bag empty state: the sleeping Snorlax. */
+.ptb-bag-empty {
+    spacing: 10px;
+    padding: 28px 0;
+}
+
+.ptb-bag-empty-title { font-weight: bold; }
+
+/* Home feedback after a Bag use (bag-shop.md §2.5). */
+.ptb-xp-capsule {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 800;
+    font-feature-settings: "tnum";
+    color: #ffa348;
+    background-color: rgba(36, 36, 40, 0.92);
+    border: 1px solid rgba(255, 163, 72, 0.55);
+}
+
+.ptb-light .ptb-xp-capsule {
+    color: #b54000;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(181, 64, 0, 0.40);
+}
+
+.ptb-mint-sparkle { text-shadow: 0 0 4px rgba(246, 211, 45, 0.55); }

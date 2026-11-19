@@ -12,6 +12,8 @@ import {LimitBar} from '../limitBar.js';
 import {SpriteAnimator} from '../spriteAnimator.js';
 import {spriteRequestKey, staticPngPath} from '../sprites.js';
 import * as V from '../viewModel.js';
+import {eggGuaranteeText} from '../shop/shopModel.js';
+import {playSparkle, playXpCapsule} from '../shop/feedbackFx.js';
 import {hbox, label, vbox, wrapLabel} from './widgets.js';
 
 /* The 76 px tile holds a 64 px sprite box; the popover animates at native timing. */
@@ -58,7 +60,12 @@ export class CompanionCard {
         });
         this._sprite.onLoadFailed = () => this._onSpriteFailed();
         this._tile.set_child(this._sprite);
-        row.add_child(this._tile);
+        // The tile sits under a layer for the Bag feedback effects (bag-shop.md §2.5).
+        const tileStack = new St.Widget({layout_manager: new Clutter.BinLayout(), y_align: Clutter.ActorAlign.START});
+        tileStack.add_child(this._tile);
+        this._fxLayer = new St.Widget({x_expand: true, y_expand: true});
+        tileStack.add_child(this._fxLayer);
+        row.add_child(tileStack);
         // The hatched companion links to its Pokédex detail (ui.md §2.1 A, DexEntryLink).
         this._link = null; // {speciesId, form} while hatched
         deps.tooltip.attach(this._tile, () => (this._link ? _('Open in the Pokédex') : null));
@@ -195,7 +202,7 @@ export class CompanionCard {
         const egg = companion.egg ?? {used: 0, threshold: 0};
         this._name.text = _('Token Egg');
         this._shiny.hide();
-        this._rarity.hide();
+        this._setGuarantee(egg.guarantee);
         this._types.hide();
         this._boost.hide();
         for (const r of RARITIES)
@@ -231,6 +238,30 @@ export class CompanionCard {
         }
         this._evo.hide();
         this._evoSignature = null;
+    }
+
+    /** A premium egg's floor, "Rare or better", in the rarity color (bag-shop.md §1.8). */
+    _setGuarantee(tier) {
+        const text = eggGuaranteeText(tier);
+        if (!text) {
+            this._rarity.hide();
+            return;
+        }
+        for (const other of RARITIES)
+            this._rarity.remove_style_class_name(`ptb-rarity-${other}`);
+        this._rarity.add_style_class_name(`ptb-rarity-${tier}`);
+        this._rarity.text = text;
+        this._rarity.show();
+    }
+
+    /** "+XP" capsule after a Rare Candy use (bag-shop.md §2.5). */
+    playXp(xp) {
+        playXpCapsule(this._fxLayer, xp);
+    }
+
+    /** Sparkle burst after a Mint use. */
+    playSparkle() {
+        playSparkle(this._fxLayer);
     }
 
     /* ---- sprites ------------------------------------------------------ */
