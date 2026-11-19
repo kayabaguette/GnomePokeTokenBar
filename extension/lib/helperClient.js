@@ -33,6 +33,11 @@ export const COMMAND_TIMEOUTS_MS = {
     wake: 5_000,
     networkUp: 5_000,
     setRepresentative: 10_000,
+    buyItem: 10_000, // Shop and Bag (M2)
+    buyEgg: 10_000,
+    planCandies: 5_000,
+    useCandy: 10_000,
+    useMint: 10_000,
     getDexPage: 10_000,
     getSpecies: 30_000,
     getCatchLog: 10_000,

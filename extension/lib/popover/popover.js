@@ -10,6 +10,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {_} from '../i18n.js';
 import {DexView} from '../dex/dexView.js';
+import {BagView} from '../shop/bagView.js';
+import {ShopView} from '../shop/shopView.js';
 import {CompanionCard} from './companionCard.js';
 import {Footer} from './footer.js';
 import {LimitsSection} from './limitsSection.js';
@@ -36,7 +38,8 @@ export class Popover {
 
         const tabs = hbox('ptb-tabs', {x_expand: true});
         this._tabButtons = {};
-        for (const [name, title] of [['home', _('Home')], ['dex', _('Pokédex')]]) {
+        for (const [name, title] of [['home', _('Home')], ['shop', _('Shop')], ['bag', _('Bag')],
+            ['dex', _('Pokédex')]]) {
             const b = new St.Button({
                 style_class: 'ptb-tab',
                 label: title,
@@ -76,6 +79,16 @@ export class Popover {
 
         this._dex = new DexView({tooltip: deps.tooltip, sprites: deps.sprites, request: deps.request});
         this.actor.add_child(this._dex.actor);
+
+        // Shop and Bag (bag-shop.md §3): a bought egg and every Bag use return to Home.
+        this._shop = new ShopView({...deps, onEggBought: () => this.showTab('home')});
+        this._bag = new BagView({
+            ...deps,
+            openShop: () => this.showTab('shop'),
+            onUsed: feedback => this._playFeedback(feedback),
+        });
+        this.actor.insert_child_above(this._shop.actor, this._scroll);
+        this.actor.insert_child_above(this._bag.actor, this._shop.actor);
 
         this.actor.add_child(separator());
         this._footer = new Footer(deps);
@@ -121,6 +134,12 @@ export class Popover {
                 b.remove_style_pseudo_class('checked');
         }
         this._scroll.visible = name === 'home';
+        for (const [tab, view] of [['shop', this._shop], ['bag', this._bag]]) {
+            if (name === tab)
+                view.show();
+            else
+                view.hide();
+        }
         if (name === 'dex')
             this._dex.show();
         else
@@ -144,6 +163,10 @@ export class Popover {
         this._scroll.style = `max-height: ${height}px;`;
         this._dex.setHeight(height);
         this.closeRecap(); // every reopen starts on Home (PopoverNavigation.reset)
+        this._shop.setHeight(height);
+        this._bag.setHeight(height);
+        this._shop.reset();
+        this._bag.reset();
         this._tab = null; // the menu was closed: re-run the tab switch
         if (tab === 'dex')
             this._dex.openGrid();
@@ -157,6 +180,16 @@ export class Popover {
         this.showTab('dex');
     }
 
+    /** Home, top of the page, then the "+XP" capsule or the Mint sparkle on the sprite tile. */
+    _playFeedback(feedback) {
+        this.showTab('home');
+        this._scroll.vadjustment.value = 0;
+        if (feedback?.kind === 'xp')
+            this._companion.playXp(feedback.xp);
+        else if (feedback?.kind === 'sparkle')
+            this._companion.playSparkle();
+    }
+
     /** @param {object} ctx  {state, settings, nowMs, helperStatus} */
     update(ctx) {
         this._recap.update(ctx);
@@ -166,5 +199,7 @@ export class Popover {
         this._limitsSeparator.visible = this._limits.hasContent;
         this._footer.update(ctx);
         this._dex.update(ctx);
+        this._shop.update(ctx);
+        this._bag.update(ctx);
     }
 }

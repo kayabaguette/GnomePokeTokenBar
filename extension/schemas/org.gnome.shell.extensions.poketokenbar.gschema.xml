@@ -72,6 +72,12 @@
       <summary>Growth difficulty</summary>
       <description>Multiplier on hatch and evolution thresholds. Forwarded to the helper as growthDifficulty.</description>
     </key>
+    <key name="shop-difficulty" type="d">
+      <range min="0.1" max="2.0"/>
+      <default>1.0</default>
+      <summary>Shop prices</summary>
+      <description>Multiplier on Shop prices. Forwarded to the helper as shopDifficulty; applies immediately.</description>
+    </key>
 
     <!-- Show in menu bar -->
     <key name="show-tokens-in-menu" type="b">

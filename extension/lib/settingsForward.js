@@ -7,7 +7,7 @@
 /** GSettings keys whose change triggers a (debounced) `setSettings`. */
 export const FORWARDED_KEYS = [
     'refresh-interval', 'warn-threshold', 'crit-threshold', 'growth-difficulty',
-    'week-start', 'always-faces-back',
+    'week-start', 'always-faces-back', 'shop-difficulty',
 ];
 
 /**
@@ -74,7 +74,8 @@ export function resolveWeekStart(setting, sources = {}) {
 }
 
 /**
- * The full forwarded set (protocol §9.2). Every field is required by the helper.
+ * The full forwarded set (protocol §9.2). Every M1 field is required by the
+ * helper; the optional M2 `shopDifficulty` is always sent too.
  *
  * @param {(key: string) => any} get  reads a GSettings value by key
  * @param {string} language
@@ -89,5 +90,6 @@ export function forwardedSettings(get, language, weekStart) {
         weekStart,
         language,
         alwaysFacesBack: Boolean(get('always-faces-back')),
+        shopDifficulty: Number(get('shop-difficulty')),
     };
 }
