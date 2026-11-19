@@ -42,7 +42,10 @@ type CompanionView struct {
 	GrowthPercent   int             `json:"growthPercent"`
 	Representative  *Representative `json:"representative"`
 	MenuSubject     MenuSubject     `json:"menuSubject"`
+	Wallet          int             `json:"wallet"`
 	Inventory       Inventory       `json:"inventory"`
+	Shop            ShopView        `json:"shop"`
+	Bag             BagView         `json:"bag"`
 	DexSummary      DexSummary      `json:"dexSummary"`
 	LevelUpUntil    *string         `json:"levelUpUntil"`
 	JustEvolvedTo   *string         `json:"justEvolvedTo"`
@@ -51,10 +54,11 @@ type CompanionView struct {
 
 // EggView is the egg card.
 type EggView struct {
-	Used         int  `json:"used"`
-	Threshold    int  `json:"threshold"`
-	Imminent     bool `json:"imminent"`
-	HatchDelayed bool `json:"hatchDelayed"`
+	Used         int     `json:"used"`
+	Threshold    int     `json:"threshold"`
+	Imminent     bool    `json:"imminent"`
+	HatchDelayed bool    `json:"hatchDelayed"`
+	Guarantee    *string `json:"guarantee"` // premium egg tier (bag-shop.md §1.8)
 }
 
 // TypeName is a PokéAPI type id and its localized name.
@@ -118,9 +122,11 @@ type MenuSubject struct {
 	StaticAsset string    `json:"-"`
 }
 
-// Inventory lists the items shown in M1.
+// Inventory holds every item count, unclamped (protocol §5.4).
 type Inventory struct {
-	RareCandy int `json:"rareCandy"`
+	RareCandy  int `json:"rareCandy"`
+	Mint       int `json:"mint"`
+	ShinyCharm int `json:"shinyCharm"`
 }
 
 // DexSummary heads the Pokédex.
@@ -169,7 +175,10 @@ func (s *Store) BuildState(in MoodInput) CompanionView {
 	windowOpen := !s.window.until.IsZero() && in.Now.Before(s.window.until)
 	v := CompanionView{
 		Mood:       s.mood(in, windowOpen),
-		Inventory:  Inventory{RareCandy: st.Inventory["rareCandy"]},
+		Wallet:     s.wallet(),
+		Inventory:  Inventory{RareCandy: s.wireCount(itemRareCandy), Mint: s.wireCount(itemMint), ShinyCharm: s.wireCount(itemShinyCharm)},
+		Shop:       s.shopView(),
+		Bag:        s.bagView(),
 		DexSummary: s.dexSummary(),
 	}
 	v.SulkIdleSeconds = s.sulkIdleSeconds(in, v.Mood)
@@ -192,6 +201,9 @@ func (s *Store) BuildState(in MoodInput) CompanionView {
 		v.Egg = &EggView{
 			Used: st.EggUsage, Threshold: total, HatchDelayed: s.hatchDelayed,
 			Imminent: float64(st.EggUsage)/float64(total) >= 0.9,
+		}
+		if t := st.EggTier; t != nil {
+			v.Egg.Guarantee = strPtr(*t)
 		}
 	}
 	if total > 0 {

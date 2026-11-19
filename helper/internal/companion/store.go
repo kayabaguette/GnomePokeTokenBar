@@ -45,6 +45,8 @@ type Store struct {
 	st   state
 	lang string // locale tag for name resolution (protocol §10)
 
+	shopDifficulty float64 // applied shop price multiplier; not in the save (bag-shop.md §1.3)
+
 	lines   map[int]*evoLine // memory line cache, keyed by base id
 	line    *evoLine         // the active Pokémon's line; nil until loaded
 	details map[int]*Details
@@ -114,7 +116,7 @@ func Open(o Options) (*Store, error) {
 	}
 	s := &Store{
 		dir: o.Dir, data: o.Data, rng: o.Rng, now: o.Now, dittoEnabled: o.DittoDisguiseEnabled,
-		appVersion: o.AppVersion, logFn: o.Logf,
+		appVersion: o.AppVersion, logFn: o.Logf, shopDifficulty: defaultDifficulty,
 		lines: map[int]*evoLine{}, details: map[int]*Details{}, names: map[string]map[string]string{},
 	}
 	if s.rng == nil {
@@ -648,17 +650,32 @@ func (s *Store) hatchCore(ctx context.Context, baseID int, pendingForm *string) 
 		return
 	}
 	st := &s.st
+	// The last guard of a bought guarantee: only the line knows the real rarity, and the index has
+	// no legendary flag. A species below the tier is dropped with no draw; the egg, its usage and
+	// its tier are kept, and the next tick rolls again (CS:1759-1767).
+	if st.EggTier != nil && rarityRank(l.rarity) < rarityRank(*st.EggTier) {
+		s.logf("companion: hatch rolled %s below the guaranteed %s; re-rolling next tick", l.rarity, *st.EggTier)
+		st.PendingHatchID, st.PendingForm = nil, nil
+		s.prefetchedLineID = 0
+		if st.Active == nil && st.EggUsage >= s.eggThreshold() {
+			s.hatchDelayed = true
+		}
+		s.save()
+		return
+	}
 	st.PendingHatchID, st.PendingForm = nil, nil
 	s.prefetchedLineID = 0
 	s.line = l
 	s.hatchDelayed = false
 	overflow := max(0, st.EggUsage-s.eggThreshold())
 	st.EggUsage = 0
-	st.EggTier = nil // a premium guarantee is consumed by the hatch; tiers are not honoured in M1
+	st.EggTier = nil // the hatch consumes a premium guarantee (CS:1777)
 	prayers := st.EggPrayers
 	st.EggPrayers = nil
-	odds := shinyDenominator // the Shiny Charm (1/48) is a deferred shop item
-	isShiny := s.rng.Next()%uint64(odds) == 0
+	// The Shiny Charm changes only the modulus of the same single draw (CS:1781-1783).
+	charm := s.ownsShinyCharm()
+	odds := shinyOdds(charm)
+	isShiny := rollsShiny(s.rng.Next(), charm)
 	nature := natures[int(s.rng.Next()%uint64(len(natures)))]
 	var disguise *int
 	if s.dittoEnabled && dittoDisguiseHit(l.rarity, depth(l.tree), s.rng.Next()) {
@@ -703,11 +720,25 @@ func (s *Store) rollLineForm(baseID int) *string {
 }
 
 // chooseBase rolls a species weighted by capture rate (halved once collected) in exactly one draw;
-// without an index it falls back to REST (CS:1912-1937).
+// without an index it falls back to REST. A premium egg first narrows the index to its tier; an
+// empty narrowed pool keeps the egg without drawing (CS:1912-1937).
 func (s *Store) chooseBase(ctx context.Context) (int, bool) {
-	idx, err := s.data.BaseIndex(ctx)
-	if err != nil || len(idx) == 0 {
+	full, err := s.data.BaseIndex(ctx)
+	if err != nil || len(full) == 0 {
 		return s.chooseBaseViaREST(ctx)
+	}
+	idx := full
+	if t := s.st.EggTier; t != nil {
+		idx = nil
+		for _, e := range full {
+			if tierIncludes(*t, e.CaptureRate) {
+				idx = append(idx, e)
+			}
+		}
+		if len(idx) == 0 {
+			s.logf("companion: no hatch candidate for the guaranteed %s; egg kept", *t)
+			return 0, false
+		}
 	}
 	weights := make([]int, len(idx))
 	total := 0
@@ -724,8 +755,9 @@ func (s *Store) chooseBase(ctx context.Context) (int, bool) {
 	return idx[len(idx)-1].ID, true // any remaining roll belongs to the last entry
 }
 
-// chooseBaseViaREST tries up to 16 uniform ids in 1…649 and keeps the first base species; a
-// network error gives up until the next tick (CS:1942-1963).
+// chooseBaseViaREST tries up to 16 uniform ids in 1…649 and keeps the first base species that meets
+// the egg's tier; a tier miss still consumes the attempt and its draw. A network error gives up
+// until the next tick (CS:1942-1963).
 func (s *Store) chooseBaseViaREST(ctx context.Context) (int, bool) {
 	for attempt := 0; attempt < 16; attempt++ {
 		id := int(s.rng.Next()%maxSpeciesID) + 1
@@ -736,9 +768,13 @@ func (s *Store) chooseBaseViaREST(ctx context.Context) (int, bool) {
 		if err != nil {
 			return 0, false
 		}
-		if sp.EvolvesFrom == 0 {
-			return id, true
+		if sp.EvolvesFrom != 0 {
+			continue
 		}
+		if t := s.st.EggTier; t != nil && !tierIncludes(*t, sp.CaptureRate) {
+			continue
+		}
+		return id, true
 	}
 	return 0, false
 }

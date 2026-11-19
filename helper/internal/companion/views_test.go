@@ -100,15 +100,7 @@ func hasChild(parent string, set map[string]bool) bool {
 // comparison stays green until each phase lands. The phase that implements a field deletes its line
 // here; from then on the shape check covers it. Groups are separated by blank lines so parallel
 // phases do not touch the same lines.
-var m2Pending = []string{
-	// Bag and Shop (phase 10)
-	".wallet",
-	".shop",
-	".bag",
-	".inventory.mint",
-	".inventory.shinyCharm",
-	".egg.guarantee",
-}
+var m2Pending = []string{}
 
 func withoutPending(want map[string]bool) map[string]bool {
 	out := map[string]bool{}

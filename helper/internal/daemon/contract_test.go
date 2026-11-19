@@ -113,16 +113,7 @@ func checkResult[T any](t *testing.T, file string) {
 // lands. The phase that implements a field deletes its line here: once it does, the emitted key is
 // no longer in the stripped fixture and the test checks it for real. Groups are separated by blank
 // lines so parallel phases do not touch the same lines.
-var m2Pending = []string{
-	// Bag and Shop (phase 10)
-	"companion.wallet",
-	"companion.shop",
-	"companion.bag",
-	"companion.inventory.mint",
-	"companion.inventory.shinyCharm",
-	"companion.egg.guarantee",
-	"settingsApplied.shopDifficulty",
-}
+var m2Pending = []string{}
 
 // stripPending removes the m2Pending paths from a state fixture and reports which of them it found.
 func stripPending(t *testing.T, raw []byte) ([]byte, []string) {
@@ -184,11 +175,11 @@ func TestContractDrift(t *testing.T) {
 			checkKeys(t, file, raw, st)
 		})
 	}
-	// M2 result fixtures: the recap ones are checked below; candy-plan.json gets a
-	// checkResult line here once its Go type exists (phase 10).
+	// M2 result fixtures.
 	for _, f := range []string{"recap-week.json", "recap-week-prev.json", "recap-year.json"} {
 		t.Run(f, func(t *testing.T) { checkResult[recapView](t, f) })
 	}
+	t.Run("candy-plan.json", func(t *testing.T) { checkResult[candyPlanReply](t, "candy-plan.json") })
 	t.Run("dex-page.json", func(t *testing.T) { checkResult[companion.DexPage](t, "dex-page.json") })
 	t.Run("species.json", func(t *testing.T) { checkResult[companion.SpeciesView](t, "species.json") })
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })

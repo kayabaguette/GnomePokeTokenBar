@@ -181,7 +181,8 @@ func open(cfg Config, out *output, oneShot bool) (*daemon, error) {
 	}
 	d.store = store
 
-	var s Settings
+	// An M1 file has no shopDifficulty: it keeps its default instead of decoding as 0.
+	s := Settings{ShopDifficulty: DefaultSettings().ShopDifficulty}
 	if ok, err := readJSON(d.path(settingsFile), &s); err != nil {
 		d.logf("%s unreadable, using defaults: %v", settingsFile, err)
 	} else if ok {
@@ -190,6 +191,8 @@ func open(cfg Config, out *output, oneShot bool) (*daemon, error) {
 	}
 	// The save holds the last applied difficulty; only a received setSettings rescales.
 	d.settings.GrowthDifficulty = d.store.GrowthDifficulty()
+	// Prices are right from the first cached state (protocol §9.2).
+	d.store.SetShopDifficulty(d.settings.ShopDifficulty)
 
 	for _, src := range cfg.Providers {
 		d.usage[src.ID()] = newProviderUsage()

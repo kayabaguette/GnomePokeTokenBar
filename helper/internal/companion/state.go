@@ -11,8 +11,8 @@ import (
 
 // Save model (upstream CompanionModel.swift CompanionState, MonState, DexEntry). Key names match
 // upstream so a later macOS-export import stays cheap; dates are RFC 3339 strings instead of Apple
-// reference-date doubles. Deferred features (premium eggs, prayers, Ditto, shop, Mint, Shiny Charm)
-// keep their fields so they round-trip unchanged.
+// reference-date doubles. Deferred features (prayers, Ditto) keep their fields so they round-trip
+// unchanged.
 
 const (
 	schemaVersion       = 1

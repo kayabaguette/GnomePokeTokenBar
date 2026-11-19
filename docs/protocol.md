@@ -561,7 +561,7 @@ player owns that species shiny (`ownsShinySpecies`, companion.md §5.5).
 |---|---|---|
 | `candyMaxUse` | int | `min(stock, needed)`, where `needed = ceil(max(0, Σ stage costs − usedAtStage) / 100,000,000)` (bag-shop.md §2.2). `0` disables Rare Candy. It is `0` iff `candyBlocked` is not `null`. |
 | `canUseMint` | bool | an active Pokémon exists and the Mint stock is > 0. It does not need the evolution line. |
-| `candyBlocked` | CandyBlocked \| `null` | why `candyMaxUse` is 0, evaluated in this order: no active Pokémon gives `egg`; stock 0 gives `noStock`; the evolution line is not loaded gives `lineLoading`; a Ditto reveal is pending gives `revealPending` (**reserved**: the Ditto reveal is not ported, so M2 never emits it); otherwise `null`. |
+| `candyBlocked` | CandyBlocked \| `null` | why `candyMaxUse` is 0, evaluated in this order: no active Pokémon gives `egg`; stock 0 gives `noStock`; the evolution line is not loaded gives `lineLoading`; a Ditto reveal is pending gives `revealPending` (the Ditto reveal is not ported, so only an imported or hand-edited save with a disguised Ditto at its threshold can produce it; the extension shows it like `lineLoading`); otherwise `null`. |
 
 No per-count plan table is ever put in `state`; previews come from `planCandies` (§7.4).
 

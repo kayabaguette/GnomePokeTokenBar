@@ -18,6 +18,7 @@ type Settings struct {
 	WeekStart        int     `json:"weekStart"`
 	Language         string  `json:"language"`
 	AlwaysFacesBack  bool    `json:"alwaysFacesBack"`
+	ShopDifficulty   float64 `json:"shopDifficulty"` // M2, optional in setSettings (protocol §9.2)
 }
 
 // refreshPresets are the refresh-interval choices in seconds; 0 is manual (usage.md §6.1).
@@ -26,7 +27,7 @@ var refreshPresets = []int{0, 60, 120, 300, 900}
 // DefaultSettings are used before any setSettings and without a settings-applied.json.
 func DefaultSettings() Settings {
 	return Settings{RefreshInterval: 120, WarnThreshold: 80, CritThreshold: 95, GrowthDifficulty: 1.0,
-		WeekStart: 1, Language: "en"}
+		WeekStart: 1, Language: "en", ShopDifficulty: 1.0}
 }
 
 // normalized applies the protocol rules: the nearest refresh preset (the lower one on a tie), the
@@ -49,6 +50,7 @@ func (s Settings) normalized() Settings {
 		s.GrowthDifficulty = 1
 	}
 	s.GrowthDifficulty = min(max(s.GrowthDifficulty, 0.1), 2.0)
+	s.ShopDifficulty = min(max(s.ShopDifficulty, 0.1), 2.0)
 	s.Language = normalizeLanguage(s.Language)
 	if s.WeekStart < 1 || s.WeekStart > 7 {
 		s.WeekStart = 1
@@ -83,9 +85,10 @@ func (s Settings) weekday() time.Weekday { return time.Weekday(s.WeekStart % 7) 
 // interval is the automatic refresh period, 0 in manual mode.
 func (s Settings) interval() time.Duration { return time.Duration(s.RefreshInterval) * time.Second }
 
-// parseSettings decodes setSettings args strictly: every field is required with its JSON type, and
-// weekStart must be 1–7. Errors name the field; nothing is applied on error.
-func parseSettings(raw json.RawMessage) (Settings, error) {
+// parseSettings decodes setSettings args strictly: every M1 field is required with its JSON type, and
+// weekStart must be 1–7. The optional M2 shopDifficulty keeps lastShop when absent. Errors name the
+// field; nothing is applied on error.
+func parseSettings(raw json.RawMessage, lastShop float64) (Settings, error) {
 	a, err := newArgs(raw)
 	if err != nil {
 		return Settings{}, err
@@ -98,6 +101,7 @@ func parseSettings(raw json.RawMessage) (Settings, error) {
 	s.WeekStart = int(a.int("weekStart", true, 0, 1, 7))
 	s.Language = a.str("language", true, "")
 	s.AlwaysFacesBack = a.boolean("alwaysFacesBack", true, false)
+	s.ShopDifficulty = a.number("shopDifficulty", false, lastShop)
 	if a.err != nil {
 		return Settings{}, a.err
 	}
@@ -105,6 +109,7 @@ func parseSettings(raw json.RawMessage) (Settings, error) {
 }
 
 func (s Settings) String() string {
-	return fmt.Sprintf("interval=%ds warn=%d crit=%d difficulty=%g weekStart=%d language=%s back=%t",
-		s.RefreshInterval, s.WarnThreshold, s.CritThreshold, s.GrowthDifficulty, s.WeekStart, s.Language, s.AlwaysFacesBack)
+	return fmt.Sprintf("interval=%ds warn=%d crit=%d difficulty=%g weekStart=%d language=%s back=%t shop=%g",
+		s.RefreshInterval, s.WarnThreshold, s.CritThreshold, s.GrowthDifficulty, s.WeekStart, s.Language, s.AlwaysFacesBack,
+		s.ShopDifficulty)
 }
