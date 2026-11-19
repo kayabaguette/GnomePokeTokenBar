@@ -1,9 +1,11 @@
 /* Usage totals and the activity panel (ui.md §2.1 C and §2.3):
  * today's big number with the grouped value and cost, this week / this month,
- * the streak badge, the token-type breakdown and the bars/heatmap panel (activityPanel.js).
+ * the streak badge and the Details button (usage recap), the token-type
+ * breakdown and the bars/heatmap panel (activityPanel.js).
  */
 
 import Clutter from 'gi://Clutter';
+import St from 'gi://St';
 
 import {_, fmt} from '../i18n.js';
 import {compact, costText, grouped, normalizeCoverage} from '../format.js';
@@ -15,20 +17,32 @@ const PARTIAL_HINT = () => _('Some models have no known price; this cost leaves 
 
 export class UsageSection {
     /**
-     * @param {object} deps  {tooltip, setTrendWindow(window), setActivityView(view)}
+     * @param {object} deps  {tooltip, setTrendWindow(window), setActivityView(view), openRecap()}
      */
     constructor(deps) {
         this._deps = deps;
         this.actor = vbox('ptb-usage', {x_expand: true});
 
-        // Caption row: the streak badge sits at its right end, out of the
-        // period table's way (the table needs the full 332 px).
+        // Caption row: the streak badge and the Details button sit at its
+        // right end, out of the period table's way (the table needs the full
+        // width; recap-heatmap.md §3, Q8).
         const head = hbox('ptb-usage-head', {x_expand: true});
         head.add_child(label(_('Today’s tokens'), 'ptb-caption'));
         head.add_child(spacer());
         this._streak = label('', 'ptb-streak', {y_align: Clutter.ActorAlign.CENTER});
         deps.tooltip.attach(this._streak, () => this._streakHint);
         head.add_child(this._streak);
+        const details = new St.Button({
+            style_class: 'ptb-details-button',
+            label: _('Details'),
+            can_focus: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            accessible_name: _('Usage recap'),
+        });
+        details.connect('clicked', () => deps.openRecap());
+        deps.tooltip.attach(details, _('Usage recap'));
+        head.add_child(details);
+        this._details = details;
         this.actor.add_child(head);
 
         const big = hbox('ptb-big-row', {x_expand: true});
