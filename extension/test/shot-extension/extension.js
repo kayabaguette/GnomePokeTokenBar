@@ -17,7 +17,9 @@
  *   pet, pet-prefs  the floating pet, its bubbles, the agent D-Bus object and
  *         the Floating pet prefs group (petSuite.js);
  *   pet-pray, pet-reveal  prayers over the egg pet and the Ditto reveal's card
- *         effect (praySuite.js).
+ *         effect (praySuite.js);
+ *   backup, backup-prefs  the Save1 relay on the sandbox bus and the Backup &
+ *         Transfer prefs page (backupSuite.js).
  */
 
 import Clutter from 'gi://Clutter';
@@ -28,6 +30,7 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import {runBackup, runBackupPrefs} from './backupSuite.js';
 import {runPet, runPetPrefs} from './petSuite.js';
 import {runPetPray, runPetReveal} from './praySuite.js';
 import {runRecap} from './recapSuite.js';
@@ -139,6 +142,10 @@ export default class ShotExtension extends Extension {
             return runShopCycle(this);
         if (suite === 'shop-prefs')
             return runShopPrefs(this);
+        if (suite === 'backup')
+            return runBackup(this);
+        if (suite === 'backup-prefs')
+            return runBackupPrefs(this);
         return this._runHome();
     }
 
