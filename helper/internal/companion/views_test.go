@@ -102,12 +102,12 @@ func hasChild(parent string, set map[string]bool) bool {
 // phases do not touch the same lines.
 var m2Pending = []string{}
 
-// The Milestone 3 contract (prayers, docs/protocol.md) is pending the same way, per payload, because
-// the paths are relative to each payload. Phase 17 deletes these lines.
+// The Milestone 3 contract (docs/protocol.md) is pending the same way, per payload, because the
+// paths are relative to each payload. Phase 17 emptied these lists (prayers).
 var (
-	m3PendingEgg     = []string{".egg.prayers"}
-	m3PendingSpecies = []string{".individuals[].prayers"}
-	m3PendingHatch   = []string{".prayers"}
+	m3PendingEgg     = []string{}
+	m3PendingSpecies = []string{}
+	m3PendingHatch   = []string{}
 )
 
 func withoutPending(want map[string]bool, more ...string) map[string]bool {
@@ -189,7 +189,7 @@ func TestPayloadShapesMatchFixtures(t *testing.T) {
 	for _, e := range []Event{
 		HatchEvent{Type: "event", Kind: "hatch"}, EvolveEvent{Type: "event", Kind: "evolve"},
 		GraduateEvent{Type: "event", Kind: "graduate"}, CandyGrantedEvent{Type: "event", Kind: "candyGranted"},
-		BadgeEvent{Type: "event", Kind: "badge", Region: sp.Region},
+		BadgeEvent{Type: "event", Kind: "badge", Region: sp.Region}, DittoRevealEvent{Type: "event", Kind: "dittoReveal"},
 	} {
 		sameShape(t, e.EventKind(), shapeOf(t, e), want[e.EventKind()])
 	}

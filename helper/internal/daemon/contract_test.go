@@ -116,22 +116,18 @@ func checkResult[T any](t *testing.T, file string) {
 // lines so parallel phases do not touch the same lines.
 var m2Pending = []string{}
 
-// m3Pending is the same mechanism for the Milestone 3 contract (prayers, the Ditto reveal): fixture
-// file -> dotted paths the Go structs do not carry yet. A path segment that meets an array applies
-// to every element. Phase 17 (prayers and the Ditto reveal) deletes its lines. The save-transfer and
-// item-sprite results have no Go type yet, so no fixture of theirs is decoded here: phase 18 adds
-// checkResult calls for pray, inspect-save, list-snapshots, export-save, import-save and
-// create-snapshot.
-var m3Pending = map[string][]string{
-	"state-egg.json": {"companion.egg.prayers"},
-	"species.json":   {"data.individuals.prayers"},
-}
+// m3Pending is the same mechanism for the Milestone 3 contract: fixture file -> dotted paths the Go
+// structs do not carry yet. A path segment that meets an array applies to every element. Phase 17
+// (prayers and the Ditto reveal) emptied it. The save-transfer and item-sprite results have no Go
+// type yet, so no fixture of theirs is decoded here: phase 18 adds checkResult calls for
+// inspect-save, list-snapshots, export-save, import-save and create-snapshot.
+var m3Pending = map[string][]string{}
 
 // m3PendingEventFields lists event fields, per kind, that events.ndjson carries but the Go event
-// structs do not yet (phase 17 removes them); m3PendingEventKinds lists whole kinds with no Go type yet.
-var m3PendingEventFields = map[string][]string{"hatch": {"prayers"}}
+// structs do not yet; m3PendingEventKinds lists whole kinds with no Go type yet. Phase 17 emptied both.
+var m3PendingEventFields = map[string][]string{}
 
-var m3PendingEventKinds = []string{"dittoReveal"}
+var m3PendingEventKinds = []string{}
 
 // stripPaths removes the given dotted paths from a JSON document and reports which of them it found.
 func stripPaths(t *testing.T, raw []byte, paths []string) ([]byte, []string) {
@@ -251,6 +247,7 @@ func TestContractDrift(t *testing.T) {
 		checkKeys(t, "species.json", raw, resultMsg{Type: r.Type, ID: r.ID, OK: r.OK, Data: r.Data})
 	})
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })
+	t.Run("pray.json", func(t *testing.T) { checkResult[prayReply](t, "pray.json") })
 	t.Run("events.ndjson", func(t *testing.T) {
 		f, err := os.Open(filepath.Join(fixtureDir, "events.ndjson"))
 		if err != nil {
@@ -263,6 +260,7 @@ func TestContractDrift(t *testing.T) {
 			"graduate":     func() any { return &companion.GraduateEvent{} },
 			"candyGranted": func() any { return &companion.CandyGrantedEvent{} },
 			"badge":        func() any { return &companion.BadgeEvent{} },
+			"dittoReveal":  func() any { return &companion.DittoRevealEvent{} },
 			"limitAlert":   func() any { return &limitAlertEvent{} },
 			"authExpired":  func() any { return &authExpiredEvent{} },
 			"error":        func() any { return &errorEvent{} },

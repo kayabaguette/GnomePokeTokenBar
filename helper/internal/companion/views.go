@@ -59,6 +59,7 @@ type EggView struct {
 	Imminent     bool    `json:"imminent"`
 	HatchDelayed bool    `json:"hatchDelayed"`
 	Guarantee    *string `json:"guarantee"` // premium egg tier (bag-shop.md §1.8)
+	Prayers      int     `json:"prayers"`   // prayers counted for this egg; 0 for none (M3)
 }
 
 // TypeName is a PokéAPI type id and its localized name.
@@ -200,7 +201,7 @@ func (s *Store) BuildState(in MoodInput) CompanionView {
 		v.Phase = "egg"
 		v.Egg = &EggView{
 			Used: st.EggUsage, Threshold: total, HatchDelayed: s.hatchDelayed,
-			Imminent: float64(st.EggUsage)/float64(total) >= 0.9,
+			Imminent: float64(st.EggUsage)/float64(total) >= 0.9, Prayers: prayerCount(st.EggPrayers),
 		}
 		if t := st.EggTier; t != nil {
 			v.Egg.Guarantee = strPtr(*t)
@@ -525,6 +526,7 @@ type Individual struct {
 	IVs         Stats           `json:"ivs"`
 	Stats       *Stats          `json:"stats"`
 	Moves       []KnownMoveView `json:"moves"`
+	Prayers     int             `json:"prayers"` // prayers counted before it hatched; 0 for none (M3)
 }
 
 // MoveMethod is one learn method; Level is set only for level-up.
@@ -643,7 +645,7 @@ func (s *Store) individual(e logEntry, names map[string]string, d *Details) Indi
 	ind := Individual{
 		ID: e.ID, Form: form, DisplayName: formDisplayName(s.speciesName(names, id), id, form, s.formLabel(id, form)),
 		IsRaising: e.active, Released: e.ReleasedAt != nil, IsShiny: e.IsShiny, Nature: e.Nature,
-		Level: p.Level, Gender: p.Gender, IVs: Stats(p.IVs), Moves: []KnownMoveView{},
+		Level: p.Level, Gender: p.Gender, IVs: Stats(p.IVs), Moves: []KnownMoveView{}, Prayers: prayerCount(e.Prayers),
 	}
 	if e.CaughtAt != nil && !e.active {
 		ind.CaughtAt = ts(*e.CaughtAt)

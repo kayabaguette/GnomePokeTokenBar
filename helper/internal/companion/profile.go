@@ -190,6 +190,18 @@ func (p *profile) advanceGrowth(candidate int, rarity string) {
 	p.Level = min(100, max(p.Level, max(5, 5+int(math.Floor(progress*95)))))
 }
 
+// rebaseForSpeciesIdentity moves a revealed Ditto's profile to its real species: the individual
+// values stay, the earned fraction of graduation carries to the new rarity, and every
+// species-dependent field is cleared for Ditto's details to fill. The level never drops (PP:128-140).
+func (p *profile) rebaseForSpeciesIdentity(oldRarity, rarity string) {
+	fraction := math.Min(1, float64(max(0, p.GrowthTokens))/float64(graduationTotal(oldRarity)))
+	rebased := int(math.Floor(fraction * float64(graduationTotal(rarity))))
+	p.Gender, p.AbilitySlot, p.AbilityName, p.AbilityIsHidden = nil, nil, nil, false
+	p.Moves = []knownMove{}
+	p.GrowthTokens = rebased
+	p.advanceGrowth(rebased, rarity)
+}
+
 // sanitize clamps a profile read from disk (PP:190-203).
 func (p *profile) sanitize() {
 	p.Level = min(100, max(5, p.Level))

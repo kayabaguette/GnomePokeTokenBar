@@ -277,18 +277,25 @@ func TestDittoFlagGatesTheDisguiseDraw(t *testing.T) {
 		}
 		eq(t, rng.calls, want, "draws")
 	}
-	// With the flag on and a hit, the active Pokémon is disguised and stops at its first threshold.
+	// With the flag on and a hit, the active Pokémon is disguised: it never evolves at its first
+	// threshold, and reveals as Ditto once line 132 is served (DittoTests.swift:284-289 finds the seed).
 	var seed uint64
 	for seed = 0; seed < 100000 && draws(seed, 3)[2]%128 != 0; seed++ {
 	}
-	s := newStore(t, stub(linear3()), seed, withDitto())
+	eq(t, seed, 239, "first disguise seed (prayers-ditto.md §3)")
+	s := newStore(t, dittoData(linear3()), seed, withDitto())
 	s.hatch(bg, 1)
 	if s.st.Active.DittoDisguise == nil {
 		t.Fatal("expected a disguise")
 	}
 	s.applyUsage(300_000_000)
-	eq(t, s.st.Active.StageIndex, 0, "a disguise never evolves while the reveal is deferred")
+	eq(t, s.st.Active.StageIndex, 0, "a disguise never evolves")
 	eq(t, len(s.st.Dex), 0, "nor graduates")
+	use(s, 0)
+	eq(t, s.st.Active.DittoRevealed, true, "revealed")
+	eq(t, s.st.Active.currentID(), dittoSpeciesID, "as Ditto")
+	eq(t, s.st.Active.UsedAtStage, 300_000_000-125_000_000, "carry")
+	eq(t, len(s.st.Dex), 0, "no graduation of the disguise")
 }
 
 func TestDisguisedShinyStaysHidden(t *testing.T) {
