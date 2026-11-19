@@ -13,7 +13,9 @@
  *   cycle opens the Pokédex on a species whose getSpecies the stub delays and
  *         leaves the popover open, so the headless --cycle disable lands with
  *         the menu open and a command pending (the screen-lock case);
- *   shop, shop-cycle, shop-prefs  the Shop and Bag tabs (shopSuite.js).
+ *   shop, shop-cycle, shop-prefs  the Shop and Bag tabs (shopSuite.js);
+ *   pet, pet-prefs  the floating pet, its bubbles, the agent D-Bus object and
+ *         the Floating pet prefs group (petSuite.js).
  */
 
 import Clutter from 'gi://Clutter';
@@ -24,6 +26,7 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import {runPet, runPetPrefs} from './petSuite.js';
 import {runRecap} from './recapSuite.js';
 import {runShop, runShopCycle, runShopPrefs} from './shopSuite.js';
 
@@ -119,6 +122,10 @@ export default class ShotExtension extends Extension {
             return this._runCycle();
         if (suite === 'recap')
             return runRecap(this, START_DELAY_MS);
+        if (suite === 'pet')
+            return runPet(this);
+        if (suite === 'pet-prefs')
+            return runPetPrefs(this);
         if (suite === 'shop')
             return runShop(this);
         if (suite === 'shop-cycle')
