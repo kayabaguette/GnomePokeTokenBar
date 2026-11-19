@@ -28,7 +28,7 @@ export const Indicator = GObject.registerClass(
 class PtbIndicator extends PanelMenu.Button {
     /**
      * @param {object} controller  the extension: settings, tooltip, sprites,
-     *   theme, context(), refresh(), openPrefs(), setTrendWindow(), request()
+     *   theme, context(), refresh(), openPrefs(), setTrendWindow(), setActivityView(), request()
      */
     _init(controller) {
         super._init(0.5, 'PokeTokenBar', false);
@@ -111,6 +111,7 @@ class PtbIndicator extends PanelMenu.Button {
                 c.openPrefs();
             },
             setTrendWindow: w => c.setTrendWindow(w),
+            setActivityView: v => c.setActivityView(v),
             request: (cmd, args) => c.request(cmd, args),
         });
         const item = new PopupMenu.PopupBaseMenuItem({

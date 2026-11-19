@@ -1,6 +1,7 @@
-/* Usage totals and the daily chart (ui.md §2.1 C and §2.3):
+/* Usage totals and the activity panel (ui.md §2.1 C and §2.3):
  * today's big number with the grouped value and cost, this week / this month,
- * the streak badge, the token-type breakdown and the daily bar chart.
+ * the streak badge and the Details button (usage recap), the token-type
+ * breakdown and the bars/heatmap panel (activityPanel.js).
  */
 
 import Clutter from 'gi://Clutter';
@@ -8,29 +9,40 @@ import St from 'gi://St';
 
 import {_, fmt} from '../i18n.js';
 import {compact, costText, grouped, normalizeCoverage} from '../format.js';
-import * as ChartModel from '../chartModel.js';
-import {DailyChart} from '../chart.js';
 import * as V from '../viewModel.js';
+import {ActivityPanel} from './activityPanel.js';
 import {hbox, label, spacer, vbox} from './widgets.js';
 
 const PARTIAL_HINT = () => _('Some models have no known price; this cost leaves them out.');
 
 export class UsageSection {
     /**
-     * @param {object} deps  {tooltip, setTrendWindow(window)}
+     * @param {object} deps  {tooltip, setTrendWindow(window), setActivityView(view), openRecap()}
      */
     constructor(deps) {
         this._deps = deps;
         this.actor = vbox('ptb-usage', {x_expand: true});
 
-        // Caption row: the streak badge sits at its right end, out of the
-        // period table's way (the table needs the full 332 px).
+        // Caption row: the streak badge and the Details button sit at its
+        // right end, out of the period table's way (the table needs the full
+        // width; recap-heatmap.md §3, Q8).
         const head = hbox('ptb-usage-head', {x_expand: true});
         head.add_child(label(_('Today’s tokens'), 'ptb-caption'));
         head.add_child(spacer());
         this._streak = label('', 'ptb-streak', {y_align: Clutter.ActorAlign.CENTER});
         deps.tooltip.attach(this._streak, () => this._streakHint);
         head.add_child(this._streak);
+        const details = new St.Button({
+            style_class: 'ptb-details-button',
+            label: _('Details'),
+            can_focus: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            accessible_name: _('Usage recap'),
+        });
+        details.connect('clicked', () => deps.openRecap());
+        deps.tooltip.attach(details, _('Usage recap'));
+        head.add_child(details);
+        this._details = details;
         this.actor.add_child(head);
 
         const big = hbox('ptb-big-row', {x_expand: true});
@@ -58,33 +70,9 @@ export class UsageSection {
         breakdown.add_child(this._breakdown2);
         this.actor.add_child(breakdown);
 
-        const caption = hbox('ptb-chart-caption', {x_expand: true});
-        this._windowButton = new St.Button({
-            style_class: 'ptb-window-button',
-            can_focus: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        const wbBox = hbox('ptb-window-button-box');
-        this._windowLabel = label('', 'ptb-window-label');
-        wbBox.add_child(this._windowLabel);
-        wbBox.add_child(new St.Icon({icon_name: 'pan-down-symbolic', style_class: 'ptb-window-icon'}));
-        this._windowButton.set_child(wbBox);
-        this._windowButton.connect('clicked', () => this._deps.setTrendWindow(ChartModel.nextWindow(this._window)));
-        deps.tooltip.attach(this._windowButton, _('Change the period'));
-        caption.add_child(this._windowButton);
-        this._readout = label('', 'ptb-readout');
-        caption.add_child(this._readout);
-        caption.add_child(spacer());
-        this._peakCaption = label(_('Peak'), 'ptb-tertiary ptb-tiny');
-        this._peakValue = label('', 'ptb-peak-value');
-        caption.add_child(this._peakCaption);
-        caption.add_child(this._peakValue);
-        this.actor.add_child(caption);
+        this._activity = new ActivityPanel(deps);
+        this.actor.add_child(this._activity.actor);
 
-        this._chart = new DailyChart(deps.tooltip);
-        this.actor.add_child(this._chart);
-
-        this._window = '14d';
         this._todayCostHint = null;
         this._streakHint = null;
     }
@@ -137,18 +125,6 @@ export class UsageSection {
         this._breakdown2.text = fmt(_('Cache write %s   Cache read %s'),
             compact(today?.cacheWrite ?? 0), compact(today?.cacheRead ?? 0));
 
-        this._window = ChartModel.normalizeWindow(ctx.settings.trendWindow);
-        this._windowLabel.text = ChartModel.windowTitle(this._window);
-        const dayKey = state?.usage?.calendar?.today ?? '';
-        const cols = combined && dayKey ? ChartModel.columns(combined, dayKey, this._window) : [];
-        const peak = ChartModel.peak(cols);
-        this._readout.text = ChartModel.readout(cols, dayKey, false); // cost is on the big row
-        const showsPeak = ChartModel.showsPeak(cols);
-        this._peakCaption.visible = showsPeak;
-        this._peakValue.visible = showsPeak;
-        this._peakValue.text = compact(peak);
-        // Nothing used in this window: keep the caption (the period can still change), drop the bars.
-        this._chart.visible = peak > 0;
-        this._chart.setData(cols, dayKey, this._window, showCost);
+        this._activity.update(ctx);
     }
 }

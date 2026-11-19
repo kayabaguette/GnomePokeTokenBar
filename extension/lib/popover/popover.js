@@ -13,6 +13,7 @@ import {DexView} from '../dex/dexView.js';
 import {CompanionCard} from './companionCard.js';
 import {Footer} from './footer.js';
 import {LimitsSection} from './limitsSection.js';
+import {RecapView} from './recapView.js';
 import {UsageSection} from './usageSection.js';
 import {vbox, hbox} from './widgets.js';
 
@@ -28,7 +29,7 @@ function separator() {
 export class Popover {
     /**
      * @param {object} deps  {tooltip, sprites, refresh(), openPrefs(), setTrendWindow(w),
-     *                        request(cmd, args)}
+     *                        setActivityView(v), request(cmd, args)}
      */
     constructor(deps) {
         this.actor = vbox('ptb-popover');
@@ -62,7 +63,7 @@ export class Popover {
             ...deps,
             openDexEntry: (speciesId, form) => this.openDexEntry(speciesId, form),
         });
-        this._usage = new UsageSection(deps);
+        this._usage = new UsageSection({...deps, openRecap: () => this.openRecap()});
         this._limits = new LimitsSection(deps);
         this._limitsSeparator = separator();
         this._home.add_child(this._companion.actor);
@@ -80,11 +81,36 @@ export class Popover {
         this._footer = new Footer(deps);
         this.actor.add_child(this._footer.actor);
 
+        // The usage recap replaces the whole body (recap-heatmap.md §1.1).
+        this._recap = new RecapView({...deps, onBack: () => this.closeRecap()});
+        this.actor.add_child(this._recap.actor);
+        this._hiddenForRecap = null;
+
         this._tab = null;
         this.showTab('home');
     }
 
+    openRecap() {
+        if (this._hiddenForRecap)
+            return;
+        this._hiddenForRecap = this.actor.get_children().filter(c => c.visible && c !== this._recap.actor);
+        for (const c of this._hiddenForRecap)
+            c.hide();
+        this._recap.open();
+    }
+
+    /** Back to the tab underneath (Back button, reopen, tab switches). */
+    closeRecap() {
+        if (!this._hiddenForRecap)
+            return;
+        this._recap.close();
+        for (const c of this._hiddenForRecap)
+            c.show();
+        this._hiddenForRecap = null;
+    }
+
     showTab(name) {
+        this.closeRecap();
         if (this._tab === name)
             return;
         this._tab = name;
@@ -117,6 +143,7 @@ export class Popover {
         }
         this._scroll.style = `max-height: ${height}px;`;
         this._dex.setHeight(height);
+        this.closeRecap(); // every reopen starts on Home (PopoverNavigation.reset)
         this._tab = null; // the menu was closed: re-run the tab switch
         if (tab === 'dex')
             this._dex.openGrid();
@@ -132,6 +159,7 @@ export class Popover {
 
     /** @param {object} ctx  {state, settings, nowMs, helperStatus} */
     update(ctx) {
+        this._recap.update(ctx);
         this._companion.update(ctx);
         this._usage.update(ctx);
         this._limits.update(ctx);

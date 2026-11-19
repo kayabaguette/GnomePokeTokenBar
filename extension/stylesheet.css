@@ -1062,3 +1062,271 @@
 .ptb-info-item {
     font-feature-settings: "tnum";
 }
+
+/* === M2: Recap & heatmap === */
+
+/* ---- Activity panel: bars or 16-week heatmap (recap-heatmap.md §2) ---- */
+
+.ptb-activity {
+    spacing: 4px;
+}
+
+.ptb-heatmap-title {
+    font-size: 0.86em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ptb-light .ptb-heatmap-title { color: rgba(34, 34, 38, 0.58); }
+
+/* GitHub contribution greens, one scale per scheme so level 1 never vanishes
+ * (ActivityHeatmap.swift:149-165). Level 0 is an unused day and is drawn. */
+.ptb-heatmap {
+    margin-top: 2px;
+    font-size: 8px;
+    font-weight: 600;
+    -ptb-heat-0: #161B22;
+    -ptb-heat-1: #0E4429;
+    -ptb-heat-2: #006D32;
+    -ptb-heat-3: #26A641;
+    -ptb-heat-4: #39D353;
+    -ptb-heat-today-color: rgba(255, 255, 255, 0.55);
+    -ptb-heat-label-color: rgba(255, 255, 255, 0.42);
+}
+
+.ptb-light .ptb-heatmap {
+    -ptb-heat-0: #EBEDF0;
+    -ptb-heat-1: #9BE9A8;
+    -ptb-heat-2: #40C463;
+    -ptb-heat-3: #30A14E;
+    -ptb-heat-4: #216E39;
+    -ptb-heat-today-color: rgba(0, 0, 0, 0.55);
+    -ptb-heat-label-color: rgba(34, 34, 38, 0.48);
+}
+
+/* Page dots: the only hint that the panel cycles (ActivityVisualization.swift:95-108). */
+.ptb-page-dots-button {
+    padding: 4px 3px;
+    border-radius: 6px;
+}
+
+.ptb-page-dots-button:hover, .ptb-page-dots-button:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-light .ptb-page-dots-button:hover, .ptb-light .ptb-page-dots-button:focus { background-color: rgba(0, 0, 0, 0.06); }
+
+.ptb-page-dots {
+    spacing: 3px;
+}
+
+.ptb-page-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.ptb-page-dot:checked { background-color: rgba(255, 255, 255, 0.53); }
+.ptb-light .ptb-page-dot { background-color: rgba(34, 34, 38, 0.18); }
+.ptb-light .ptb-page-dot:checked { background-color: rgba(34, 34, 38, 0.54); }
+
+/* Details capsule beside the streak badge. */
+.ptb-details-button {
+    padding: 1px 9px;
+    border-radius: 999px;
+    font-size: 0.86em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.80);
+    background-color: rgba(255, 255, 255, 0.09);
+}
+
+.ptb-details-button:hover, .ptb-details-button:focus { background-color: rgba(255, 255, 255, 0.16); }
+.ptb-light .ptb-details-button { color: rgba(34, 34, 38, 0.80); background-color: rgba(0, 0, 0, 0.06); }
+.ptb-light .ptb-details-button:hover, .ptb-light .ptb-details-button:focus { background-color: rgba(0, 0, 0, 0.11); }
+
+/* ---- Usage recap screen (recap-heatmap.md §1.5-1.6) ------------------- */
+
+.ptb-recap {
+    spacing: 8px;
+    padding: 4px 14px 12px 14px;
+}
+
+.ptb-recap-top, .ptb-recap-time {
+    spacing: 6px;
+}
+
+.ptb-recap-nav {
+    padding: 3px 6px;
+    border-radius: 6px;
+    font-size: 0.86em;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.ptb-recap-back {
+    font-size: 1em;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.ptb-recap-nav:hover, .ptb-recap-nav:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-recap-nav:insensitive { color: rgba(255, 255, 255, 0.30); }
+.ptb-light .ptb-recap-nav { color: rgba(34, 34, 38, 0.78); }
+.ptb-light .ptb-recap-back { color: #222226; }
+.ptb-light .ptb-recap-nav:hover, .ptb-light .ptb-recap-nav:focus { background-color: rgba(0, 0, 0, 0.06); }
+.ptb-light .ptb-recap-nav:insensitive { color: rgba(34, 34, 38, 0.30); }
+
+.ptb-recap-nav-box { spacing: 3px; }
+.ptb-recap-nav-icon { icon-size: 12px; }
+
+/* The card: a red handheld with a dark LCD. Its colors ignore the theme. */
+.ptb-recap-card {
+    border-radius: 10px;
+    background-color: #c02a25;
+    background-gradient-direction: vertical;
+    background-gradient-start: #D6362E;
+    background-gradient-end: #A81F1C;
+}
+
+.ptb-recap-hinge {
+    width: 5px;
+    border-radius: 10px 0 0 10px;
+    background-color: rgba(0, 0, 0, 0.14);
+}
+
+.ptb-recap-body {
+    spacing: 8px;
+    padding: 11px 12px 11px 7px;
+}
+
+.ptb-recap-header {
+    spacing: 6px;
+    padding-left: 2px;
+}
+
+.ptb-recap-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.ptb-recap-led-red { background-color: #F25959; }
+.ptb-recap-led-yellow { background-color: #FAD159; }
+.ptb-recap-led-green { background-color: #73E080; }
+
+.ptb-recap-period {
+    font-family: monospace;
+    font-size: 10.5px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.ptb-recap-screen {
+    spacing: 7px;
+    margin: 0 2px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 2px solid rgba(0, 0, 0, 0.35);
+    background-color: #0D1214;
+}
+
+.ptb-recap-total-row {
+    spacing: 5px;
+}
+
+.ptb-recap-total {
+    font-family: monospace;
+    font-size: 26px;
+    font-weight: bold;
+    color: #82FA9E;
+    text-shadow: 0 0 6px rgba(130, 250, 158, 0.35);
+}
+
+.ptb-recap-unit {
+    padding-bottom: 5px;
+    font-family: monospace;
+    font-size: 8px;
+    font-weight: 500;
+    color: rgba(130, 250, 158, 0.5);
+}
+
+.ptb-recap-chip {
+    padding: 1px 5px;
+    border: 1px solid rgba(130, 250, 158, 0.6);
+    border-radius: 2px;
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: bold;
+    color: #82FA9E;
+}
+
+.ptb-recap-chip.ptb-recap-chip-down {
+    border-color: rgba(255, 186, 71, 0.6);
+    color: #FFBA47;
+}
+
+.ptb-recap-meters {
+    font-family: monospace;
+}
+
+.ptb-recap-readouts { spacing: 10px; }
+.ptb-recap-readout-col { spacing: 3px; }
+.ptb-recap-readout { spacing: 4px; }
+
+.ptb-recap-readout-label {
+    font-family: monospace;
+    font-size: 8px;
+    font-weight: 500;
+    color: rgba(130, 250, 158, 0.5);
+}
+
+.ptb-recap-readout-value {
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: bold;
+    color: #82FA9E;
+}
+
+.ptb-recap-strip {
+    spacing: 5px;
+    padding-left: 2px;
+    min-height: 22px;
+}
+
+.ptb-recap-divider {
+    width: 1px;
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+.ptb-recap-empty {
+    font-family: monospace;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.ptb-recap-chips { spacing: 5px; }
+
+.ptb-recap-grad {
+    spacing: 3px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.22);
+}
+
+.ptb-recap-grad-name {
+    font-family: monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.ptb-recap-grad-shiny { font-size: 7px; }
+
+.ptb-recap-captions { spacing: 2px; }
+
+.ptb-recap-caption {
+    font-size: 0.86em;
+    color: rgba(255, 255, 255, 0.70);
+}
+
+.ptb-light .ptb-recap-caption { color: rgba(34, 34, 38, 0.72); }
+.ptb-recap-caption.ptb-warning-text { color: #ffa348; }
+.ptb-light .ptb-recap-caption.ptb-warning-text { color: #b54000; }
