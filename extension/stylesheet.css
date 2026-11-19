@@ -1062,3 +1062,67 @@
 .ptb-info-item {
     font-feature-settings: "tnum";
 }
+
+/* === M2: Recap & heatmap === */
+
+/* ---- Activity panel: bars or 16-week heatmap (recap-heatmap.md §2) ---- */
+
+.ptb-activity {
+    spacing: 4px;
+}
+
+.ptb-heatmap-title {
+    font-size: 0.86em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ptb-light .ptb-heatmap-title { color: rgba(34, 34, 38, 0.58); }
+
+/* GitHub contribution greens, one scale per scheme so level 1 never vanishes
+ * (ActivityHeatmap.swift:149-165). Level 0 is an unused day and is drawn. */
+.ptb-heatmap {
+    margin-top: 2px;
+    font-size: 8px;
+    font-weight: 600;
+    -ptb-heat-0: #161B22;
+    -ptb-heat-1: #0E4429;
+    -ptb-heat-2: #006D32;
+    -ptb-heat-3: #26A641;
+    -ptb-heat-4: #39D353;
+    -ptb-heat-today-color: rgba(255, 255, 255, 0.55);
+    -ptb-heat-label-color: rgba(255, 255, 255, 0.42);
+}
+
+.ptb-light .ptb-heatmap {
+    -ptb-heat-0: #EBEDF0;
+    -ptb-heat-1: #9BE9A8;
+    -ptb-heat-2: #40C463;
+    -ptb-heat-3: #30A14E;
+    -ptb-heat-4: #216E39;
+    -ptb-heat-today-color: rgba(0, 0, 0, 0.55);
+    -ptb-heat-label-color: rgba(34, 34, 38, 0.48);
+}
+
+/* Page dots: the only hint that the panel cycles (ActivityVisualization.swift:95-108). */
+.ptb-page-dots-button {
+    padding: 4px 3px;
+    border-radius: 6px;
+}
+
+.ptb-page-dots-button:hover, .ptb-page-dots-button:focus { background-color: rgba(255, 255, 255, 0.08); }
+.ptb-light .ptb-page-dots-button:hover, .ptb-light .ptb-page-dots-button:focus { background-color: rgba(0, 0, 0, 0.06); }
+
+.ptb-page-dots {
+    spacing: 3px;
+}
+
+.ptb-page-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.ptb-page-dot:checked { background-color: rgba(255, 255, 255, 0.53); }
+.ptb-light .ptb-page-dot { background-color: rgba(34, 34, 38, 0.18); }
+.ptb-light .ptb-page-dot:checked { background-color: rgba(34, 34, 38, 0.54); }

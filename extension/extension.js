@@ -123,6 +123,7 @@ export default class PokeTokenBarExtension extends Extension {
             settings: {
                 limitMode: this._settings.get_string('limit-display-mode'),
                 trendWindow: this._settings.get_string('daily-trend-window'),
+                activityView: this._settings.get_string('activity-view'),
             },
             nowMs: Date.now(),
             helperStatus: this._helperStatus,
@@ -160,6 +161,10 @@ export default class PokeTokenBarExtension extends Extension {
 
     setTrendWindow(window) {
         this._settings.set_string('daily-trend-window', window);
+    }
+
+    setActivityView(view) {
+        this._settings.set_string('activity-view', view);
     }
 
     /* ---- helper messages ---------------------------------------------- */
