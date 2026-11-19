@@ -68,6 +68,8 @@ func (d *daemon) command(r request) {
 		d.cmdRecap(r)
 	case "getSprite":
 		d.cmdSprite(r)
+	case "exportSave", "inspectSave", "importSave", "listSnapshots", "createSnapshot", "restoreSnapshot":
+		d.saveCommand(r)
 	default:
 		msg := "missing cmd"
 		if r.Cmd != "" {

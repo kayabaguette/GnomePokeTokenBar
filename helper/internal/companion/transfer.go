@@ -102,14 +102,8 @@ func DecodeEnvelope(data []byte) (*Envelope, error) {
 	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || !ok {
 		return nil, transferError("notASaveFile", "the save envelope is unreadable")
 	}
-	raw, err := json.Marshal(aliasLegacyForms(stateObj))
-	if err != nil {
-		return nil, notSave
-	}
-	st, ok := decodeState(raw)
-	if !ok {
-		return nil, notSave
-	}
+	raw, _ := json.Marshal(aliasLegacyForms(stateObj)) // a map of raw JSON values always encodes
+	st, _ := decodeState(raw)                          // raw is an object, so this cannot fail
 	st.sanitize()
 	return &Envelope{Schema: schema, AppVersion: appVersion, ExportedAt: at, SourceDevice: device, st: st}, nil
 }

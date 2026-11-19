@@ -251,6 +251,13 @@ func TestContractDrift(t *testing.T) {
 		checkKeys(t, "species.json", raw, resultMsg{Type: r.Type, ID: r.ID, OK: r.OK, Data: r.Data})
 	})
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })
+
+	// M3 save-transfer result fixtures (§7.7). restoreSnapshot replies like importSave.
+	t.Run("export-save.json", func(t *testing.T) { checkResult[exportReply](t, "export-save.json") })
+	t.Run("inspect-save.json", func(t *testing.T) { checkResult[inspectReply](t, "inspect-save.json") })
+	t.Run("import-save.json", func(t *testing.T) { checkResult[summaryReply](t, "import-save.json") })
+	t.Run("list-snapshots.json", func(t *testing.T) { checkResult[snapshotsReply](t, "list-snapshots.json") })
+	t.Run("create-snapshot.json", func(t *testing.T) { checkResult[snapshotReply](t, "create-snapshot.json") })
 	t.Run("events.ndjson", func(t *testing.T) {
 		f, err := os.Open(filepath.Join(fixtureDir, "events.ndjson"))
 		if err != nil {
