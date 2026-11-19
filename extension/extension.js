@@ -78,11 +78,16 @@ export default class PokeTokenBarExtension extends Extension {
         this._desktopCalendar?.connectObject('changed::week-start-day', () => this._scheduleSettings(), this);
         this._watchSystem();
 
+        // The shell does not disable extensions on exit: stop the helper first so a late event
+        // cannot reach the message tray after the shell has started tearing it down.
+        global.context.connectObject('prepare-shutdown', () => this._client?.stop(), this);
+
         this._indicator.render();
         this._client.start();
     }
 
     disable() {
+        global.context.disconnectObject(this);
         this._client?.stop();
         this._client = null;
 
