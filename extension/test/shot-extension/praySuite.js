@@ -107,7 +107,9 @@ export async function runPetPray(d) {
     const env = await setup(d);
     if (!env)
         return;
-    const {ptb, pet} = env;
+    const {ptb, indicator, pet} = env;
+    if (GLib.getenv('PTB_SHOT_PET_HOLD') === '1')
+        return holdPraying(d, ptb, indicator, pet);
     const iface = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
     log(`enable-animations ${St.Settings.get().enable_animations}; motion allowed ${pet._motionAllowed}; ` +
         `subject egg ${pet._subjectIsEgg}; egg prayers ${prayers(ptb)}`);
@@ -184,6 +186,24 @@ export async function runPetPray(d) {
     await d._sleep(1300);
     log(`final: prayers ${prayers(ptb)}; particles ${particles(pet).length}; commands ${sent.length}`);
     log('done');
+}
+
+/* --cycle: keep praying until the disable replaces the indicator. */
+async function holdPraying(d, ptb, indicator, pet) {
+    await pointerTo(d, ...hitCentre(pet));
+    log(`hold: prayers ${prayers(ptb)}`);
+    for (let i = 0; ; i++) {
+        if (Main.panel.statusArea[TARGET] !== indicator) {
+            log(`hold: disabled after ${i} clicks`);
+            return;
+        }
+        const t = GLib.get_monotonic_time();
+        d._pointer.notify_button(t, Clutter.BUTTON_PRIMARY, Clutter.ButtonState.PRESSED);
+        d._pointer.notify_button(t + 1000, Clutter.BUTTON_PRIMARY, Clutter.ButtonState.RELEASED);
+        if (i % 10 === 0)
+            log(`hold: prayers ${prayers(ptb)}, particles ${particles(pet).length}`);
+        await d._sleep(150);
+    }
 }
 
 export async function runPetReveal(d) {
