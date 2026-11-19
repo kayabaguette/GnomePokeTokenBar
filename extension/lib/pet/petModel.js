@@ -12,6 +12,7 @@
 
 import {_, fmt, ngettext} from '../i18n.js';
 import {displayPercent, grouped, percent} from '../format.js';
+import {snapPetSize} from '../prefsModel.js';
 
 /* ---- constants (FPP:36-55, :1263-1264, :1302-1304) ----------------------- */
 
@@ -31,10 +32,6 @@ export const BUBBLE_TTL_MS = 6000;
  * long, then show the strongest (floating-pet.md §4.3). */
 export const ALERT_BATCH_MS = 250;
 export const HOME_INSET = 24;
-export const SIZE_MIN = 48;
-export const SIZE_MAX = 384;
-export const SIZE_STEP = 8;
-export const SIZE_DEFAULT = 96;
 
 /* Prayers are deferred (M2 decision 24): an egg click opens the popover. */
 export const PRAYERS_ENABLED = false;
@@ -44,14 +41,8 @@ export function swiftRound(v) {
     return Math.sign(v) * Math.round(Math.abs(v));
 }
 
-/** The size setting snapped to 48–384 in steps of 8 (SV:377). */
-export function snapSize(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n))
-        return SIZE_DEFAULT;
-    const stepped = SIZE_MIN + Math.round((n - SIZE_MIN) / SIZE_STEP) * SIZE_STEP;
-    return Math.min(SIZE_MAX, Math.max(SIZE_MIN, stepped));
-}
+/** The size setting snapped to 48–384 in steps of 8 (SV:377); shared with prefs. */
+export const snapSize = snapPetSize;
 
 /* ---- moves and runs ------------------------------------------------------ */
 

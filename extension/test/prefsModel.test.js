@@ -125,4 +125,15 @@ test('all menu items off', () => {
     assert.ok(!P.allMenuItemsOff({tokens: false, cost: false, growth: false, limit: true}));
 });
 
+/* ---- floating pet size (SettingsView.swift:375-381; derived) ---- */
+
+test('pet size snaps to 48–384 in steps of 8', () => {
+    assert.equal(P.snapPetSize(96), 96);
+    assert.equal(P.snapPetSize(99), 96);
+    assert.equal(P.snapPetSize(101), 104);
+    assert.equal(P.snapPetSize(10), 48);
+    assert.equal(P.snapPetSize(1000), 384);
+    assert.equal(P.snapPetSize('x'), 96);
+});
+
 run('prefsModel.test.js');

@@ -1,5 +1,6 @@
-/* PokeTokenBar preferences (libadwaita), every Milestone 1 key of protocol
- * §9.1 grouped as ui.md §4: General, Top bar, Limits and alerts, Growth.
+/* PokeTokenBar preferences (libadwaita), every key of protocol §9.1 grouped
+ * as ui.md §4: General, Top bar, Floating pet, Limits and alerts, Growth.
+ * Every row applies at once.
  *
  * Runs in the gnome-extensions-app process, never in the shell: it imports
  * Gtk/Adw and the pure lib/prefsModel.js only. The representative Pokémon is
@@ -39,6 +40,7 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage({title: _('PokeTokenBar'), icon_name: 'preferences-system-symbolic'});
         page.add(this._general(settings));
         page.add(this._topBar(settings));
+        page.add(this._floatingPet(settings));
         page.add(this._limits(settings));
         page.add(this._growth(settings));
         window.add(page);
@@ -139,9 +141,6 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
         settings.bind('show-limit-in-menu', color, 'visible', Gio.SettingsBindFlags.GET);
         group.add(color);
 
-        group.add(this._switchRow(settings, 'always-faces-back', _('Show the back view'),
-            _('Draw the Pokémon facing away')));
-
         const syncHint = () => {
             const off = P.allMenuItemsOff({
                 tokens: settings.get_boolean('show-tokens-in-menu'),
@@ -154,6 +153,67 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
         for (const key of ['show-tokens-in-menu', 'show-cost-in-menu', 'show-growth-in-menu', 'show-limit-in-menu'])
             this._watch(key, syncHint);
         syncHint();
+        return group;
+    }
+
+    /* ---- Floating pet (floating-pet.md §4.5) ---------------------------- */
+
+    _floatingPet(settings) {
+        const group = new Adw.PreferencesGroup({title: _('Floating pet')});
+        group.add(this._switchRow(settings, 'floating-pet-enabled', _('Show floating pet'),
+            _('Your Pokémon floats over the screen — drag to reposition')));
+        // Upstream lists the back view here; it also turns the top-bar sprite.
+        group.add(this._switchRow(settings, 'always-faces-back', _('Show the back view'),
+            _('Draw the Pokémon facing away, here and in the top bar')));
+
+        const size = new Adw.ActionRow({title: _('Size')});
+        const value = new Gtk.Label({css_classes: ['numeric', 'dim-label'], valign: Gtk.Align.CENTER,
+            width_chars: 6, xalign: 1});
+        const scale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: new Gtk.Adjustment({lower: P.PET_SIZE_MIN, upper: P.PET_SIZE_MAX,
+                step_increment: P.PET_SIZE_STEP, page_increment: P.PET_SIZE_STEP * 4}),
+            draw_value: false,
+            hexpand: true,
+            width_request: 200,
+            valign: Gtk.Align.CENTER,
+        });
+        scale.add_mark(P.PET_SIZE_DEFAULT, Gtk.PositionType.BOTTOM, null);
+        scale.update_property([Gtk.AccessibleProperty.LABEL], [_('Floating pet size')]);
+        size.add_suffix(scale);
+        size.add_suffix(value);
+        let syncing = false;
+        const show = v => {
+            value.label = `${v} px`;
+            syncing = true;
+            scale.set_value(v);
+            syncing = false;
+        };
+        scale.connect('value-changed', () => {
+            if (syncing)
+                return;
+            const v = P.snapPetSize(scale.get_value());
+            value.label = `${v} px`;
+            if (v !== settings.get_int('floating-pet-size'))
+                settings.set_int('floating-pet-size', v);
+        });
+        this._watch('floating-pet-size', () => {
+            const v = P.snapPetSize(settings.get_int('floating-pet-size'));
+            if (P.snapPetSize(scale.get_value()) !== v)
+                show(v);
+        });
+        show(P.snapPetSize(settings.get_int('floating-pet-size')));
+        group.add(size);
+
+        const bubbles = this._switchRow(settings, 'floating-pet-bubble-alerts', _('Show notifications as bubbles'),
+            _('Limit alerts also pop up over the pet'));
+        const agents = this._switchRow(settings, 'floating-pet-agent-activity', _('React to agent activity'),
+            _('Coding agents drive it over D-Bus — see the README'));
+        // The pet's own rows show only while it is on (SettingsView.swift:373).
+        for (const row of [size, bubbles, agents]) {
+            settings.bind('floating-pet-enabled', row, 'visible', Gio.SettingsBindFlags.GET);
+            group.add(row);
+        }
         return group;
     }
 

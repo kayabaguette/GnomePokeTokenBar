@@ -114,3 +114,19 @@ export function difficultyValueText(value) {
 export function allMenuItemsOff(flags) {
     return !flags.tokens && !flags.cost && !flags.growth && !flags.limit;
 }
+
+/* ---- floating pet size (floating-pet.md §4.4, SettingsView.swift:375-381) -- */
+
+export const PET_SIZE_MIN = 48;
+export const PET_SIZE_MAX = 384;
+export const PET_SIZE_STEP = 8;
+export const PET_SIZE_DEFAULT = 96;
+
+/** The size snapped to 48–384 in steps of 8; anything unreadable is the default. */
+export function snapPetSize(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n))
+        return PET_SIZE_DEFAULT;
+    const stepped = PET_SIZE_MIN + Math.round((n - PET_SIZE_MIN) / PET_SIZE_STEP) * PET_SIZE_STEP;
+    return Math.min(PET_SIZE_MAX, Math.max(PET_SIZE_MIN, stepped));
+}

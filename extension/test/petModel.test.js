@@ -114,16 +114,6 @@ test('default home, clamping and off-screen recovery', () => {
     assert.deepEqual(M.clampHome({x: 50, y: 50}, {x: 0, y: 0, width: 300, height: 200}, 384), {x: 0, y: 200});
 });
 
-test('size snaps to 48–384 in steps of 8', () => {
-    // SV:377 (derived)
-    assert.equal(M.snapSize(96), 96);
-    assert.equal(M.snapSize(99), 96);
-    assert.equal(M.snapSize(101), 104);
-    assert.equal(M.snapSize(10), 48);
-    assert.equal(M.snapSize(1000), 384);
-    assert.equal(M.snapSize('x'), 96);
-});
-
 /* ---- bubbles ---- */
 
 const alert = {kind: 'limitAlert', windowKind: 'sevenDay', tier: 'crit', utilization: 96};
