@@ -118,9 +118,8 @@ var m2Pending = []string{}
 
 // m3Pending is the same mechanism for the Milestone 3 contract: fixture file -> dotted paths the Go
 // structs do not carry yet. A path segment that meets an array applies to every element. Phase 17
-// (prayers and the Ditto reveal) emptied it. The save-transfer and item-sprite results have no Go
-// type yet, so no fixture of theirs is decoded here: phase 18 adds checkResult calls for
-// inspect-save, list-snapshots, export-save, import-save and create-snapshot.
+// (prayers and the Ditto reveal) emptied it. The pray and save-transfer results are checked in
+// TestContractDrift.
 var m3Pending = map[string][]string{}
 
 // m3PendingEventFields lists event fields, per kind, that events.ndjson carries but the Go event
@@ -248,6 +247,13 @@ func TestContractDrift(t *testing.T) {
 	})
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })
 	t.Run("pray.json", func(t *testing.T) { checkResult[prayReply](t, "pray.json") })
+
+	// M3 save-transfer result fixtures (§7.7). restoreSnapshot replies like importSave.
+	t.Run("export-save.json", func(t *testing.T) { checkResult[exportReply](t, "export-save.json") })
+	t.Run("inspect-save.json", func(t *testing.T) { checkResult[inspectReply](t, "inspect-save.json") })
+	t.Run("import-save.json", func(t *testing.T) { checkResult[summaryReply](t, "import-save.json") })
+	t.Run("list-snapshots.json", func(t *testing.T) { checkResult[snapshotsReply](t, "list-snapshots.json") })
+	t.Run("create-snapshot.json", func(t *testing.T) { checkResult[snapshotReply](t, "create-snapshot.json") })
 	t.Run("events.ndjson", func(t *testing.T) {
 		f, err := os.Open(filepath.Join(fixtureDir, "events.ndjson"))
 		if err != nil {
