@@ -363,3 +363,43 @@ func TestDexSorts(t *testing.T) {
 		}
 	}
 }
+
+func TestRegionCompletionsShinyAndOutOfRange(t *testing.T) {
+	// Swift: Tests/PokeTokenBarTests/PokedexRegionTests.swift:62-71 (out-of-range ids ignored, exact counts)
+	p := regionCompletions([]dexSpecies{{id: 0}, {id: -5}, {id: 650}, {id: 10_000}, {id: 1}})
+	for i, want := range []int{1, 0, 0, 0, 0} {
+		eq(t, p[i].owned, want, regions[i].key)
+	}
+	// Swift: PokedexRegionTests.swift:79-94 — Johto fully owned: 100 owned, 0 shiny; all shiny but one: 99 shiny.
+	j := regionCompletions(ownedRange(152, 251, false))[1]
+	eq(t, j.owned >= j.region.total(), true, "johto complete")
+	eq(t, j.shinyOwned >= j.region.total(), false, "johto shiny incomplete")
+	eq(t, j.shinyOwned, 0, "no shiny")
+	sh := ownedRange(152, 251, true)
+	sh[0].isShiny = false
+	j = regionCompletions(sh)[1]
+	eq(t, j.owned >= j.region.total(), true, "complete")
+	eq(t, j.shinyOwned >= j.region.total(), false, "shiny incomplete")
+	eq(t, j.shinyOwned, 99, "shinyOwned")
+	// A species owned both plain and shiny counts once, as shiny-owned.
+	k := regionCompletions([]dexSpecies{{id: 25}, {id: 25, isShiny: true}})[0]
+	eq(t, k.owned, 1, "owned")
+	eq(t, k.shinyOwned, 1, "shinyOwned")
+}
+
+func TestNationalIgnoresOutOfRangeIds(t *testing.T) {
+	// Swift: PokedexRegionTests.swift:93 — ids 0, 650 and 10000 never count toward the national badge.
+	st := freshState()
+	e := entry(1, 648, nil, rarityCommon)
+	for id := 1; id <= 648; id++ {
+		e.ChainOrder = append(e.ChainOrder, id)
+	}
+	e.ChainOrder = append(e.ChainOrder, 0, 650, 10_000)
+	st.Dex = []dexEntry{e}
+	s := openAt(t, writeState(t, st), &fakeData{}, 7)
+	got := keys(s.earnedBadges())
+	want := []string{"region.kanto", "region.johto", "region.hoenn", "region.sinnoh"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("badges %v, want %v (unova is one short, no national)", got, want)
+	}
+}
