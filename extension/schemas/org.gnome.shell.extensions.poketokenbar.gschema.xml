@@ -44,6 +44,15 @@
       <summary>Daily trend period</summary>
       <description>Days shown by the daily bar chart in the popover.</description>
     </key>
+    <key name="activity-view" type="s">
+      <choices>
+        <choice value="bars"/>
+        <choice value="heatmap"/>
+      </choices>
+      <default>'bars'</default>
+      <summary>Activity view</summary>
+      <description>What the popover's activity panel shows: the daily bars or the 16-week heatmap. Clicking the panel switches it.</description>
+    </key>
     <key name="week-start" type="s">
       <choices>
         <choice value="locale"/>
