@@ -13,7 +13,7 @@ import {SpriteAnimator} from '../spriteAnimator.js';
 import {spriteRequestKey, staticPngPath} from '../sprites.js';
 import * as V from '../viewModel.js';
 import {eggGuaranteeText} from '../shop/shopModel.js';
-import {playSparkle, playXpCapsule} from '../shop/feedbackFx.js';
+import {playRevealMask, playSparkle, playXpCapsule} from '../shop/feedbackFx.js';
 import {hbox, label, vbox, wrapLabel} from './widgets.js';
 
 /* The 76 px tile holds a 64 px sprite box; the popover animates at native timing. */
@@ -269,6 +269,11 @@ export class CompanionCard {
     /** Sparkle burst after a Mint use. */
     playSparkle() {
         playSparkle(this._fxLayer);
+    }
+
+    /** The 🎭 over the tile when a disguised Ditto is revealed (M3 decision 43). */
+    playRevealMask() {
+        playRevealMask(this._fxLayer);
     }
 
     /* ---- sprites ------------------------------------------------------ */

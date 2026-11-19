@@ -398,4 +398,15 @@ test('evolution line: raising uses active.evoLine, others the log chain', () => 
     assert.equal(D.evoLineFor(null, active, chains), null);
 });
 
+test('the individual card prayer lines', () => {
+    // EggPrayerTests.swift:263-272; CV:1947-1953 (shown only when > 0)
+    const ind = fixture('species.json').data.individuals.find(i => i.prayers > 0);
+    assert.deepEqual(D.prayerLines(ind),
+        {born: 'Born after 37 prayers', caption: 'Your prayers reached the heavens. Probably.'});
+    assert.equal(D.prayerLines({prayers: 1}).born, 'Born after 1 prayer', 'ngettext (M3 decision 40)');
+    assert.equal(D.prayerLines({prayers: 0}), null);
+    assert.equal(D.prayerLines({}), null, 'an older helper without the field');
+    assert.equal(D.prayerLines(null), null);
+});
+
 run('dexModel.test.js');

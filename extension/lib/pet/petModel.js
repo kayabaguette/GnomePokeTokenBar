@@ -33,8 +33,17 @@ export const BUBBLE_TTL_MS = 6000;
 export const ALERT_BATCH_MS = 250;
 export const HOME_INSET = 24;
 
-/* Prayers are deferred (M2 decision 24): an egg click opens the popover. */
-export const PRAYERS_ENABLED = false;
+/* Prayers (prayers-ditto.md §1.4; FPP:264-290, :1044-1186). */
+export const PRAYERS_PER_REFRESH = 30;      // L.prayersPerQuip
+export const PRAYER_REFRESH_INTERVAL_S = 30;
+export const PRAYER_FLIGHT_MS = 1000;       // float and fade, ease-out; the particle goes when it ends
+/* One-shot wobble keyframes (FPP:1046-1054): degrees, linear, 300 ms in all. */
+export const WOBBLE_KEYFRAMES = [
+    {angle: -9, ms: 60},
+    {angle: 9, ms: 100},
+    {angle: -5, ms: 80},
+    {angle: 0, ms: 60},
+];
 
 /** Swift `.rounded()`: half away from zero. */
 export function swiftRound(v) {
@@ -202,9 +211,82 @@ export function shouldPopEvent(eventSeq, lastSeenSeq, petVisible, bubbleShowing)
     return petVisible && !bubbleShowing;
 }
 
-/** What a primary click does; prayers are deferred, so the egg opens the popover too. */
+/** What a primary click does: an egg is prayed over, a hatched Pokémon opens the popover (FPP:261). */
 export function clickAction(subjectIsEgg) {
-    return subjectIsEgg && PRAYERS_ENABLED ? 'pray' : 'openPopover';
+    return subjectIsEgg ? 'pray' : 'openPopover';
+}
+
+/* ---- prayers (FPP:264-290, L10N:1383-1413) ------------------------------- */
+
+export const PRAYER_QUIP_COUNT = 11;
+
+/** How many refresh milestones `count` prayers have passed. */
+export function prayerRefreshMilestone(count) {
+    return Math.floor(Math.max(0, count) / PRAYERS_PER_REFRESH);
+}
+
+/**
+ * Refresh once a milestone is passed that was not refreshed yet AND the 30 s
+ * floor since the last refresh has passed. A milestone held back by the floor
+ * is not lost: the next click after the floor still sees it as new.
+ * @param {number|null} lastRefreshAt  seconds, or null before the first refresh
+ */
+export function shouldRefreshOnPrayer(count, lastRefreshedMilestone, lastRefreshAt, now) {
+    if (prayerRefreshMilestone(count) <= lastRefreshedMilestone)
+        return false;
+    return lastRefreshAt === null || lastRefreshAt === undefined || now - lastRefreshAt >= PRAYER_REFRESH_INTERVAL_S;
+}
+
+/** Index into the quip list: count / 30 capped at the last one; null at 0 prayers. */
+export function prayerQuipIndex(prayers) {
+    if (!(prayers > 0))
+        return null;
+    return Math.min(Math.floor(prayers / PRAYERS_PER_REFRESH), PRAYER_QUIP_COUNT - 1);
+}
+
+export function prayerQuip(prayers) {
+    switch (prayerQuipIndex(prayers) ?? 0) {
+    case 0: return _('just trying it out');
+    case 1: return _('heaven hasn’t checked yet');
+    case 2: return _('the egg feels a little pressured');
+    case 3: return _('your praying form is getting pro');
+    case 4: return _('heaven’s servers are lagging');
+    case 5: return _('you’re #3,812 in heaven’s queue');
+    case 6: return _('your palms are wearing thin');
+    case 7: return _('at this point the egg is praying with you');
+    case 8: return _('heaven: “received, we’ll get back to you”');
+    case 9: return _('the egg just whispered “please stop”');
+    default: return _('if a legendary hatches, that’s pure skill');
+    }
+}
+
+/** "31 prayers · heaven hasn't checked yet"; "" at 0 prayers (L10N:1393-1399). */
+export function prayerHoverLine(prayers) {
+    if (!(prayers > 0))
+        return '';
+    return `${fmt(ngettext('%d prayer', '%d prayers', prayers), prayers)} · ${prayerQuip(prayers)}`;
+}
+
+/** The 🙏 box edge for a pet size (logical px): legible at 48, modest at 384 (FPP:1140). */
+export function prayerEmojiSize(petSize) {
+    return Math.min(Math.max(petSize * 0.25, 14), 32);
+}
+
+/** A particle's horizontal spot, 0…1 across the usable width (FPP:1121-1124). */
+export function clampFraction(xFraction) {
+    return Math.min(Math.max(Number(xFraction) || 0, 0), 1);
+}
+
+/**
+ * One particle's centre and opacity inside the pet frame (y down) at a point
+ * of its flight: it rises from the lower middle to the top edge and fades
+ * (FPP:1159-1171). `progress` 0 = just spawned, 1 = gone.
+ */
+export function prayerParticleFrame(xFraction, petSize, emojiSize, progress) {
+    const x = emojiSize / 2 + clampFraction(xFraction) * (petSize - emojiSize);
+    const startY = petSize * 0.7;
+    const endY = emojiSize / 2;
+    return {x, y: startY + (endY - startY) * progress, opacity: 1 - progress};
 }
 
 /* ---- limit alert bubble (US:2153-2163) ----------------------------------- */
@@ -250,10 +332,11 @@ export function highestLimitUtilization(state) {
 }
 
 /**
- * "Today: 1,234 tokens (limit 83%) · Sulking for 5 hours" plus the event line.
- * Prayers are deferred, so there is no prayer line.
+ * "Today: 1,234 tokens (limit 83%) · Sulking for 5 hours", then the event
+ * line, then the prayer line (`prayers` is the egg's count, 0 for a hatched
+ * subject; FPP:1086-1101).
  */
-export function hoverText({todayTokens, limitUtilization, mode, sulkIdleSeconds = 0, eventLine = null}) {
+export function hoverText({todayTokens, limitUtilization, mode, sulkIdleSeconds = 0, eventLine = null, prayers = 0}) {
     const usage = grouped(todayTokens ?? 0);
     let base;
     if (typeof limitUtilization === 'number') {
@@ -271,7 +354,9 @@ export function hoverText({todayTokens, limitUtilization, mode, sulkIdleSeconds 
             base += ` · ${fmt(ngettext('Sulking for %d day', 'Sulking for %d days', days), days)}`;
         }
     }
-    return eventLine ? `${base}\n${eventLine}` : base;
+    if (eventLine)
+        base += `\n${eventLine}`;
+    return prayers > 0 ? `${base}\n${prayerHoverLine(prayers)}` : base;
 }
 
 /* ---- petting (FPP:1254-1295) --------------------------------------------- */

@@ -37,6 +37,7 @@ function urgencyFor(event) {
 function iconRequest(event) {
     switch (event.kind) {
     case 'hatch':
+    case 'dittoReveal':
     case 'evolve':
     case 'graduate':
         if (!Number.isInteger(event.speciesId))

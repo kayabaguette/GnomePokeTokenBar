@@ -5,7 +5,7 @@
  * Pure module (no gi:// imports), unit-tested under plain `gjs -m`.
  */
 
-import {_, fmt} from '../i18n.js';
+import {_, fmt, ngettext} from '../i18n.js';
 import {relativeAgo} from '../format.js';
 
 export const PAGE_SIZE = 16; // 4 × 4 grid (CompanionView.swift:1481-1483)
@@ -425,6 +425,21 @@ export function caughtDateText(ind, locale = undefined) {
     } catch {
         return String(ind.caughtAt).slice(0, 10);
     }
+}
+
+/**
+ * The individual card's prayer lines (CV:1947-1953), or null when the egg was
+ * never prayed over. ngettext for the count (M3 decision 40; upstream has no
+ * singular).
+ */
+export function prayerLines(ind) {
+    const n = ind?.prayers;
+    if (!(Number.isInteger(n) && n > 0))
+        return null;
+    return {
+        born: fmt(ngettext('Born after %d prayer', 'Born after %d prayers', n), n),
+        caption: _('Your prayers reached the heavens. Probably.'),
+    };
 }
 
 /* ---- grid and log text ---------------------------------------------------- */

@@ -435,6 +435,14 @@ export class SpeciesDetail {
         pairs.add_child(this._pair(_('Caught'), D.caughtDateText(ind)));
         card.add_child(pairs);
 
+        const prayers = D.prayerLines(ind);
+        if (prayers) {
+            const box = vbox('ptb-prayer-lines');
+            box.add_child(label(prayers.born, 'ptb-prayer-born'));
+            box.add_child(wrapLabel(prayers.caption, 'ptb-secondary ptb-tiny'));
+            card.add_child(box);
+        }
+
         const ability = ind.ability
             ? (ind.ability.displayName ?? ind.ability.name) + (ind.ability.isHidden ? ` · ${_('Hidden')}` : '')
             : '—';

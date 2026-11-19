@@ -167,7 +167,56 @@ test('notification text for every fixture event', () => {
 test('notification gates', () => {
     assert.equal(V.notificationGate('limitAlert'), 'limit-notifications');
     assert.equal(V.notificationGate('hatch'), 'companion-notifications');
+    assert.equal(V.notificationGate('dittoReveal'), 'companion-notifications');
     assert.equal(V.notificationGate('error'), null);
+});
+
+/* ---- prayers and the Ditto reveal (prayers-ditto.md §1.3, §2.5) ---- */
+
+test('prayer hatch bodies follow the outcome', () => {
+    // EggPrayerTests.swift:190-214 (en)
+    assert.equal(V.prayerHatchBody('Mew', 37, true, 'legendary'), '37 prayers… heaven went all in. Shiny Mew!');
+    assert.equal(V.prayerHatchBody('Mew', 37, false, 'legendary'), '37 prayers… it worked?! Mew hatched!');
+    assert.equal(V.prayerHatchBody('Pikachu', 37, true, 'common'), '37 prayers AND it’s shiny?! Pikachu hatched!');
+    for (const rarity of ['uncommon', 'rare']) {
+        assert.equal(V.prayerHatchBody('Pikachu', 37, false, rarity),
+            '37 prayers later: Pikachu. Let’s call it half a miracle.', rarity);
+    }
+    assert.equal(V.prayerHatchBody('Rattata', 3, false, 'common'), '3 prayers later: Rattata. Heaven must be swamped today.');
+    // ngettext (deviation: upstream has no singular)
+    assert.equal(V.prayerHatchBody('Rattata', 1, false, 'common'), '1 prayer later: Rattata. Heaven must be swamped today.');
+});
+
+test('a prayed-over hatch swaps the body and keeps the title', () => {
+    // CS:1806-1813; PetEventLineTests.swift:125-140 (a disguised Ditto hatches non-shiny, common)
+    const base = events.find(e => e.kind === 'hatch');
+    assert.equal(base.prayers, 0);
+    assert.deepEqual(V.notificationText(base), {title: '🥚 Hatched!', body: 'Pidgey hatched from the egg!'},
+        'prayers 0 keeps the plain body');
+    assert.deepEqual(V.notificationText({...base, displayName: 'Bulb', prayers: 2}),
+        {title: '🥚 Hatched!', body: '2 prayers later: Bulb. Heaven must be swamped today.'});
+    const shiny = V.notificationText({...base, isShiny: true, rarity: 'legendary', displayName: 'Mew', prayers: 37});
+    assert.deepEqual(shiny, {title: '✨ Shiny Pokémon!', body: '37 prayers… heaven went all in. Shiny Mew!'});
+    assert.ok(!shiny.body.includes('1 in'), 'the prayer body replaces the odds text');
+    // an older helper without the field keeps the M2 copy
+    const legacy = {...base};
+    delete legacy.prayers;
+    assert.equal(V.notificationText(legacy).body, 'Pidgey hatched from the egg!');
+});
+
+test('the Ditto reveal copy names the disguise, never the odds', () => {
+    // L10N:1449-1453; PetEventLineTests.swift:142-153; ShinyCharmTests.swift:63-69
+    const reveal = events.find(e => e.kind === 'dittoReveal');
+    assert.deepEqual(V.notificationText(reveal), {
+        title: '🎭 Huh? It’s Ditto!',
+        body: 'You thought it was Bulbasaur — it was Ditto all along!',
+    });
+    const shiny = V.notificationText({...reveal, disguiseDisplayName: 'Bulb', isShiny: true});
+    assert.deepEqual(shiny, {title: '🎭✨ Huh? A shiny Ditto!', body: 'You thought it was Bulb — it was a shiny Ditto!'});
+    for (const t of [V.notificationText(reveal), shiny]) {
+        assert.ok(!/64|48/.test(t.title + t.body), 'no odds in the reveal copy');
+        assert.ok(!t.body.includes('Ditto Ditto'));
+    }
 });
 
 run('viewModel.test.js');

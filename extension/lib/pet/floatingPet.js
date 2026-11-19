@@ -43,7 +43,10 @@ const BOB_SCALE_Y = 0.94;
 const EGG_GLYPH = 0.62;    // CV:244
 const ORIGIN_KEY = 'floating-pet-origin';
 
-const COMPANION_EVENTS = ['hatch', 'evolve', 'graduate', 'badge']; // not candyGranted (CS:1521-1522)
+// not candyGranted (CS:1521-1522); dittoReveal pops its body too (CS:1870-1871)
+const COMPANION_EVENTS = ['hatch', 'dittoReveal', 'evolve', 'graduate', 'badge'];
+const PRAYER_GLYPH = 0.8;  // the 🙏 font is 0.8 of its box (FPP:1167-1168)
+const QUIET_CODES = ['notEgg', 'helperExited']; // a click raced a hatch, or the helper is restarting
 
 function coglContext() {
     return global.stage.context.get_backend().get_cogl_context();
@@ -67,7 +70,7 @@ function readOrigin(settings) {
 
 export class FloatingPet {
     /**
-     * @param {object} host  {settings, theme, sprites, context(), openPopover()}
+     * @param {object} host  {settings, theme, sprites, context(), openPopover(), request(cmd, args)}
      */
     constructor(host) {
         this._host = host;
@@ -83,6 +86,7 @@ export class FloatingPet {
         this._spritePath = undefined;
         this._spriteRetried = new Set();
         this._subjectIsEgg = true;
+        this._wobbleGen = 0;
         this._detector = new M.PettingDetector();
         this._themeContext = St.ThemeContext.get_for_stage(global.stage);
         this._stSettings = St.Settings.get();
@@ -126,6 +130,10 @@ export class FloatingPet {
         this._sprite.onLoadFailed = () => this._onSpriteFailed();
         this._sprite.onLayout = () => this._onSpriteLayout();
         this._body.add_child(this._sprite);
+
+        // 🙏 particles ride the body, so they follow the bob (FPP:1074-1075); never reactive.
+        this._prayerLayer = new St.Widget({reactive: false});
+        this._body.add_child(this._prayerLayer);
 
         // The only reactive actor: the drawn image rectangle (risk 1, floating-pet.md §6).
         this._hit = new St.Widget({style_class: 'ptb-pet-hit', reactive: true, track_hover: true});
@@ -226,6 +234,9 @@ export class FloatingPet {
             setTimer: (fn, ms) => this._setTimer(fn, ms),
             clearTimer: id => this._clearTimer(id),
             openPopover: () => this._host.openPopover(),
+            pray: onCount => this._sendPray(onCount),
+            spawnPrayer: () => this._spawnPrayer(),
+            refreshUsage: () => this._host.request('refresh', {manual: false}).catch(e => this._commandFailed('refresh', e)),
             persistHome: o => this._settings.set_value(ORIGIN_KEY, new GLib.Variant('m(dd)', [o.x, o.y])),
             home: () => this._home,
             petSize: () => this._sizePx,
@@ -339,6 +350,8 @@ export class FloatingPet {
             return;
         // Power saver: a static frame and no motion (FPP:622-629); the bob reads motionAllowed.
         this._sprite.setPaused(this._powerProfiles.power_saver_enabled);
+        if (!this._motionAllowed)
+            this._stopPrayerEffects();
         if (!this._motionAllowed && this._controller.runPhase !== 'home') {
             this._root.remove_all_transitions();
             this._controller.hidden(); // back home, no run in flight
@@ -374,6 +387,7 @@ export class FloatingPet {
         this._root.set_size(this._sizePx, this._sizePx);
         this._body.set_size(this._sizePx, this._sizePx);
         this._body.set_pivot_point(0.5, 1);
+        this._prayerLayer.set_size(this._sizePx, this._sizePx);
         for (const art of [this._hearts, this._tail]) {
             const content = art.get_content();
             const [, w, h] = content.get_preferred_size();
@@ -400,6 +414,7 @@ export class FloatingPet {
                 this._menu.close();
                 this._root.hide();
                 this._dragging = false;
+                this._stopPrayerEffects();
                 this._controller.hidden();
             }
         }
@@ -551,6 +566,7 @@ export class FloatingPet {
             mode: s.get_string('limit-display-mode'),
             sulkIdleSeconds: state?.companion?.sulkIdleSeconds ?? 0,
             eventLine: c.eventText,
+            prayers: this._subjectIsEgg ? state?.companion?.egg?.prayers ?? 0 : 0,
         });
         this._callout.show();
         this._placeCallout();
@@ -580,6 +596,87 @@ export class FloatingPet {
             this._squashed = false;
             this._body.scale_x = this._body.scale_y = 1;
         }
+    }
+
+    /* ---- prayers (FPP:1044-1186) ------------------------------------------ */
+
+    _sendPray(onCount) {
+        this._host.request('pray').then(data => {
+            if (!this._destroyed && Number.isInteger(data?.count))
+                onCount(data.count);
+        }).catch(e => this._commandFailed('pray', e));
+    }
+
+    _commandFailed(cmd, e) {
+        if (!QUIET_CODES.includes(e?.code))
+            console.warn(`${LOG}: ${cmd} failed: ${e?.code ?? ''} ${e?.message ?? e}`);
+    }
+
+    /** One 🙏 rising and fading inside the pet frame, and one wobble (only called with motion allowed). */
+    _spawnPrayer() {
+        if (this._destroyed || !this._root.visible)
+            return;
+        this._wobble();
+        const sf = this._scale;
+        const size = this._sizeLogical;
+        const e = M.prayerEmojiSize(size);
+        const xFraction = Math.random(); // a UI random, never the game RNG
+        const from = M.prayerParticleFrame(xFraction, size, e, 0);
+        const to = M.prayerParticleFrame(xFraction, size, e, 1);
+        const glyph = new St.Label({style_class: 'ptb-pet-prayer', text: '🙏', reactive: false});
+        glyph.style = `font-size: ${(e * PRAYER_GLYPH).toFixed(1)}px;`;
+        glyph._ptbGone = false;
+        glyph.connect('destroy', () => {
+            glyph._ptbGone = true;
+        });
+        this._prayerLayer.add_child(glyph);
+        const [, w] = glyph.get_preferred_width(-1);
+        const [, h] = glyph.get_preferred_height(w);
+        glyph.set_position(Math.round(from.x * sf - w / 2), Math.round(from.y * sf - h / 2));
+        glyph.ease({
+            y: Math.round(to.y * sf - h / 2),
+            opacity: 0,
+            duration: M.PRAYER_FLIGHT_MS,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            // Only a finished flight removes itself: an interrupted one is being torn down
+            // with its parent (disable, hide), and destroying it from inside that stop
+            // would edit Clutter's transition table mid-iteration.
+            onStopped: finished => {
+                if (finished && !glyph._ptbGone)
+                    glyph.destroy();
+            },
+        });
+    }
+
+    /** −9°, +9°, −5°, 0° about the centre, linear, 300 ms; a new click restarts it. */
+    _wobble() {
+        const sprite = this._sprite;
+        const gen = ++this._wobbleGen;
+        sprite.remove_transition('rotation-angle-z');
+        sprite.set_pivot_point(0.5, 0.5);
+        sprite.rotation_angle_z = 0;
+        const step = i => {
+            const k = M.WOBBLE_KEYFRAMES[i];
+            if (!k)
+                return;
+            sprite.ease({
+                rotation_angle_z: k.angle,
+                duration: k.ms,
+                mode: Clutter.AnimationMode.LINEAR,
+                onComplete: () => {
+                    if (!this._destroyed && gen === this._wobbleGen)
+                        step(i + 1);
+                },
+            });
+        };
+        step(0);
+    }
+
+    _stopPrayerEffects() {
+        this._wobbleGen++;
+        this._sprite.remove_transition('rotation-angle-z');
+        this._sprite.rotation_angle_z = 0;
+        this._prayerLayer.destroy_all_children();
     }
 
     /* ---- input ---------------------------------------------------------- */

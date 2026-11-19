@@ -34,7 +34,7 @@ import {Tooltip} from './lib/tooltip.js';
 const SETTINGS_DEBOUNCE_MS = 300; // protocol §2.2
 const DESKTOP_CALENDAR_SCHEMA = 'org.gnome.desktop.calendar';
 const LOG = 'PokeTokenBar';
-const CELEBRATED = ['hatch', 'evolve']; // M2 decision 32
+const CELEBRATED = ['hatch', 'evolve', 'dittoReveal']; // M2 decision 32, M3 decision 43
 const DISPLAY_CONFIG = 'org.gnome.Mutter.DisplayConfig';
 
 export default class PokeTokenBarExtension extends Extension {
@@ -69,6 +69,7 @@ export default class PokeTokenBarExtension extends Extension {
             sprites: this._sprites,
             context: () => this.context(),
             openPopover: () => this._indicator?.menu.open(),
+            request: (cmd, args) => this.request(cmd, args),
         });
         // Owned while enabled, released on disable (and so on every lock): protocol §15.
         this._agentBus = new AgentBus(event => this._pet?.handleAgentEvent(event));
@@ -209,7 +210,7 @@ export default class PokeTokenBarExtension extends Extension {
     _onEvent(event) {
         this._pet?.handleEvent(event);
         if (CELEBRATED.includes(event?.kind))
-            this._indicator?.celebrate();
+            this._indicator?.celebrate(event.kind);
         this._notifier?.handle(event);
     }
 

@@ -21,7 +21,7 @@ import * as V from './viewModel.js';
 
 /* While the popover is open its countdowns and "Updated …" tick this often. */
 const OPEN_TICK_S = 30;
-/* Hatch and evolve flash the bar and the companion card (M2 decision 32). */
+/* Hatch, evolve and the Ditto reveal flash the bar and the companion card (M2 decision 32, M3 43). */
 const CELEBRATE_MS = 900;
 const CELEBRATE_CLASS = 'ptb-celebrate';
 
@@ -246,13 +246,19 @@ class PtbIndicator extends PanelMenu.Button {
         this._sprite?.setPaused(this.menu.isOpen || !this._displayOn);
     }
 
-    /** A short flash on the bar, and on the companion card if the popover is open. */
-    celebrate() {
+    /**
+     * A short flash on the bar, and on the companion card if the popover is
+     * open; a Ditto reveal adds the 🎭 there (M3 decision 43).
+     */
+    celebrate(kind = null) {
         if (this._destroyed)
             return;
         this.add_style_class_name(CELEBRATE_CLASS);
-        if (this.menu.isOpen)
+        if (this.menu.isOpen) {
             this._popover.setCelebrating(true);
+            if (kind === 'dittoReveal')
+                this._popover.playRevealMask();
+        }
         if (this._celebrateId)
             GLib.source_remove(this._celebrateId);
         this._celebrateId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, CELEBRATE_MS, () => {
