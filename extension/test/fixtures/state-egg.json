@@ -97,7 +97,7 @@
   "companion": {
     "phase": "egg",
     "mood": "egg",
-    "egg": {"used": 3100000, "threshold": 5000000, "imminent": false, "hatchDelayed": false, "guarantee": null},
+    "egg": {"used": 3100000, "threshold": 5000000, "imminent": false, "hatchDelayed": false, "guarantee": null, "prayers": 0},
     "active": null,
     "growthPercent": 62,
     "representative": null,

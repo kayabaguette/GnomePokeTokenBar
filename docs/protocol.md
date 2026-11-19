@@ -1241,7 +1241,7 @@ They live in `extension/test/fixtures/`.
 - Each file holds one wire message, pretty-printed; `events.ndjson` is the exception and is compact.
 - The M3 fields are `companion.egg.prayers` (in `state-egg.json`), `hatch.prayers`, `Individual.prayers` (in
   `species.json`) and the `dittoReveal` event. Until the Go phases that implement them land, the Go contract test
-  strips them through `m3Pending` (`helper/internal/daemon/contract_test.go`); the extension stub serves them already.
+  strips them through `m3Pending` and its siblings (`helper/internal/daemon/contract_test.go`, `helper/internal/companion/views_test.go`, `shop_test.go`); the extension stub serves them already.
 - The M2 fields are in the state fixtures and the four new result files. The recap files were generated
   from the heatmap grid and the catch log with the stub's `make_recap`, under assertions (totals equal
   the week and bucket sums; the heatmap equals `monthDaily` and `recentDaily` where they overlap).

@@ -34,6 +34,30 @@ Behaviour (docs/protocol.md):
                          previous period predates heatmap.first)
     Candy and shop use the same formulas as the helper (bag-shop.md §1-§2);
     the stub only has one species line, so an evolution just walks evoLine;
+  - Milestone 3 (protocol §7.6, §7.7, §8.1), against the same in-memory state:
+      pray               egg only (notEgg while a Pokémon is active): bumps
+                         companion.egg.prayers, emits the state, replies
+                         {count}. The start value comes from the fixture or
+                         the `eggPrayers` config key
+      getSprite {item}   badArgs for a name outside [a-z0-9-]+; `mint` is
+                         unavailable (no upstream sprite); else the staged
+                         item-<name>.png if there is one, falling back to the
+                         staged egg.png as a stand-in, else unavailable
+      exportSave         validates the absolute path and replies from
+                         fixtures/export-save.json with the path echoed. It
+                         never writes a file
+      inspectSave        replies from fixtures/inspect-save.json
+      importSave         needs the fixture digest (else fileChanged), emits
+                         the state, replies {summary}
+      listSnapshots / createSnapshot / restoreSnapshot
+                         an in-memory list seeded from
+                         fixtures/list-snapshots.json (max 10, newest first);
+                         restore takes a safety snapshot, notFound for an
+                         unknown id
+    Error injection for the preferences window: a path whose file name
+    contains `notasave`, `newer`, `toolarge`, `missing`, `denied`, `nospace`
+    or `changed` answers notASaveFile, newerSchema, fileTooLarge,
+    fileNotFound, permissionDenied, noSpace or fileChanged.
   - emits each line of fixtures/events.ndjson after `eventsAfter` seconds,
     `eventGap` seconds apart (negative eventsAfter disables events);
   - exits 0 on stdin EOF.
@@ -44,13 +68,14 @@ Environment overrides: PTB_STUB_PROTOCOL, PTB_STUB_EVENTS_AFTER.
 Config: <ext>/test/stub-config.json, e.g.
   {"fixture": "state-active.json", "eventsAfter": 6, "eventGap": 1, "protocol": 1,
    "dexPad": 30, "speciesDelay": 0, "wallet": 800000000,
-   "inventory": {"shinyCharm": 1, "mint": 0}, "shopDifficulty": 0.5}
+   "inventory": {"shinyCharm": 1, "mint": 0}, "shopDifficulty": 0.5, "eggPrayers": 37}
   dexPad adds that many synthetic owned species (and one graduation each) so
   the grid and the log have several pages; speciesDelay delays getSpecies
   replies by that many seconds (to keep a command pending across a disable).
   wallet, inventory (merged over the fixture's counts) and shopDifficulty
   override the fixture so other Shop and Bag states can be rendered, for
-  example the owned Charm (state is then derive()d again).
+  example the owned Charm (state is then derive()d again). eggPrayers sets
+  the egg's prayer count when the fixture shows an egg.
 
 The dex answers only mimic the helper (helper/internal/companion/views.go):
 the fixtures, not this file, are the contract.
@@ -71,6 +96,14 @@ EXT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEST = os.path.join(EXT, "test")
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 STAGED = ["stub-25", "stub-6", "stub-94"]
+ITEM_NAME_RE = re.compile(r"^[a-z0-9-]+$")  # sprites.validName
+SNAP_ID_RE = re.compile(r"^companion-snapshot-[0-9-]+\.json$")
+FILE_ERRORS = [("notasave", "notASaveFile", "not a PokeTokenBar save file"),
+               ("newer", "newerSchema", "made by a newer version (schema 3, supported 2)"),
+               ("toolarge", "fileTooLarge", "file is larger than 8 MiB"),
+               ("missing", "fileNotFound", "no such file"),
+               ("denied", "permissionDenied", "permission denied"),
+               ("nospace", "noSpace", "no space left on device")]
 
 
 def log(msg):
@@ -145,6 +178,17 @@ def sprite_reply(req, base):
     if req.get("egg"):
         path = os.path.join(base, "egg.png")
         return {"key": "egg", "status": "ready", "manifestPath": path} if os.path.exists(path) else None
+    if "item" in req:  # protocol §8.1: egg, then item, then speciesId
+        name = req["item"]
+        if not isinstance(name, str) or not ITEM_NAME_RE.match(name):
+            return "badArgs"
+        if name == "mint":
+            return None
+        for candidate in (f"item-{name}.png", "egg.png"):
+            path = os.path.join(base, candidate)
+            if os.path.exists(path):
+                return {"key": f"item-{name}", "status": "ready", "manifestPath": path}
+        return None
     sid = req.get("speciesId")
     if not isinstance(sid, int) or not 1 <= sid <= 649:
         return "badArgs"
@@ -513,7 +557,7 @@ class Dex:
                 "released": False, "isShiny": e["isShiny"], "caughtAt": e["caughtAt"], "nature": e["nature"],
                 "level": active.get("level", 5) if e["isRaising"] else 100, "gender": None, "ability": None,
                 "ivs": {"hp": 31, "attack": 20, "defense": 12, "specialAttack": 8, "specialDefense": 25, "speed": 30},
-                "stats": None, "moves": []})
+                "stats": None, "moves": [], "prayers": 0})
         return {
             "speciesId": sid, "displayName": c["displayName"] if c else f"#{sid}",
             "rarity": c["rarity"] if c else None, "region": region_of(sid), "owned": c is not None,
@@ -563,7 +607,8 @@ def main():
     with open(os.path.join(TEST, "fixtures", cfg["fixture"]), encoding="utf-8") as f:
         state = json.load(f)
     now = datetime.now(timezone.utc).replace(microsecond=0)
-    state = rebase(state, now - parse_ts(state["meta"]["generatedAt"]))
+    delta = now - parse_ts(state["meta"]["generatedAt"])
+    state = rebase(state, delta)
     subject = state["companion"]["menuSubject"]
     reply = sprite_reply({"egg": True} if subject["egg"] else {
         "speciesId": subject["speciesId"], "form": subject["form"], "shiny": subject["shiny"],
@@ -579,11 +624,19 @@ def main():
     if "wallet" in cfg:
         state["companion"]["wallet"] = int(cfg["wallet"])
     state["companion"]["inventory"].update(cfg.get("inventory", {}))
+    if state["companion"]["egg"] is not None:
+        state["companion"]["egg"].setdefault("prayers", 0)
+        if is_int(cfg.get("eggPrayers")) and cfg["eggPrayers"] >= 0:
+            state["companion"]["egg"]["prayers"] = cfg["eggPrayers"]
     derive(state)
 
     dex = Dex(state, int(cfg.get("dexPad", 0)))
     delayed = []  # [(due monotonic time, message or callable)] for speciesDelay and celebration windows
     rng = random.Random(7)  # useMint
+
+    save_fx = {name: load_fixture(name + ".json")
+               for name in ("export-save", "inspect-save", "import-save", "create-snapshot")}
+    snapshots = load_fixture("list-snapshots.json")["snapshots"]  # historical: not rebased, so ids and dates agree
 
     events = []
     with open(os.path.join(TEST, "fixtures", "events.ndjson"), encoding="utf-8") as f:
@@ -608,12 +661,44 @@ def main():
         """A timestamp on the fixture's calendar day, so new entries land in the recap's current week."""
         return f"{state['usage']['calendar']['today']}T{datetime.now(timezone.utc).strftime('%H:%M:%S')}Z"
 
+    def current_summary():
+        return {"dexCount": sum(1 for e in dex.log if not e["isRaising"]),
+                "lifetimeTokens": save_fx["inspect-save"]["current"]["lifetimeTokens"]}
+
+    def new_snapshot():
+        """A snapshot of the in-memory state, newest first, capped at 10 (save-transfer.md §3)."""
+        now_dt = datetime.now(timezone.utc)
+        stamp = now_dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%d-%H%M%S")
+        taken, sid, n = {s["id"] for s in snapshots}, f"companion-snapshot-{stamp}.json", 0
+        while sid in taken:
+            n += 1
+            sid = f"companion-snapshot-{stamp}-{n}.json"
+        a = state["companion"]["active"]
+        snap = dict(id=sid, date=fmt_ts(now_dt), speciesId=a["speciesId"] if a else None,
+                    shiny=bool(a and a["isShiny"]), form=a["form"] if a else None, **current_summary())
+        snapshots.insert(0, snap)
+        del snapshots[10:]
+        return snap
+
+    def check_path(cid, args):
+        """The shared path validation of the file commands; True when the command may go on."""
+        path = args.get("path")
+        if not isinstance(path, str) or not path.startswith("/") or "\0" in path:
+            fail(cid, "badArgs", "path must be an absolute file path")
+            return False
+        name = os.path.basename(path).lower()
+        for needle, code, message in FILE_ERRORS:
+            if needle in name:
+                fail(cid, code, message)
+                return False
+        return True
+
     def start_egg(tier):
         c = state["companion"]
         growth = state["settingsApplied"].get("growthDifficulty", 1.0)
         c.update(phase="egg", mood="egg", active=None)
         c["egg"] = {"used": 0, "threshold": rnd(5_000_000 * clamp_difficulty(growth)), "imminent": False,
-                    "hatchDelayed": False, "guarantee": tier}
+                    "hatchDelayed": False, "guarantee": tier, "prayers": 0}
         if c["representative"] is None:
             r = sprite_reply({"egg": True}, base)
             c["menuSubject"] = {"egg": True, "speciesId": None, "form": None, "shiny": False, "back": False,
@@ -750,7 +835,7 @@ def main():
                     write({"type": "result", "id": cid, "ok": True, "data": r})
                 elif r == "badArgs":
                     write({"type": "result", "id": cid, "ok": False,
-                           "error": {"code": "badArgs", "message": "speciesId must be 1..649"}})
+                           "error": {"code": "badArgs", "message": "invalid sprite request (speciesId 1..649, or a valid item name)"}})
                 else:
                     write({"type": "result", "id": cid, "ok": False,
                            "error": {"code": "unavailable", "message": "no staged sprite"}})
@@ -867,6 +952,48 @@ def main():
                     derive(state)
                     emit_state()
                     ok(cid, {"nature": nature})
+            elif cmd == "pray":
+                egg = state["companion"]["egg"]
+                if egg is None:
+                    fail(cid, "notEgg", "a Pokémon is active; prayers count for an egg")
+                else:
+                    egg["prayers"] += 1
+                    emit_state()
+                    ok(cid, {"count": egg["prayers"]})
+            elif cmd == "exportSave":
+                if check_path(cid, args):
+                    ok(cid, dict(save_fx["export-save"], path=args["path"], summary=current_summary()))
+            elif cmd == "inspectSave":
+                if check_path(cid, args):
+                    ok(cid, dict(save_fx["inspect-save"], current=current_summary()))
+            elif cmd == "importSave":
+                if not check_path(cid, args):
+                    continue
+                digest = args.get("digest")
+                if not isinstance(digest, str) or not digest:
+                    fail(cid, "badArgs", "digest must be the digest inspectSave returned")
+                elif "changed" in os.path.basename(args["path"]).lower() or digest != save_fx["inspect-save"]["digest"]:
+                    fail(cid, "fileChanged", "the file changed after it was inspected")
+                else:
+                    emit_state()
+                    ok(cid, save_fx["import-save"])
+            elif cmd == "listSnapshots":
+                ok(cid, {"snapshots": snapshots})
+            elif cmd == "createSnapshot":
+                ok(cid, {"snapshot": new_snapshot()})
+            elif cmd == "restoreSnapshot":
+                sid = args.get("id")
+                if not isinstance(sid, str) or not SNAP_ID_RE.match(sid):
+                    fail(cid, "badArgs", "id must be a snapshot file name")
+                    continue
+                target = next((s for s in snapshots if s["id"] == sid), None)
+                if target is None:
+                    fail(cid, "notFound", "no such snapshot")
+                    continue
+                target = dict(target)  # read before the safety snapshot can prune it
+                new_snapshot()
+                emit_state()
+                ok(cid, {"summary": {"dexCount": target["dexCount"], "lifetimeTokens": target["lifetimeTokens"]}})
             elif cmd == "getRecap":
                 scope, offset = args.get("scope"), args.get("offset")
                 if scope not in ("week", "month", "year") or not is_int(offset) or not -1000 <= offset <= 0:

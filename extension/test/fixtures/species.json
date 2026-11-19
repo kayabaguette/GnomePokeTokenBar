@@ -36,7 +36,8 @@
           {"name": "body-slam", "displayName": "Body Slam", "level": 29},
           {"name": "muddy-water", "displayName": "Muddy Water", "level": 41},
           {"name": "recover", "displayName": "Recover", "level": 54}
-        ]
+        ],
+        "prayers": 37
       }
     ],
     "detailsStatus": "ready",

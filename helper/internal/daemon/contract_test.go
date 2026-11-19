@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -115,30 +116,52 @@ func checkResult[T any](t *testing.T, file string) {
 // lines so parallel phases do not touch the same lines.
 var m2Pending = []string{}
 
-// stripPending removes the m2Pending paths from a state fixture and reports which of them it found.
-func stripPending(t *testing.T, raw []byte) ([]byte, []string) {
+// m3Pending is the same mechanism for the Milestone 3 contract (prayers, the Ditto reveal): fixture
+// file -> dotted paths the Go structs do not carry yet. A path segment that meets an array applies
+// to every element. Phase 17 (prayers and the Ditto reveal) deletes its lines. The save-transfer and
+// item-sprite results have no Go type yet, so no fixture of theirs is decoded here: phase 18 adds
+// checkResult calls for pray, inspect-save, list-snapshots, export-save, import-save and
+// create-snapshot.
+var m3Pending = map[string][]string{
+	"state-egg.json": {"companion.egg.prayers"},
+	"species.json":   {"data.individuals.prayers"},
+}
+
+// m3PendingEventFields lists event fields, per kind, that events.ndjson carries but the Go event
+// structs do not yet (phase 17 removes them); m3PendingEventKinds lists whole kinds with no Go type yet.
+var m3PendingEventFields = map[string][]string{"hatch": {"prayers"}}
+
+var m3PendingEventKinds = []string{"dittoReveal"}
+
+// stripPaths removes the given dotted paths from a JSON document and reports which of them it found.
+func stripPaths(t *testing.T, raw []byte, paths []string) ([]byte, []string) {
 	t.Helper()
-	var doc map[string]any
+	var doc any
 	if err := json.Unmarshal(raw, &doc); err != nil {
 		t.Fatal(err)
 	}
 	var found []string
-	for _, path := range m2Pending {
-		keys := strings.Split(path, ".")
-		node := doc
-		for _, k := range keys[:len(keys)-1] {
-			next, ok := node[k].(map[string]any)
-			if !ok {
-				node = nil
-				break
+	var del func(node any, keys []string) bool
+	del = func(node any, keys []string) bool {
+		switch n := node.(type) {
+		case []any:
+			hit := false
+			for _, e := range n {
+				hit = del(e, keys) || hit
 			}
-			node = next
+			return hit
+		case map[string]any:
+			if len(keys) == 1 {
+				_, ok := n[keys[0]]
+				delete(n, keys[0])
+				return ok
+			}
+			return del(n[keys[0]], keys[1:])
 		}
-		if node == nil {
-			continue
-		}
-		if _, ok := node[keys[len(keys)-1]]; ok {
-			delete(node, keys[len(keys)-1])
+		return false
+	}
+	for _, path := range paths {
+		if del(doc, strings.Split(path, ".")) {
 			found = append(found, path)
 		}
 	}
@@ -149,6 +172,22 @@ func stripPending(t *testing.T, raw []byte) ([]byte, []string) {
 	return out, found
 }
 
+// stripPending removes the m2Pending paths from a state fixture and reports which of them it found.
+func stripPending(t *testing.T, raw []byte) ([]byte, []string) {
+	t.Helper()
+	return stripPaths(t, raw, m2Pending)
+}
+
+// stripM3 removes the m3Pending paths of one fixture file and records the ones it found.
+func stripM3(t *testing.T, file string, raw []byte, seen map[string]bool) []byte {
+	t.Helper()
+	out, found := stripPaths(t, raw, m3Pending[file])
+	for _, path := range found {
+		seen[file+":"+path] = true
+	}
+	return out
+}
+
 // Every fixture decodes into the structs the daemon emits, with no unknown field, and re-encodes
 // to exactly the fixture's key set.
 func TestContractDrift(t *testing.T) {
@@ -157,6 +196,25 @@ func TestContractDrift(t *testing.T) {
 		for _, path := range m2Pending {
 			if !seenPending[path] {
 				t.Errorf("m2Pending path %q is in no state fixture: remove it", path)
+			}
+		}
+		for file, paths := range m3Pending {
+			for _, path := range paths {
+				if !seenPending[file+":"+path] {
+					t.Errorf("m3Pending path %q is not in %s: remove it", path, file)
+				}
+			}
+		}
+		for kind, fields := range m3PendingEventFields {
+			for _, f := range fields {
+				if !seenPending["event "+kind+":"+f] {
+					t.Errorf("m3PendingEventFields %s.%s is in no event fixture: remove it", kind, f)
+				}
+			}
+		}
+		for _, kind := range m3PendingEventKinds {
+			if !seenPending["event kind:"+kind] {
+				t.Errorf("m3PendingEventKinds %q is in no event fixture: remove it", kind)
 			}
 		}
 	}()
@@ -170,6 +228,7 @@ func TestContractDrift(t *testing.T) {
 			for _, path := range found {
 				seenPending[path] = true
 			}
+			raw = stripM3(t, file, raw, seenPending)
 			var st stateMsg
 			strictDecode(t, raw, &st)
 			checkKeys(t, file, raw, st)
@@ -181,7 +240,16 @@ func TestContractDrift(t *testing.T) {
 	}
 	t.Run("candy-plan.json", func(t *testing.T) { checkResult[candyPlanReply](t, "candy-plan.json") })
 	t.Run("dex-page.json", func(t *testing.T) { checkResult[companion.DexPage](t, "dex-page.json") })
-	t.Run("species.json", func(t *testing.T) { checkResult[companion.SpeciesView](t, "species.json") })
+	t.Run("species.json", func(t *testing.T) {
+		raw, err := os.ReadFile(filepath.Join(fixtureDir, "species.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw = stripM3(t, "species.json", raw, seenPending)
+		var r typedResult[companion.SpeciesView]
+		strictDecode(t, raw, &r)
+		checkKeys(t, "species.json", raw, resultMsg{Type: r.Type, ID: r.ID, OK: r.OK, Data: r.Data})
+	})
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })
 	t.Run("events.ndjson", func(t *testing.T) {
 		f, err := os.Open(filepath.Join(fixtureDir, "events.ndjson"))
@@ -205,12 +273,20 @@ func TestContractDrift(t *testing.T) {
 			line := append([]byte(nil), sc.Bytes()...)
 			var head struct{ Kind string }
 			_ = json.Unmarshal(line, &head)
+			if slices.Contains(m3PendingEventKinds, head.Kind) {
+				seenPending["event kind:"+head.Kind] = true
+				continue
+			}
 			mk, ok := types[head.Kind]
 			if !ok {
 				t.Errorf("event kind %q has no Go type", head.Kind)
 				continue
 			}
 			seen[head.Kind] = true
+			line, found := stripPaths(t, line, m3PendingEventFields[head.Kind])
+			for _, path := range found {
+				seenPending["event "+head.Kind+":"+path] = true
+			}
 			v := mk()
 			strictDecode(t, line, v)
 			checkKeys(t, "event "+head.Kind, line, v)
