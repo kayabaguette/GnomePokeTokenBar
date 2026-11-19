@@ -29,8 +29,11 @@ const SPARKLES = [
     {size: 12, dx: 1, dy: 13},
 ];
 
-/* A transient actor whose parent (the card) can be destroyed mid-animation:
- * the stopped transitions then must not touch it again. */
+/* A transient actor whose parent (the card) can be destroyed mid-animation.
+ * Only a finished ease may destroy it: an interrupted one means the card is
+ * being torn down, which takes the actor with it, and destroying it from
+ * inside that stop would edit Clutter's transition table mid-iteration (the
+ * GLib-CRITICAL phase 20 hit with the pet's 🙏). */
 function transient(actor) {
     actor._ptbGone = false;
     actor.connect('destroy', () => {
@@ -50,7 +53,10 @@ function fadeOutAndDestroy(actor, delay) {
         delay,
         duration: OUT_MS,
         mode: Clutter.AnimationMode.EASE_IN_QUAD,
-        onStopped: () => dispose(actor),
+        onStopped: finished => {
+            if (finished)
+                dispose(actor);
+        },
     });
 }
 
@@ -76,8 +82,6 @@ function popInOut(actor, inMs, holdMs) {
         onStopped: finished => {
             if (finished && !actor._ptbGone)
                 fadeOutAndDestroy(actor, holdMs);
-            else
-                dispose(actor);
         },
     });
 }

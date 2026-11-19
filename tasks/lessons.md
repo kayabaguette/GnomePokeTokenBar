@@ -48,3 +48,26 @@
     `git -C <this repo> worktree add <short path> -b <branch> feature/m2`.
     Keep the path short so the sandbox's 108-byte socket path still fits.
   - The brief also forbids editing the shared working tree.
+
+## 2026-11-19 — A fix for one actor must be swept to every `ease()` that destroys its actor
+
+- **What happened.** Phase 20 fixed the 🙏 particle and the 🎭 mask, whose `onStopped` destroyed
+  the actor even when the ease was interrupted. Two siblings in the same file kept the pattern:
+  `popInOut` disposed on an interrupted pop-in, `fadeOutAndDestroy` disposed on any stop.
+- **Why it was missed.** The phase 20 fix covered the instances the pet-pray run exposed, with no
+  class sweep. No sandbox suite interrupted a `feedbackFx` effect: `shop-cycle` disabled with a Shop
+  confirmation showing, never with an effect in flight.
+- **What the probe showed (phase 22a).** `shop-cycle` with `PTB_SHOT_FX_HOLD=1` keeps the capsule,
+  sparkles and mask in flight through a tab switch, a menu close and the `--cycle` disable.
+  - On disable the card is destroyed before its effects stop. The `destroy` signal sets `_ptbGone`
+    first, so the old code was a no-op there. These instances were latent, not a live CRITICAL.
+  - Tab switches and menu closes do not stop transitions.
+  - The CRITICAL needs a stop on a live actor. For the pet, `removeChrome` unstaged the root before
+    destroying it. A forced `remove_all_transitions()` on live fx actors reached the old `dispose`
+    from inside the stop; the fixed code does not.
+- **Rule.**
+  - Only a finished ease may destroy its own actor (`onStopped: finished => { if (finished) … }`,
+    or `onComplete`). An interrupted one is left to its parent's teardown.
+  - A fix to one instance of a pattern greps the whole tree for the pattern in the same change.
+  - Teardown checks have to keep an effect in flight while the disable lands, rather than relying
+    on timing luck.

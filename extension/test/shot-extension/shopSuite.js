@@ -12,7 +12,11 @@
  *                             down to the Growth group's shop-prices row.
  *   PTB_SHOT_SUITE=shop-cycle keeps the popover open on the Shop tab, with a
  *                             confirmation showing, until the headless
- *                             --cycle disable lands.
+ *                             --cycle disable lands. With PTB_SHOT_FX_HOLD=1
+ *                             it instead keeps the Home tile's "+XP" capsule,
+ *                             ✨ sparkles and 🎭 mask in flight (pop-in, hold
+ *                             and fade-out at once), so the disable interrupts
+ *                             every feedbackFx ease.
  *
  * States the stub cannot produce (a shiny companion, lineLoading, an empty
  * Bag, a stale canBuy) are rendered by calling the view's update() with a
@@ -342,6 +346,8 @@ export async function runShopCycle(shot) {
     const d = new ShopDriver(shot);
     if (!await d.start())
         return;
+    if (GLib.getenv('PTB_SHOT_FX_HOLD') === '1')
+        return holdFeedback(shot, d);
     let opened = 0;
     let beat = 0;
     const status = () => `menu open ${d.indicator.menu.isOpen}, tab ${d.popover?._tab}, ` +
@@ -361,6 +367,42 @@ export async function runShopCycle(shot) {
         await shot._sleep(500);
         if (++beat % 2 === 0)
             d.log(`shop-cycle: heartbeat ${status()}`);
+    }
+}
+
+/** Launch a feedback effect every 250 ms until PokeTokenBar is disabled (defect B, phase 22a). */
+async function holdFeedback(shot, d) {
+    let n = 0;
+    for (;;) {
+        if (Main.panel.statusArea[TARGET] !== d.indicator)
+            return; // PokeTokenBar was disabled: every effect in flight was interrupted
+        if (!d.indicator.menu.isOpen) {
+            await d.open();
+            continue;
+        }
+        const kind = n % 3;
+        if (kind === 0)
+            d.popover._playFeedback({kind: 'xp', xp: 300000000});
+        else if (kind === 1)
+            d.popover._playFeedback({kind: 'sparkle'});
+        else
+            d.popover.playRevealMask();
+        n++;
+        // Effects also get cut off without the card going away: a tab switch, the menu closing.
+        if (n % 12 === 4) {
+            await shot._sleep(150);
+            d.popover.showTab('shop');
+            await shot._sleep(300);
+            d.popover.showTab('home');
+            d.log(`shop-cycle fx: tab switch, fx children ${d.popover._companion._fxLayer.get_n_children()}`);
+        } else if (n % 12 === 10) {
+            await shot._sleep(150);
+            d.indicator.menu.close();
+            await shot._sleep(400);
+            d.log(`shop-cycle fx: menu closed, fx children ${d.popover._companion._fxLayer.get_n_children()}`);
+            continue;
+        }
+        await shot._sleep(250);
     }
 }
 
