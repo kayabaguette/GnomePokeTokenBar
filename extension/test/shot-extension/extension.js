@@ -12,7 +12,7 @@
  *   cycle opens the Pokédex on a species whose getSpecies the stub delays and
  *         leaves the popover open, so the headless --cycle disable lands with
  *         the menu open and a command pending (the screen-lock case);
- *   shop, shop-cycle  the Shop and Bag tabs (shopSuite.js).
+ *   shop, shop-cycle, shop-prefs  the Shop and Bag tabs (shopSuite.js).
  */
 
 import Clutter from 'gi://Clutter';
@@ -23,7 +23,7 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {runShop, runShopCycle} from './shopSuite.js';
+import {runShop, runShopCycle, runShopPrefs} from './shopSuite.js';
 
 Gio._promisify(Shell.Screenshot.prototype, 'screenshot');
 Gio._promisify(Shell.Screenshot.prototype, 'screenshot_area');
@@ -119,6 +119,8 @@ export default class ShotExtension extends Extension {
             return runShop(this);
         if (suite === 'shop-cycle')
             return runShopCycle(this);
+        if (suite === 'shop-prefs')
+            return runShopPrefs(this);
         return this._runHome();
     }
 

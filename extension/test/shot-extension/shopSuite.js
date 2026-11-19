@@ -7,6 +7,9 @@
  *                             item and egg purchase, locked eggs, an error
  *                             line, the lineLoading and empty Bag states,
  *                             dark and light.
+ *   PTB_SHOT_SUITE=shop-prefs full-screen shots of the preferences window
+ *                             (run with --prefs poketokenbar@local), scrolled
+ *                             down to the Growth group's shop-prices row.
  *   PTB_SHOT_SUITE=shop-cycle keeps the popover open on the Shop tab, with a
  *                             confirmation showing, until the headless
  *                             --cycle disable lands.
@@ -317,6 +320,16 @@ export async function runShop(shot) {
     d.log(`charm error: '${charm._error}'`);
     await d.shot('shop-error-dark.png');
 
+    // L. Shop prices at 50 %: the extension forwards shop-difficulty, the next state reprices.
+    d.ptb.getSettings().set_double('shop-difficulty', 0.5);
+    await sleep(1500);
+    const st = d.ptb.context().state;
+    d.log(`shop-difficulty 0.5 → applied ${st.settingsApplied.shopDifficulty}, prices ` +
+        `${st.companion.shop.entries.map(e => `${e.item ?? `egg-${e.tier ?? 'plain'}`}=${e.price}`).join(' ')}`);
+    shopScroll.vadjustment.value = 0;
+    await sleep(300);
+    await d.shot('shop-half-prices-dark.png');
+
     d.indicator.menu.close();
     d.log('done');
 }
@@ -328,8 +341,12 @@ export async function runShopCycle(shot) {
         return;
     let opened = 0;
     for (;;) {
-        if (Main.panel.statusArea[TARGET] !== d.indicator)
-            return; // PokeTokenBar was disabled first: stop here
+        if (Main.panel.statusArea[TARGET] !== d.indicator) {
+            // PokeTokenBar was disabled first: stop here.
+            d.log(`shop-cycle: PokeTokenBar disabled; menu was open ${d.indicator.menu?.isOpen}, ` +
+                `tab ${d.indicator._popover?._tab}`);
+            return;
+        }
         if (!d.indicator.menu.isOpen) {
             await d.tab('shop');
             d.popover._shop._cards.get('item:rareCandy')?._stepper._step(1);
@@ -342,4 +359,54 @@ export async function runShopCycle(shot) {
         }
         await shot._sleep(400);
     }
+}
+
+/** The prefs window (opened by headless-shell.sh --prefs): top, then scrolled to the end. */
+export async function runShopPrefs(shot) {
+    await shot._sleep(9000);
+    const windows = global.get_window_actors().map(a => a.meta_window);
+    const prefs = windows.find(w => (w.get_title() ?? '').length > 0 && w.get_wm_class() !== 'gnome-shell');
+    console.log(`ptb-shot: windows ${windows.map(w => `${w.get_wm_class()}:${w.get_title()}`).join(', ')}`);
+    Main.overview.hide();
+    await shot._sleep(2000);
+    prefs?.activate(global.get_current_time());
+    await shot._sleep(1500);
+    console.log(`ptb-shot: overview ${Main.overview.visible}, prefs ${prefs?.get_frame_rect().width}x` +
+        `${prefs?.get_frame_rect().height} minimized ${prefs?.minimized}`);
+    const area = () => {
+        const r = prefs.get_frame_rect();
+        return {x: r.x, y: r.y, width: r.width, height: r.height};
+    };
+    if (!prefs)
+        return;
+    const actor = prefs.get_compositor_private();
+    console.log(`ptb-shot: prefs actor visible ${actor?.visible} mapped ${actor?.mapped} opacity ${actor?.opacity} ` +
+        `workspace ${prefs.get_workspace()?.index()} active ${global.workspace_manager.get_active_workspace_index()}`);
+    await shot._shot('prefs-top.png', area());
+    {
+        const r = prefs.get_frame_rect();
+        // The first virtual motion only enters (and may land in the hot corner): move twice.
+        shot._movePointer(r.x + r.width / 2, r.y + r.height / 2);
+        await shot._sleep(300);
+        shot._movePointer(r.x + r.width / 2 + 1, r.y + r.height / 2);
+        await shot._sleep(300);
+        Main.overview.hide();
+        await shot._sleep(1500);
+        for (let i = 0; i < 30; i++) {
+            shot._pointer.notify_discrete_scroll(GLib.get_monotonic_time(), 1 /* DOWN */, 0 /* WHEEL */);
+            await shot._sleep(60);
+        }
+        await shot._sleep(800);
+    }
+    console.log(`ptb-shot: overview at shot ${Main.overview.visible}`);
+    await shot._shot('prefs-bottom.png', area());
+    // Click the shop-prices track at about a fifth (window-relative, from the shot above):
+    // the value label must follow at once, with no Save button.
+    const r2 = prefs.get_frame_rect();
+    shot._movePointer(r2.x + 200, r2.y + 475);
+    await shot._sleep(300);
+    shot._click(1);
+    await shot._sleep(800);
+    await shot._shot('prefs-shop-moved.png', area());
+    console.log('ptb-shot: done');
 }
