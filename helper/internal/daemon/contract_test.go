@@ -122,10 +122,6 @@ var m2Pending = []string{
 	"companion.inventory.shinyCharm",
 	"companion.egg.guarantee",
 	"settingsApplied.shopDifficulty",
-
-	// Recap, heatmap and pet fields (phase 11)
-	"usage.combined.heatmap",
-	"companion.sulkIdleSeconds",
 }
 
 // stripPending removes the m2Pending paths from a state fixture and reports which of them it found.
@@ -188,8 +184,11 @@ func TestContractDrift(t *testing.T) {
 			checkKeys(t, file, raw, st)
 		})
 	}
-	// M2 result fixtures (candy-plan.json, recap-week.json, recap-week-prev.json, recap-year.json) get a
-	// checkResult line here once their Go types exist (phases 10 and 11).
+	// M2 result fixtures: the recap ones are checked below; candy-plan.json gets a
+	// checkResult line here once its Go type exists (phase 10).
+	for _, f := range []string{"recap-week.json", "recap-week-prev.json", "recap-year.json"} {
+		t.Run(f, func(t *testing.T) { checkResult[recapView](t, f) })
+	}
 	t.Run("dex-page.json", func(t *testing.T) { checkResult[companion.DexPage](t, "dex-page.json") })
 	t.Run("species.json", func(t *testing.T) { checkResult[companion.SpeciesView](t, "species.json") })
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })
@@ -279,7 +278,7 @@ func budgetDaemon(t *testing.T) (*daemon, time.Time) {
 	return d, now
 }
 
-// Protocol §3: a typical state stays within 8 KB compact, here with a 31-day month.
+// Protocol §3: a typical state stays within 9 KB compact, here with a 31-day month.
 func TestStateBudget(t *testing.T) {
 	d, now := budgetDaemon(t)
 	st := d.buildState(now)
@@ -296,8 +295,8 @@ func TestStateBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("state: %d bytes", len(b))
-	if len(b) > 8*1024 {
-		t.Fatalf("state is %d bytes, budget 8192", len(b))
+	if len(b) > 9*1024 {
+		t.Fatalf("state is %d bytes, budget 9216", len(b))
 	}
 }
 

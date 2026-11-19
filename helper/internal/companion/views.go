@@ -33,18 +33,20 @@ type MoodInput struct {
 
 // CompanionView is state.companion (protocol §5.4).
 type CompanionView struct {
-	Phase          string          `json:"phase"`
-	Mood           string          `json:"mood"`
-	Egg            *EggView        `json:"egg"`
-	Active         *ActiveView     `json:"active"`
-	GrowthPercent  int             `json:"growthPercent"`
-	Representative *Representative `json:"representative"`
-	MenuSubject    MenuSubject     `json:"menuSubject"`
-	Inventory      Inventory       `json:"inventory"`
-	DexSummary     DexSummary      `json:"dexSummary"`
-	LevelUpUntil   *string         `json:"levelUpUntil"`
-	JustEvolvedTo  *string         `json:"justEvolvedTo"`
-	JustGraduated  *string         `json:"justGraduated"`
+	Phase string `json:"phase"`
+	Mood  string `json:"mood"`
+	// SulkIdleSeconds is the idle time in whole hours, in seconds; 0 unless Mood is "sulk" (M2).
+	SulkIdleSeconds int             `json:"sulkIdleSeconds"`
+	Egg             *EggView        `json:"egg"`
+	Active          *ActiveView     `json:"active"`
+	GrowthPercent   int             `json:"growthPercent"`
+	Representative  *Representative `json:"representative"`
+	MenuSubject     MenuSubject     `json:"menuSubject"`
+	Inventory       Inventory       `json:"inventory"`
+	DexSummary      DexSummary      `json:"dexSummary"`
+	LevelUpUntil    *string         `json:"levelUpUntil"`
+	JustEvolvedTo   *string         `json:"justEvolvedTo"`
+	JustGraduated   *string         `json:"justGraduated"`
 }
 
 // EggView is the egg card.
@@ -145,15 +147,9 @@ func (s *Store) mood(in MoodInput, windowOpen bool) string {
 	case in.LimitWarning:
 		return "tired"
 	}
-	if in.HasUsageData && in.IdleFor != nil {
-		idle := *in.IdleFor
-		// A rise in today's total seen by Update counts as usage at once (CS:1974-1985).
-		if !s.lastObservedUsage.IsZero() {
-			idle = min(idle, max(0, in.Now.Sub(s.lastObservedUsage)))
-		}
-		if idle >= sulkAfterIdle {
-			return "sulk"
-		}
+	// A rise in today's total seen by Update counts as usage at once (CS:1974-1985).
+	if idle, ok := s.idleDuration(in); ok && idle >= sulkAfterIdle {
+		return "sulk"
 	}
 	switch {
 	case !in.HasUsageData || in.TodayTokens == 0:
@@ -176,6 +172,7 @@ func (s *Store) BuildState(in MoodInput) CompanionView {
 		Inventory:  Inventory{RareCandy: st.Inventory["rareCandy"]},
 		DexSummary: s.dexSummary(),
 	}
+	v.SulkIdleSeconds = s.sulkIdleSeconds(in, v.Mood)
 	if windowOpen {
 		v.LevelUpUntil = ts(s.window.until)
 		if r := s.window.evolvedTo; r != nil {

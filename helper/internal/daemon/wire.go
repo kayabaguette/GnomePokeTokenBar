@@ -117,6 +117,8 @@ type aggregateView struct {
 	MonthDaily  seriesView   `json:"monthDaily"`
 	BurnTier    string       `json:"burnTier"`
 	Streak      usage.Streak `json:"streak"`
+	// Heatmap is the 16-week activity window; it is on combined only and always present (M2).
+	Heatmap usage.Heatmap `json:"heatmap"`
 }
 
 type providerUsageView struct {

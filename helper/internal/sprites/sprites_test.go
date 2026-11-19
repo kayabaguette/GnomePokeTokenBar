@@ -284,7 +284,7 @@ func TestManifestJSONShape(t *testing.T) {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(res.Path)
-	want := `{"width":4,"height":3,"animated":true,"rgba":"frames.rgba","frames":[{"offset":0,"delayMs":50},{"offset":48,"delayMs":50}]}`
+	want := `{"width":4,"height":3,"animated":true,"rgba":"frames.rgba","frames":[{"offset":0,"delayMs":50},{"offset":48,"delayMs":50}],"visibleTopFraction":0}`
 	if string(b) != want {
 		t.Errorf("manifest = %s\nwant       %s", b, want)
 	}

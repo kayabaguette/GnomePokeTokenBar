@@ -97,7 +97,8 @@ func (d *daemon) buildUsage(now time.Time, forecasts map[string]*forecastView) (
 	}
 	v.Combined = aggregateView{Today: toTotalsView(cToday), Week: toTotalsView(cWeek), Month: toTotalsView(cMonth),
 		RecentDaily: toSeriesView(cRecent), MonthDaily: toSeriesView(cMonthly),
-		BurnTier: string(usage.BurnTierFor(burn)), Streak: d.ledger.Streak(now)}
+		BurnTier: string(usage.BurnTierFor(burn)), Streak: d.ledger.Streak(now),
+		Heatmap: usage.MakeHeatmap(usage.NewHistory(d.ledger, cMonthly), now, ws)}
 	return v, burn, cToday.Tokens
 }
 

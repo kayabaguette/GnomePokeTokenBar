@@ -26,6 +26,10 @@ type Manifest struct {
 	Animated bool            `json:"animated"`
 	RGBA     string          `json:"rgba"`
 	Frames   []ManifestFrame `json:"frames"`
+	// VisibleTopFraction (M2) is where the visible sprite starts, as a share of Height. A pointer
+	// so 0 is written for a sprite that fills its canvas, while a manifest cached by an M1 helper,
+	// which never had the field, reads back absent. Old manifests are immutable and not migrated.
+	VisibleTopFraction *float64 `json:"visibleTopFraction,omitempty"`
 }
 
 // ManifestFrame locates one frame in the RGBA blob.
@@ -50,6 +54,8 @@ func buildFrames(g *gif.GIF) (blob []byte, m Manifest, first *image.NRGBA, err e
 		m.Frames = append(m.Frames, ManifestFrame{Offset: len(blob), DelayMs: f.DelayMs})
 		blob = append(blob, unpremultiply(f.Image)...)
 	}
+	top := visibleTopFraction(frames)
+	m.VisibleTopFraction = &top
 	first = &image.NRGBA{Pix: blob[:size:size], Stride: w * 4, Rect: image.Rect(0, 0, w, h)}
 	return blob, m, first, nil
 }

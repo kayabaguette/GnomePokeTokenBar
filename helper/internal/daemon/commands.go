@@ -62,6 +62,8 @@ func (d *daemon) command(r request) {
 		d.cmdCatchLog(r)
 	case "getSpecies":
 		d.cmdSpecies(r)
+	case "getRecap":
+		d.cmdRecap(r)
 	case "getSprite":
 		d.cmdSprite(r)
 	default:
