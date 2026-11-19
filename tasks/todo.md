@@ -480,6 +480,66 @@ User checks after 0.2.0:
 - the pet hides over fullscreen;
 - the hooks block produces bubbles.
 
+## Milestone 3 plan (approved 2026-11-19)
+
+Scope chosen by the user (backlog items 9, 10 and 11, plus item sprites and dex medals):
+- item sprites in Shop and Bag;
+- prayers;
+- the Ditto disguise reveal;
+- Pokédex completion medals;
+- save export and import, with snapshots.
+
+Specs: `docs/spec/items-medals.md`, `docs/spec/prayers-ditto.md` and `docs/spec/save-transfer.md`.
+
+### Decisions (orchestrator defaults, approved with the plan)
+
+- **Items:**
+  - `getSprite {"item"}` is additive;
+  - the extension owns the name table;
+  - Mint keeps 🌿;
+  - no prefetch.
+- **Medals:** already built in M1. Add the missing tests and reconcile the docs. The strip layout stays as it is.
+- **Prayers:**
+  - a `pray` command, with the `notEgg` error;
+  - the fields `egg`/`hatch`/`Individual.prayers`;
+  - a save on every prayer;
+  - the wobble and the 🙏 are skipped when animations are off.
+- **Ditto:**
+  - the 1/128 roll is on in production;
+  - `revealIfNeeded` runs in `Update`;
+  - `rebaseForSpeciesIdentity`;
+  - a `dittoReveal` event;
+  - line 132 is pre-warmed;
+  - the badge parity is kept.
+- **Save transfer:**
+  - envelope schema 2, with UTC whole-second dates;
+  - header-first validation;
+  - a mandatory pre-import backup (keep 5);
+  - import keeps `growthDifficulty`, the language and the device fields;
+  - legacy Unown aliases;
+  - snapshots every 12 h, keep 10, plus manual ones;
+  - a `Save1` D-Bus relay for prefs, which carries paths only;
+  - an Adw "Backup & Transfer" page;
+  - supersedes the M1 decision "no macOS save import".
+
+### Phases
+
+- [ ] 16. Contract `[sub:sonnet]`: specs into `docs/spec/`, protocol additions, fixtures, stub-helper.
+- [ ] 17. Go prayers + Ditto reveal `[sub:opus, worktree]`.
+- [ ] 18. Go save transfer (6 commands) `[sub:opus, worktree]`.
+- [ ] 19. Go item sprite arg + JS item icons + medal tests/docs `[sub:sonnet + frontend-design, worktree]`.
+- [ ] 20. JS pet prayers, notifications, Ditto reveal UI `[sub:opus + frontend-design, stub]`.
+- [ ] 21. JS `Save1` relay + prefs Backup & Transfer page `[sub:opus + frontend-design, stub]`.
+- [ ] 22. Integration `[sub:sonnet]` + review:
+  - real helper in the sandbox;
+  - RPM 0.3.0;
+  - README, CHANGELOG and SPEC.
+
+Acceptance is the same as M2. User checks after 0.3.0:
+- pray on the egg;
+- an export/import round trip;
+- restore a snapshot.
+
 ## Validation (every phase)
 
 - `go vet ./...` and `go test -race ./...`.
