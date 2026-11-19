@@ -255,6 +255,13 @@ export class CompanionCard {
     }
 
     /** "+XP" capsule after a Rare Candy use (bag-shop.md §2.5). */
+    setCelebrating(on) {
+        if (on)
+            this._tile.add_style_class_name('ptb-celebrate');
+        else
+            this._tile.remove_style_class_name('ptb-celebrate');
+    }
+
     playXp(xp) {
         playXpCapsule(this._fxLayer, xp);
     }

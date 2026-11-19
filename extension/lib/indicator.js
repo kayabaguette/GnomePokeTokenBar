@@ -1,5 +1,5 @@
 /* Top-bar indicator (ui.md §1): animated sprite plus 1–2 text lines, the
- * popover on left click, a secondary menu on right click.
+ * popover on left click, a secondary menu on right click or Ctrl+click.
  */
 
 import Clutter from 'gi://Clutter';
@@ -21,6 +21,14 @@ import * as V from './viewModel.js';
 
 /* While the popover is open its countdowns and "Updated …" tick this often. */
 const OPEN_TICK_S = 30;
+/* Hatch and evolve flash the bar and the companion card (M2 decision 32). */
+const CELEBRATE_MS = 900;
+const CELEBRATE_CLASS = 'ptb-celebrate';
+
+function ctrlHeld(gesture) {
+    const event = gesture.get_point_event(0);
+    return Boolean(event && (event.get_state() & Clutter.ModifierType.CONTROL_MASK));
+}
 
 const TEXT_TIER_CLASSES = V.PACE_TIERS.map(t => `ptb-tier-text-${t}`);
 
@@ -32,17 +40,31 @@ class PtbIndicator extends PanelMenu.Button {
      */
     _init(controller) {
         super._init(0.5, 'PokeTokenBar', false);
+        this.add_style_class_name('ptb-indicator');
         this._controller = controller;
         this._lineSignature = null;
         this._spritePath = undefined;
         this._spriteRetried = new Set();
         this._openTab = 'home';
         this._tickId = 0;
+        this._celebrateId = 0;
+        this._displayOn = true;
         this._destroyed = false;
 
         // Left click toggles the popover; the inherited gesture accepts any
         // button by default, so restrict it and give right click its own menu.
         this._clickGesture.set_required_button(Clutter.BUTTON_PRIMARY);
+        // Ctrl+click opens the secondary menu instead (M2 decision 30): the
+        // inherited gesture refuses it and a second one takes it.
+        this._clickGesture.connect('may-recognize', g => !ctrlHeld(g));
+        this._ctrlGesture = new Clutter.ClickGesture({recognize_on_press: true});
+        this._ctrlGesture.set_required_button(Clutter.BUTTON_PRIMARY);
+        this._ctrlGesture.connect('may-recognize', g => ctrlHeld(g));
+        this._ctrlGesture.connect('recognize', () => {
+            if (!this._destroyed)
+                this._toggleSecondary();
+        });
+        this.add_action(this._ctrlGesture);
         this._secondaryGesture = new Clutter.ClickGesture({recognize_on_press: true});
         this._secondaryGesture.set_required_button(Clutter.BUTTON_SECONDARY);
         this._secondaryGesture.connect('recognize', () => {
@@ -113,6 +135,8 @@ class PtbIndicator extends PanelMenu.Button {
             setTrendWindow: w => c.setTrendWindow(w),
             setActivityView: v => c.setActivityView(v),
             request: (cmd, args) => c.request(cmd, args),
+            petEnabled: () => c.settings?.get_boolean('floating-pet-enabled') ?? false,
+            setPetEnabled: on => c.settings?.set_boolean('floating-pet-enabled', on),
         });
         const item = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
@@ -150,6 +174,11 @@ class PtbIndicator extends PanelMenu.Button {
         });
         menu.addAction(_('Settings…'), () => c.openPrefs());
 
+        this._petItem = new PopupMenu.PopupSwitchMenuItem(_('Show floating pet'),
+            c.settings.get_boolean('floating-pet-enabled'));
+        this._petItem.connect('toggled', (_i, state) => c.settings?.set_boolean('floating-pet-enabled', state));
+        menu.addMenuItem(this._petItem);
+
         this._backItem = new PopupMenu.PopupSwitchMenuItem(_('Show back view'),
             c.settings.get_boolean('always-faces-back'));
         this._backItem.connect('toggled', (_i, state) => c.settings?.set_boolean('always-faces-back', state));
@@ -160,6 +189,7 @@ class PtbIndicator extends PanelMenu.Button {
         this.menu.close();
         this._infoItem.label.text = V.menuInfoText(this._controller.context().state);
         this._backItem.setToggleState(this._controller.settings.get_boolean('always-faces-back'));
+        this._petItem.setToggleState(this._controller.settings.get_boolean('floating-pet-enabled'));
         this._secondary.toggle();
     }
 
@@ -175,7 +205,7 @@ class PtbIndicator extends PanelMenu.Button {
         if (this._destroyed)
             return;
         // The popover card already animates the companion: rest the top bar (ui.md §1.3).
-        this._sprite.setPaused(open);
+        this._syncPaused();
         this._controller.tooltip.hide();
         if (open) {
             this._popover.onOpen(this._openTab);
@@ -204,6 +234,33 @@ class PtbIndicator extends PanelMenu.Button {
 
     _renderPopover() {
         this._popover.update(this._controller.context());
+    }
+
+    /** Display power-save: the sprite stays mapped while the screen is off, so pause it. */
+    setDisplayOn(on) {
+        this._displayOn = on;
+        this._syncPaused();
+    }
+
+    _syncPaused() {
+        this._sprite?.setPaused(this.menu.isOpen || !this._displayOn);
+    }
+
+    /** A short flash on the bar, and on the companion card if the popover is open. */
+    celebrate() {
+        if (this._destroyed)
+            return;
+        this.add_style_class_name(CELEBRATE_CLASS);
+        if (this.menu.isOpen)
+            this._popover.setCelebrating(true);
+        if (this._celebrateId)
+            GLib.source_remove(this._celebrateId);
+        this._celebrateId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, CELEBRATE_MS, () => {
+            this._celebrateId = 0;
+            this.remove_style_class_name(CELEBRATE_CLASS);
+            this._popover?.setCelebrating(false);
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     setAnimationQuality(quality) {
@@ -302,6 +359,10 @@ class PtbIndicator extends PanelMenu.Button {
         if (this._tickId) {
             GLib.source_remove(this._tickId);
             this._tickId = 0;
+        }
+        if (this._celebrateId) {
+            GLib.source_remove(this._celebrateId);
+            this._celebrateId = 0;
         }
         this._secondary?.destroy();
         this._secondary = null;

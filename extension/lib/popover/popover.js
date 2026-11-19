@@ -191,6 +191,11 @@ export class Popover {
     }
 
     /** @param {object} ctx  {state, settings, nowMs, helperStatus} */
+    /** The hatch/evolve flash on the companion card (M2 decision 32). */
+    setCelebrating(on) {
+        this._companion.setCelebrating(on);
+    }
+
     update(ctx) {
         this._recap.update(ctx);
         this._companion.update(ctx);
