@@ -58,6 +58,8 @@ func (d *daemon) command(r request) {
 		d.cmdSetRepresentative(r)
 	case "buyItem", "buyEgg", "planCandies", "useCandy", "useMint":
 		d.shopCommand(r)
+	case "pray":
+		d.cmdPray(r)
 	case "getDexPage":
 		d.cmdDexPage(r)
 	case "getCatchLog":

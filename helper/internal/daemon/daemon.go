@@ -174,8 +174,9 @@ func open(cfg Config, out *output, oneShot bool) (*daemon, error) {
 	}
 	d.data = newDataCache(cfg.Data, cfg.Now)
 	d.rng = &replayRng{src: cfg.Rng}
+	// The Ditto disguise roll is on in the helper (decision 41); the reveal runs in Update.
 	store, err := companion.Open(companion.Options{Dir: cfg.StateDir, Data: d.data.view(), Rng: d.rng,
-		Now: cfg.Now, AppVersion: cfg.Version, Logf: cfg.Logf})
+		Now: cfg.Now, AppVersion: cfg.Version, Logf: cfg.Logf, DittoDisguiseEnabled: true})
 	if err != nil {
 		return nil, fmt.Errorf("open companion save: %w", err)
 	}

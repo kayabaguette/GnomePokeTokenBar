@@ -175,10 +175,11 @@ func (f *fakeLimits) spec() LimitsSpec {
 // ---------------------------------------------------------------- fake Pokémon data
 
 type fakePoke struct {
-	mu        sync.Mutex
-	bases     []companion.BaseEntry
-	lineCalls map[int]int
-	offline   atomic.Bool
+	mu           sync.Mutex
+	bases        []companion.BaseEntry
+	lineCalls    map[int]int
+	offline      atomic.Bool
+	dittoOffline atomic.Bool // only Ditto's line 132 fails
 }
 
 func newFakePoke(bases ...int) *fakePoke {
@@ -198,14 +199,18 @@ func (f *fakePoke) BaseIndex(context.Context) ([]companion.BaseEntry, error) {
 	return f.bases, nil
 }
 
-// Line is a linear 3-stage line base → base+1 → base+2.
+// Line is a linear 3-stage line base → base+1 → base+2, except Ditto's rare leaf line for 132.
 func (f *fakePoke) Line(_ context.Context, base int) (*companion.Line, error) {
-	if f.offline.Load() {
+	if f.offline.Load() || (base == 132 && f.dittoOffline.Load()) {
 		return nil, fmt.Errorf("offline")
 	}
 	f.mu.Lock()
 	f.lineCalls[base]++
 	f.mu.Unlock()
+	if base == 132 {
+		return &companion.Line{BaseID: 132, CaptureRate: 45, Tree: companion.Node{ID: 132},
+			Names: map[int]map[string]string{132: {"en": "Ditto"}}}, nil
+	}
 	l := &companion.Line{BaseID: base, CaptureRate: 255, Names: map[int]map[string]string{},
 		Tree: companion.Node{ID: base, Children: []companion.Node{{ID: base + 1, Children: []companion.Node{{ID: base + 2}}}}}}
 	for _, id := range []int{base, base + 1, base + 2} {

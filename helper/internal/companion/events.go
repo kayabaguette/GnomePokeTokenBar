@@ -15,6 +15,7 @@ type HatchEvent struct {
 	Rarity      string  `json:"rarity"`
 	IsShiny     bool    `json:"isShiny"`
 	ShinyOdds   int     `json:"shinyOdds"`
+	Prayers     int     `json:"prayers"` // the egg's prayer count at hatch; 0 for none (M3)
 }
 
 // EvolveEvent: the active Pokémon evolved.
@@ -61,6 +62,19 @@ type BadgeEvent struct {
 	Region *string `json:"region"`
 }
 
+// DittoRevealEvent: a disguised Ditto revealed itself at its first evolution threshold (M3).
+// It carries no shinyOdds: charm ownership at hatch time is not saved.
+type DittoRevealEvent struct {
+	Type                string `json:"type"`
+	Kind                string `json:"kind"`
+	DisguiseSpeciesID   int    `json:"disguiseSpeciesId"`
+	DisguiseDisplayName string `json:"disguiseDisplayName"` // plain species name, no form label; #id fallback
+	SpeciesID           int    `json:"speciesId"`
+	DisplayName         string `json:"displayName"`
+	Rarity              string `json:"rarity"`
+	IsShiny             bool   `json:"isShiny"` // the raw roll, now displayed
+}
+
 // EventKind implements Event.
 func (HatchEvent) EventKind() string { return "hatch" }
 
@@ -75,3 +89,6 @@ func (CandyGrantedEvent) EventKind() string { return "candyGranted" }
 
 // EventKind implements Event.
 func (BadgeEvent) EventKind() string { return "badge" }
+
+// EventKind implements Event.
+func (DittoRevealEvent) EventKind() string { return "dittoReveal" }

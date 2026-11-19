@@ -490,13 +490,19 @@ func TestCandyBlockedOrder(t *testing.T) {
 	check(s, candyBlockedLineLoading)
 }
 
-// Go-only guards (bag-shop.md §5.4, "port the guards now"): a disguised, unrevealed Ditto at its
-// threshold accepts no candy (revealPending, reserved in M2), and one below it spends only the
-// candies its reveal needs. The Ditto reveal itself is deferred, so the DittoTests are not ported.
+// Go-only guards (bag-shop.md §5.4): a disguised, unrevealed Ditto at its threshold accepts no
+// candy (revealPending) while the reveal waits for line 132, here never served, and one below it
+// spends only the candies its reveal needs. The reveal itself is covered by ditto_test.go.
 func TestDisguisedDittoCandyGuards(t *testing.T) {
 	m := `{"baseID":1,"pathIDs":[1],"plannedPathIDs":[1,2,3],"stageIndex":0,"usedAtStage":%d,"rarity":"common","totalForms":3,"dittoDisguise":1,"dittoRevealed":false}`
+	noDitto := &fakeData{lineFn: func(b int) (*Line, error) {
+		if b == dittoSpeciesID {
+			return nil, errOffline
+		}
+		return linear3(), nil
+	}}
 	at := func(used int) *Store {
-		s := openAt(t, writeSave(t, fmt.Sprintf(`{"installBaselineSet":true,"lastDate":"d1","active":`+m+`,"inventory":{"rareCandy":5},"candyFeatureSeeded":true}`, used)), stub(linear3()), 7)
+		s := openAt(t, writeSave(t, fmt.Sprintf(`{"installBaselineSet":true,"lastDate":"d1","active":`+m+`,"inventory":{"rareCandy":5},"candyFeatureSeeded":true}`, used)), noDitto, 7)
 		use(s, 0) // loads the line
 		if s.line == nil {
 			t.Fatal("line not loaded")

@@ -18,8 +18,8 @@ const (
 	candyBlockedRevealPending = "revealPending"
 )
 
-// revealPending: a disguised, unrevealed Ditto has reached its threshold. The reveal is not
-// ported, so the accepted batch waits there (CS:1179-1182).
+// revealPending: a disguised, unrevealed Ditto has reached its threshold. The accepted batch waits
+// there until the next Update reveals it, which needs evolution line 132 in memory (CS:1179-1182).
 func (s *Store) revealPending(a *monState) bool {
 	return a.DittoDisguise != nil && !a.DittoRevealed && a.UsedAtStage >= s.stageThreshold(a)
 }
