@@ -5,7 +5,7 @@ Upstream baseline: PokeTokenBar `38e3e55` (v2.5.7). Target: GNOME Shell 51.1, Wa
 
 ## Citation keys
 
-Swift paths are relative to `/home/user/Documents/01_Projects/PokeTokenBar/`.
+Swift paths are relative to the upstream repo root (the Swift PokeTokenBar checkout).
 
 | Key | File |
 |---|---|
@@ -23,7 +23,7 @@ Swift paths are relative to `/home/user/Documents/01_Projects/PokeTokenBar/`.
 GNOME Shell sources are cited as `ui/<file>.js:N`, meaning
 `resource:///org/gnome/shell/ui/<file>.js` in the installed 51.1. They were extracted read-only from
 `/usr/lib64/gnome-shell/libshell-51.so`. Port files are relative to
-`/home/user/Documents/01_Projects/PokeTokenBar-GNOME/`.
+this repo root.
 
 ---
 
@@ -920,11 +920,17 @@ screen.
 1. **Prayers:** stay deferred, so an egg click opens the popover? Or ship a `pray` helper command plus
    particles in this milestone (about +1.5 d: helper command, 11 quips, prayer hatch text, refresh
    throttle)?
+   **Resolved (2026-11-19):** prayers stay deferred; an egg click opens the popover.
 2. **Fullscreen:** hide over fullscreen (recommended), or keep upstream parity with an opt-in setting?
+   **Resolved (2026-11-19):** hide over fullscreen. One `sync()` hides the pet for the overview, fullscreen, power-save and settings; `addChrome` is restacked just above `global.window_group`.
 3. **D-Bus name and interface:** `io.github.poketokenbar.Agent` / `…Agent1`, or a name under the
    extension uuid? Ship the `x-scheme-handler` `.desktop` file in the RPM for URL compatibility?
+   **Resolved (2026-11-19):** name `io.github.poketokenbar.Agent`, interface `io.github.poketokenbar.Agent1`, methods `Report(sss)` and `OpenUrl(s)`; hooks use `busctl`; no URL handler and no `.desktop` file (protocol §15).
 4. **Lock persistence** of agent state in `$XDG_RUNTIME_DIR` (§4.1): needed in this milestone?
+   **Resolved (2026-11-19):** agent state is not persisted across a lock.
 5. **Passive JSONL "working" detection** as a no-hook fallback: defer (recommended) or include?
+   **Resolved (2026-11-19):** passive JSONL detection is deferred.
 6. **Sprite fit:** fractional NEAREST for parity, or integer snapping when the scale is ≥ 2?
+   **Resolved (2026-11-19):** integer sprite scaling when possible.
 7. **The `always-faces-back` row:** move it from "Top bar" to the new "Floating pet" group (upstream
    placement), or keep it in both?

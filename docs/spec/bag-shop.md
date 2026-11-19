@@ -1,12 +1,12 @@
 # PokeTokenBar Bag and Shop: porting spec for the Go helper and the GNOME extension (M2)
 
 Conventions (same as `docs/spec/companion.md`):
-- Upstream paths are relative to `/home/user/Documents/01_Projects/PokeTokenBar/`, at HEAD 38e3e55 (v2.5.7).
+- Upstream paths are relative to the upstream repo root (the Swift PokeTokenBar checkout), at HEAD 38e3e55 (v2.5.7).
 - `CS` = `Sources/PokeTokenBar/Core/CompanionStore.swift`, `CM` = `Sources/PokeTokenBar/Core/CompanionModel.swift`
 - `SV` = `Sources/PokeTokenBar/UI/ShopView.swift`, `BV` = `Sources/PokeTokenBar/UI/BagView.swift`, `CV` = `Sources/PokeTokenBar/UI/CompanionView.swift`
 - `PV` = `UI/PopoverView.swift`, `DSS` = `UI/DifficultySettingsSection.swift`, `LOC` = `Core/Localization.swift`, `PP` = `Core/PokemonProfile.swift`, `ST` = `Core/SaveTransfer.swift`, `TF` = `Core/TokenFormatter.swift`
 - Tests are under `Tests/PokeTokenBarTests/`: `ShopT` = `ShopTests.swift`, `MintT` = `MintTests.swift`, `CharmT` = `ShinyCharmTests.swift`, `RCT` = `RareCandyTests.swift`, `PremT` = `PremiumEggTests.swift`, `FreshT` = `FreshEggTests.swift`, `DiffT` = `DifficultyTests.swift`, `DSaveT` = `DifficultySaveTests.swift`, `GuardT` = `PreciousCompanionGuardTests.swift`, `DittoT` = `DittoTests.swift`, `CompT` = `CompanionTests.swift`.
-- Port paths are relative to `/home/user/Documents/01_Projects/PokeTokenBar-GNOME/`. `go:` = `helper/internal/companion/`.
+- Port paths are relative to this repo root. `go:` = `helper/internal/companion/`.
 - **Asserted** means a value an upstream XCTest assertion checks. **Derived** means I computed it with SplitMix64 and the documented draw order; upstream does not assert it. Use derived values as extra Go assertions only once the asserted ones pass.
 
 What the port already has (do not redo):
@@ -386,6 +386,7 @@ From top to bottom:
 - Add a "Shop prices" block with the same widgets and the "Cheap"/"Expensive" labels, writing `shop-difficulty`.
 - The mapping, the snap to 1.0 within ±0.01 of the track, and the 2-significant-digit snap are the same as growth (companion.md §2.4).
 - **Decision needed:** one shared Save as upstream, or one Save per row as the current prefs code does (§6, item 14). I recommend per row: the two values are independent and the shop value needs no rescale.
+  **Resolved (2026-11-19):** no draft and no Save for the shop row; it applies immediately (§6, item 14).
 
 ### 3.5 Strings (English column of `LOC`; key = the Swift accessor)
 | Key | English | Line |
@@ -867,13 +868,16 @@ The extension can compute it from `active.isShiny || active.rarity == "legendary
 ## 6. Open questions, ambiguities and upstream bugs
 1. **`ui.md` §9 is wrong about the Bag.** There are no evolve or graduate controls (§2.4). Fix the line when this spec lands.
 2. **Mint "cosmetic" contradiction.** Upstream calls it pure cosmetic (`CS:1257-1258`), yet the displayed actual stats use the nature modifier (`PP:236`). Keep upstream behaviour (the stats change), and make the item description honest if desired. This is a product decision.
+   **Resolved (2026-11-19):** Mint changes the displayed stats, as upstream does.
 3. **Misleading disabled reason in the Bag.** With a Pokémon present but the line not loaded, or a Ditto reveal pending, the candy card says "No Pokémon to use it on" (`BV:159-161`).
    - Proposed: a new string such as "Available once data loads", driven by `bag.candyBlocked`. That deviates from upstream, so decide.
+   **Resolved (2026-11-19):** a `loading` disabled reason for candy use: `bag.candyBlocked == "lineLoading"` (protocol §5.4). The Bag shows a new string such as "Available once data loads".
 4. **The Bag stepper shows at `maxUse == 1`** (range 1…1), while the Shop hides it unless `maxBuyCount > 1` (`BV:68`, `SV:65`). This is a cosmetic inconsistency; mirroring the Shop is suggested.
 5. **The Bag always switches to Home after "Use", even on failure** (`BV:165-169`). Keep it, or switch only on `ok` (the reply makes that easy).
 6. **`inventory` is never sanitized,** upstream or in Go.
    - A negative count disables use but is still "added to" by a buy. A huge count overflows on `+= count`: Swift traps, Go wraps.
    - Proposed: clamp to [0, 1e15] in `sanitize`. That is a deviation, so decide.
+   **Resolved (2026-11-19):** no inventory clamp.
 7. **Released entries have no names if the line is not loaded** (`CS:370-373`). They rely on the dex name backfill. Go must set `NamesVersion` only when every chain species is named, as `go:store.go:398-403` does for graduation.
 8. **`displayName` is "Token Egg" when the line is not loaded** (`CS:258-261`). That literal is not localized, and it appears in `eggConfirm` and `useOnCurrent`. The port should use `active.displayName`, which is `#<id>` without names.
 9. **Possible Swift trap:** `rareCandyStageCosts` builds `stageIndex..<totalForms` (`CS:1183`), which traps when `stageIndex > totalForms`. Sanitize does not enforce `totalForms ≥ stageIndex + 1` (`ST:174-178`). Line normalization probably repairs this first, which I did not verify. A Go loop simply yields no costs.
@@ -882,8 +886,11 @@ The extension can compute it from `active.isShiny || active.rarity == "legendary
 12. **REST fallback and id 132:** Go skips 132 before fetching, but Swift test providers can return it. There is no divergence in the ported seeds.
 13. **Sort stability:** Swift `sorted` is not documented as stable. There are no ties at any difficulty, so this is moot. Use `sort.SliceStable` in Go anyway.
 14. **Settings Save button:** one shared Save upstream (`DSS:48-55`) versus per-row Save in the current prefs. Decision needed (§3.4).
+   **Resolved (2026-11-19):** prefs apply immediately, with no draft and no Save. The new shop-prices row writes `shop-difficulty` on change; the extension debounces the forward (300 ms, protocol §2.2).
 15. **`setSettings` "every field required" versus a new optional `shopDifficulty`** (§4.5). Amend protocol §9.2, or bump the protocol.
+   **Resolved (2026-11-19):** protocol additions are optional and additive: §9.2 is amended, no bump (still protocol 1).
 16. **Where `shopDifficulty` lives in Go:** in `settings-applied.json` only (proposed, as upstream keeps it out of the save) or also in the save. The proposal is to keep it out of the save, unlike `growthDifficulty`, which needs its last-applied value for the rescale.
+    **Resolved (2026-11-19):** `shopDifficulty` is persisted in `settings-applied.json` only, not in the save.
 17. **The Ditto reveal is not ported,** so a disguised Pokémon imported from macOS stops at its first threshold. The candy guards keep candies safe, but the companion stays stuck. This is the existing M1 decision (companion.md §4.5).
 18. **Egg purchase while offline:** upstream allows it (the tier is persisted and the species is rolled later). Go must make sure `BuyEgg` never waits on the network (§5.2, item 5).
 19. **`canBuyEgg` ignores `isHatchRetryDelayed`.** That flag only matters while incubating, and purchases are impossible then, so this is fine.

@@ -3,7 +3,7 @@
 Scope: PokeTokenBar (Swift/macOS) to the GNOME port (GJS extension + Go helper).
 Status: research only; nothing in either repo was modified.
 
-Citation conventions. `UR` = `Sources/PokeTokenBar/Core/UsageRecap.swift`, `RV` = `Sources/PokeTokenBar/UI/UsageRecapView.swift`, `AH` = `Sources/PokeTokenBar/UI/ActivityHeatmap.swift`, `AV` = `Sources/PokeTokenBar/UI/ActivityVisualization.swift`, `SB` = `Sources/PokeTokenBar/UI/StreakBadge.swift`, `PV` = `Sources/PokeTokenBar/UI/PopoverView.swift`, `LZ` = `Sources/PokeTokenBar/Core/Localization.swift`, `US` = `Sources/PokeTokenBar/Core/UsageStore.swift`, `TF` = `Sources/PokeTokenBar/Core/TokenFormatter.swift`. `URT` = `Tests/PokeTokenBarTests/UsageRecapTests.swift`, `AVT` = `Tests/PokeTokenBarTests/ActivityVisualizationTests.swift`. Port paths are relative to `PokeTokenBar-GNOME/`.
+Citation conventions. Swift paths are relative to the upstream repo root (the Swift PokeTokenBar checkout). `UR` = `Sources/PokeTokenBar/Core/UsageRecap.swift`, `RV` = `Sources/PokeTokenBar/UI/UsageRecapView.swift`, `AH` = `Sources/PokeTokenBar/UI/ActivityHeatmap.swift`, `AV` = `Sources/PokeTokenBar/UI/ActivityVisualization.swift`, `SB` = `Sources/PokeTokenBar/UI/StreakBadge.swift`, `PV` = `Sources/PokeTokenBar/UI/PopoverView.swift`, `LZ` = `Sources/PokeTokenBar/Core/Localization.swift`, `US` = `Sources/PokeTokenBar/Core/UsageStore.swift`, `TF` = `Sources/PokeTokenBar/Core/TokenFormatter.swift`. `URT` = `Tests/PokeTokenBarTests/UsageRecapTests.swift`, `AVT` = `Tests/PokeTokenBarTests/ActivityVisualizationTests.swift`. Port paths are relative to this repo root.
 
 Swift is not installed. Every number in section 5 was derived by hand from the Swift source and the Swift assertions; where a value is my derivation rather than a literal Swift assertion it is marked (derived).
 
@@ -36,7 +36,7 @@ Swift is not installed. Every number in section 5 was derived by hand from the S
 
 A single read-only screen, opened from the **Details** capsule button (`PV:281-295`, `LZ:247` "Details"; tooltip and accessibility label `recapOpen` = "Usage recap"). It replaces the whole popover body exactly like Settings (`PV:100-117`; `showingRecap` at `PV:42`, cleared on every popover reopen by `PopoverNavigation.reset()` at `PV:56-59`). There is no persisted recap state: it always opens on scope Week, offset 0 (`RV:355-357`).
 
-There is **no per-model, per-project or per-provider breakdown** anywhere in the recap. It is totals of tokens only (no cost). Aggregations: one total, one best day, active days, best streak, graduated count, plus a previous-period comparison chip. The data source is only the ledger (`store.dailyLedger`, `RV:24`); the live month series is **not** overlaid here (contrast the heatmap, section 2.2).
+There is **no per-model, per-project or per-provider breakdown** anywhere in the recap. It is totals of tokens only (no cost). Aggregations: one total, one best day, active days, best streak, graduated count, plus a previous-period comparison chip. The data source is only the ledger (`store.dailyLedger`, `RV:24`); the live month series is **not** overlaid here upstream (contrast the heatmap, section 2.2); the port overlays it anyway (see Q2, resolved).
 
 ### 1.2 Scopes, periods, ranges
 
@@ -238,6 +238,7 @@ Goal: keep `state` small; put anything large behind a command.
 - `first`: first day the grid can vouch for = `max(start, recordedSince ?? today)` (AH:100, AH:127-129), where `recordedSince = min(non-empty of ledger.CoveredSince, combined.monthDaily.start)`. Cells with `date < first` or `date > usage.calendar.today` are outside-range.
 - Only totals (no provider split, no cost): the ledger has none (`AH:174-177`).
 - Size: 112 ints, worst case about 9 digits plus comma = about 1.1 KB, typical about 0.8 KB. The documented state budget is 8 KB compact with the `state-active.json` fixture at 6.3 KB (`protocol.md:215-218`); this brings it to about 7.4 KB. Raise the stated budget to 9 KB and update the fixture. If that is unacceptable, send it only when `peak > 0` (it is `null` otherwise) or move it to a `getHeatmap` command refetched when the state's `generatedAt` day changes; I recommend state because it changes with every refresh and needs no refetch logic.
+  **Resolved (2026-11-19):** the budget is 9 KB and `heatmap` stays in `state`, always present (never `null`, no `getHeatmap`).
 - Putting the window into the helper means the extension needs neither `weekStart` nor week math for the heatmap, and the DST-sensitive part stays in tested Go.
 - The cached initial state (protocol §2.3) must recompute `heatmap` from the loaded ledger, same as `streak`.
 - Weekday row labels: derived in JS from `start`'s weekday with `Intl.DateTimeFormat(locale, {weekday: 'narrow'})`.
@@ -357,13 +358,23 @@ Swift rendering tests (`ImageRenderer`, `AVT:312-413`, `URT:343-367`) are not po
 
 **Q1 / upstream bug: heatmap with `peak == 0` strands the user.** `ActivityHeatmap.body` renders nothing when `peak == 0` (`AH:201-203`), including the page dots and the click target (`AV:68-70`: `contentShape` on an empty view). If `activityVisualization == .recentHeatmap` is persisted and no usage exists in 16 weeks (fresh install after choosing the heatmap, or a long idle), the panel is gone and the user cannot cycle back. The bars handle the equivalent case by keeping the caption (`AVT:378-389`, `testPanelKeepsThePickerForAnEmptySelectedWindow`). Proposed port behavior: keep the caption row (title + dots) and click target, draw no grid. Needs a decision.
 
+**Resolved (2026-11-19):** the caption row (title and page dots) and the click target stay; only the grid is not drawn when `peak == 0`. The user can always cycle back.
+
 **Q2: heatmap and recap disagree on the data source.** Heatmap overlays the live series on the ledger (`AH:117-123`), the recap uses the ledger only (`RV:24`). Equal after every refresh because the ledger is recorded after phase 2, but a recap opened right after a midnight tick can differ from the heatmap for "today" until the next refresh. Accept, or add the same max-overlay in `MakeRecap` (small, makes them agree). Recommend adding the overlay.
+
+**Resolved (2026-11-19):** the recap overlays the live series: per day, `tokens = max(ledger, combined monthDaily)`, and a day counts as covered (`known`) from `recordedSince` (§4.1) on. `MakeRecap` and the heatmap therefore agree.
 
 **Q3: `bestDay` tie-break** is the earliest day (Swift `max(by:)` keeps the first maximum); not covered by a Swift test. Confirm or choose latest.
 
+**Resolved (2026-11-19):** ties go to the earliest day.
+
 **Q4: cost in readouts.** Upstream shows cost in the bar and heatmap readouts for current-month days (`PV:1305-1311`); the port's bar readout passes `showsCost=false` on purpose (`usageSection.js:143`). Decide once for both.
 
+**Resolved (2026-11-19):** no cost in any readout, bars or heatmap (`showsCost=false`).
+
 **Q5: week-start in GJS.** `protocol.md:795-801` already flags `Intl.Locale.getWeekInfo` as unverified in gnome-shell 51. Heatmap row 0 and the recap week depend on it (fallback Monday). `Intl.DateTimeFormat.formatRange` for the week title is unverified too.
+
+**Resolved (2026-11-19):** for `formatRange`: use it only if GJS supports it, else build the period label from two formatted dates. The `getWeekInfo` half stays open (protocol §9.2 fallback to 1, Phase 7 check).
 
 **Q6: clicks.** Whether a `Clutter.ClickAction` on the panel steals clicks from the bar window button (section 2.7). Verify in the sandbox, not by launching gnome-shell here.
 
