@@ -463,7 +463,7 @@ and lists the tests to port with their expected values.
   `[sub:opus + frontend-design, worktree, stub]`.
 - [x] 14. Extension floating pet, D-Bus agent object, tracker and polish `[sub:opus + frontend-design]`. Runs after
   12 and 13 are merged.
-- [ ] 15. Integration `[sub:sonnet]` + review:
+- [x] 15. Integration `[sub:sonnet]` + review:
   - real helper in the sandbox;
   - RPM 0.2.0;
   - README with the hooks block and fixture screenshots;
@@ -548,3 +548,27 @@ User checks after 0.2.0:
   power-saver at enable, sandbox isolation check counting live shells only.
 - Phase 15 (docs, version 0.2.0, fixture screenshots) is prepared; the user's checks remain: CPU gate
   with two animated sprites, dragging the pet, hiding over fullscreen, hooks producing bubbles.
+
+### 2026-11-19: RPM 0.2.0 ready (Milestone 2)
+
+- Artifact: `dist/gnome-shell-extension-poketokenbar-0.2.0-1.fc45.x86_64.rpm`.
+- Orchestrator acceptance ran on the **RPM payload** in the sandbox, with the real helper, the real
+  `~/.claude` logs (read-only), PokéAPI, the official limits and the seed save:
+  - `cycle --cycle`: helper count 1 → 0 → restarted.
+  - Suites:
+    - `recap` and `pet`: 0 JS ERROR, 0 CRITICAL. The real animated sprite was shown as the pet. The
+      heatmap and the month recap were built from the real ledger.
+    - `shop`: 11 CRITICAL, all from the shot script (`ptb-shot:`). It expects the stub's wallet and
+      Mint stock; there were none from the product.
+  - Every run printed ISOLATION OK.
+- The real-data state (`snapshot --json`) is 7,190 bytes, under the 9,216-byte budget.
+- Fixes found during integration:
+  - The sandbox isolation check now counts only live-session shells (concurrent agents).
+  - The helper is stopped on `prepare-shutdown`, which removed a dateMenu JS ERROR at shell exit.
+- **Still open, user, real session:**
+  - the CPU gate with two animated sprites;
+  - dragging and petting the pet;
+  - the pet hides over fullscreen;
+  - the hooks block drives the bubbles;
+  - the back sprite when sulking.
+
