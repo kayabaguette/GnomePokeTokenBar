@@ -380,8 +380,8 @@ have caught the original portal incident.
 - [ ] End-to-end run in the nested shell and in the real session.
   - Compare today's totals with the oracle.
   - Measure CPU with the extension idle, while scanning and with the popover open.
-- [ ] Docs: README (install, architecture, screenshots), CHANGELOG, final `SPEC.md`, `tasks/lessons.md`.
-- [ ] `make pack` → `poketokenbar@local.zip`.
+- [x] Docs: README (install, architecture, screenshots), CHANGELOG, final `SPEC.md`, `tasks/lessons.md`. ✅ 2026-11-19
+- [x] `make pack` → `poketokenbar@local.zip`. ✅ 2026-11-19 (no `test/` files; `bin/ptb-helper`, `schemas/`, `metadata.json` present)
 - [ ] `make rpm` → `gnome-shell-extension-poketokenbar` (requested by the user 2026-11-18). `[sub:sonnet]`
   - rpmbuild builds from source.
   - The extension goes in `/usr/share/gnome-shell/extensions/poketokenbar@local/`.
@@ -452,3 +452,12 @@ have caught the original portal incident.
   - Phase 8: README with screenshots built from fixture data (never the user's real numbers), final
     SPEC, `make pack`.
   - Backlog items listed in the Phase 6/7 notes.
+
+### 2026-11-19: Phase 8 docs and packaging
+
+- README, SPEC and CHANGELOG finalized for Milestone 1 (0.1.1).
+- Four README screenshots in `docs/screenshots/`, rendered through the sandbox with the stub helper and
+  `state-active.json` only. Both sandbox runs (home, dex): ISOLATION OK, 0 JS ERROR, 0 CRITICAL.
+- `make pack`: 40 entries, no `test/` files.
+- **Still open:** CPU gate in the real session (awaits the user, `spikes/sprite-anim/measure-cpu.sh`)
+  and the end-to-end run in the real session.

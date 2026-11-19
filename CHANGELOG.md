@@ -77,6 +77,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   after a first miss.
 - The midnight-rollover daemon test was flaky under parallel load.
 
+### Docs
+
+- README: Milestone 1 status (0.1.1), feature list, install (RPM first, upgrade and reinstall notes),
+  configuration, data locations, privacy and network hosts, known limitations, development notes.
+- Screenshots in `docs/screenshots/`, rendered in the sandbox from fixture data only.
+- `SPEC.md`: Milestone 1 delivered summary and a "Not yet ported" list.
+
 ### Changed
 
 - Sprite frames are stored as one raw RGBA blob instead of per-frame PNGs.

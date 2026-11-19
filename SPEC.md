@@ -9,10 +9,36 @@ Index of the specifications for PokeTokenBar-GNOME.
 
 Upstream baseline: PokeTokenBar commit `38e3e55` (v2.5.7).
 
-## Milestone 1 scope
+## Milestone 1 delivered (v0.1.1)
 
-Claude Code only. Top-bar indicator, popover home (usage, chart, official limits), companion
-(egg, hatch, evolve, graduate) and Pokédex. Plan: `tasks/todo.md`.
+Claude Code only. Delivered:
+
+- Top-bar indicator with animated sprite and configurable labels.
+- Popover home: companion card, today / week / month usage and cost, daily chart, official limits
+  with pace, countdown and forecast.
+- Companion: egg, hatch, evolve, graduate; Rare Candy accrual.
+- Pokédex: grid, filters, search, species detail, representative pin, catch log, region badges.
+- Notifications, libadwaita preferences, Go helper with disk-cached PokéAPI data and sprites,
+  Fedora RPM.
+
+Plan and history: `tasks/todo.md`.
+
+## Not yet ported
+
+Ordered by value, mirroring the parity backlog in `tasks/todo.md`:
+
+1. Bag and Rare Candy use (candies accrue but cannot be spent).
+2. Shop: Mint, Shiny Charm, premium eggs.
+3. Floating desktop pet.
+4. Additional providers (Codex, Gemini CLI, OpenCode, Cursor, others).
+5. Usage recap.
+6. Activity heatmap and streak badge.
+7. Multi-account Claude.
+8. Session-key limits.
+9. Ditto disguise.
+10. Prayers.
+11. Save export and import.
+12. Translations beyond English.
 
 ## Deliberate deviations from upstream
 
