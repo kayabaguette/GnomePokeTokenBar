@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"poketokenbar/helper/internal/companion"
 )
 
 // savedEggPrayers reads eggPrayers.count from the save on disk; -1 when the key is absent.
@@ -137,5 +139,37 @@ func TestDittoRevealAfterCandy(t *testing.T) {
 				t.Fatalf("revealed state: %v", s.path("companion"))
 			}
 		})
+	}
+}
+
+// Decision 41: the helper rolls the Ditto disguise. With a seed whose fourth draw (species, shiny,
+// nature, disguise) is a multiple of 128, a ready egg hatches a disguise; it shows as itself, not shiny.
+func TestDaemonRollsTheDittoDisguise(t *testing.T) {
+	var seed uint64
+	for ; seed < 100_000; seed++ {
+		r := companion.SplitMix64{State: seed}
+		v := [4]uint64{r.Next(), r.Next(), r.Next(), r.Next()}
+		if v[3]%128 == 0 && v[1]%64 != 0 {
+			break
+		}
+	}
+	h := newHarness(t, "")
+	h.cfg.Rng = &companion.SplitMix64{State: seed}
+	h.usage.set(0)
+	writeFile(t, filepath.Join(h.cfg.StateDir, "companion-state.json"), `{"installBaselineSet":true,
+		"lastDate":"2026-01-01","claimedTodayTokensByProvider":{},"eggUsage":5000000}`)
+	h.start()
+	h.sendSettings(1, false)
+	ev := h.expect("hatch", wait, isEvent("hatch"))
+	if ev.num("speciesId") != 16 || ev.flag("isShiny") || ev.str("rarity") != "common" {
+		t.Fatalf("hatch = %v", ev)
+	}
+	raw, err := os.ReadFile(filepath.Join(h.cfg.StateDir, "companion-state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s struct{ Active struct{ DittoDisguise *int } }
+	if err := json.Unmarshal(raw, &s); err != nil || s.Active.DittoDisguise == nil || *s.Active.DittoDisguise != 16 {
+		t.Fatalf("seed %d: no disguise in the save: %s", seed, raw)
 	}
 }

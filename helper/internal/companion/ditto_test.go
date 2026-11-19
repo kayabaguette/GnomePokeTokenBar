@@ -516,3 +516,15 @@ func TestRevealBeforeTheInstallBaseline(t *testing.T) {
 	eq(t, s.st.Active.DittoRevealed, true, "revealed")
 	eq(t, len(revealEvents(evs)), 1, "event")
 }
+
+// CS:1874-1876: the reveal loads Ditto's details itself. With every name already loaded nothing
+// else would retry them (warmPending is false), so the revealed card and profile would stay empty.
+func TestRevealLoadsDittoDetailsWhenNothingElseIsPending(t *testing.T) {
+	f := dittoData(linear3())
+	f.namesFn = func(_, name string) (map[string]string, error) { return map[string]string{"en": name}, nil }
+	s := seedDisguise(t, disguiseSeed{used: 125_000_000}, f)
+	drainReveal(s)
+	eq(t, s.st.Active.DittoRevealed, true, "revealed")
+	eq(t, deref(s.st.Active.Profile.Gender), genderGenderless, "Ditto's details enriched the profile")
+	eq(t, len(s.BuildState(MoodInput{Now: fixedNow}).Active.Types), 1, "Ditto's types on the card")
+}
