@@ -30,7 +30,29 @@
         "coverage": ["empty", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "estimated", "empty", "estimated", "estimated", "empty", "estimated", "estimated", "estimated", "estimated"]
       },
       "burnTier": "fast",
-      "streak": {"days": 4, "includesToday": true}
+      "streak": {"days": 4, "includesToday": true},
+      "heatmap": {
+        "start": "2026-08-03",
+        "first": "2026-09-14",
+        "tokens": [
+          0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0,
+          282986562, 79982472, 0, 0, 192788763, 25168764, 3458754,
+          205940007, 0, 0, 259567061, 0, 72562284, 22346870,
+          122241143, 0, 73760367, 184788672, 280122569, 37285286, 23566601,
+          160882735, 156058410, 0, 139395014, 242402635, 89456183, 56467187,
+          242430499, 274206518, 89741532, 276455122, 284667456, 66295182, 87091833,
+          100593555, 0, 124871930, 171128351, 134633813, 55935342, 0,
+          75270229, 88096428, 231088497, 214386120, 176904533, 38117902, 0,
+          241552871, 268013446, 193470215, 227381090, 151206377, 22904618, 64310225,
+          259771802, 284095164, 0, 236442519, 198617043, 0, 47268331,
+          263904712, 249115386, 187291640, 0, 0, 0, 0
+        ]
+      }
     },
     "providers": {
       "claude_code": {
@@ -104,11 +126,25 @@
     "growthPercent": 64,
     "representative": {"speciesId": 12, "form": null, "shiny": true},
     "menuSubject": {"egg": false, "speciesId": 12, "form": null, "shiny": true, "back": false, "sprite": {"key": "12-sha", "manifestPath": "/home/user/.cache/poketokenbar/sprites/12-sha/manifest.json", "status": "ready"}},
-    "inventory": {"rareCandy": 1},
+    "wallet": 3214500000,
+    "inventory": {"rareCandy": 3, "mint": 1, "shinyCharm": 0},
+    "shop": {
+      "entries": [
+        {"kind": "item", "item": "mint", "tier": null, "price": 100000000, "passive": false, "owned": 1, "purchased": false, "canBuy": true, "maxCount": 32},
+        {"kind": "item", "item": "rareCandy", "tier": null, "price": 500000000, "passive": false, "owned": 3, "purchased": false, "canBuy": true, "maxCount": 6},
+        {"kind": "egg", "item": null, "tier": null, "price": 1000000000, "passive": false, "owned": 0, "purchased": false, "canBuy": true, "maxCount": 1},
+        {"kind": "egg", "item": null, "tier": "uncommon", "price": 2500000000, "passive": false, "owned": 0, "purchased": false, "canBuy": true, "maxCount": 1},
+        {"kind": "item", "item": "shinyCharm", "tier": null, "price": 3000000000, "passive": true, "owned": 0, "purchased": false, "canBuy": true, "maxCount": 1},
+        {"kind": "egg", "item": null, "tier": "rare", "price": 4000000000, "passive": false, "owned": 0, "purchased": false, "canBuy": false, "maxCount": 0}
+      ],
+      "shinyOdds": 64
+    },
+    "bag": {"candyMaxUse": 3, "canUseMint": true, "candyBlocked": null},
+    "sulkIdleSeconds": 0,
     "dexSummary": {"entries": 6, "ownedSpecies": 14, "shinySpecies": 3, "nationalTotal": 649, "badges": []},
     "levelUpUntil": null,
     "justEvolvedTo": null,
     "justGraduated": null
   },
-  "settingsApplied": {"refreshInterval": 120, "warnThreshold": 80, "critThreshold": 95, "growthDifficulty": 1.0, "weekStart": 1, "language": "en", "alwaysFacesBack": false}
+  "settingsApplied": {"refreshInterval": 120, "warnThreshold": 80, "critThreshold": 95, "growthDifficulty": 1.0, "weekStart": 1, "language": "en", "alwaysFacesBack": false, "shopDifficulty": 1.0}
 }

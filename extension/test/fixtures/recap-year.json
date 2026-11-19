@@ -1,0 +1,40 @@
+{
+  "type": "result",
+  "id": 63,
+  "ok": true,
+  "data": {
+    "scope": "year",
+    "offset": 0,
+    "start": "2026-01-01",
+    "end": "2026-12-31",
+    "total": 8338488620,
+    "isInProgress": true,
+    "previousTotal": null,
+    "bestDay": {"key": "2026-10-16", "tokens": 284667456},
+    "activeDays": 54,
+    "countedDays": 66,
+    "bestStreak": 12,
+    "canGoBack": false,
+    "buckets": [
+      {"key": "2026-01-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-02-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-03-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-04-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-05-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-06-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-07-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-08-01", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-09-01", "tokens": 1340803047, "isCurrent": false, "hasData": true},
+      {"key": "2026-10-01", "tokens": 4102340134, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-01", "tokens": 2895345439, "isCurrent": true, "hasData": true},
+      {"key": "2026-12-01", "tokens": 0, "isCurrent": false, "hasData": false}
+    ],
+    "graduated": 5,
+    "graduates": [
+      {"entryId": "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d", "speciesId": 134, "form": null, "isShiny": false, "displayName": "Vaporeon"},
+      {"entryId": "e4f5a6b7-c8d9-4e0f-8a1b-2c3d4e5f6a7b", "speciesId": 423, "form": "east", "isShiny": false, "displayName": "Gastrodon [East Sea]"},
+      {"entryId": "0d8a6b4c-3e2f-4a1b-9d7c-5f6e8a0b1c2d", "speciesId": 130, "form": null, "isShiny": false, "displayName": "Gyarados"},
+      {"entryId": "b3e9d7c1-2a4f-4e8b-a6d5-7c9f0e1b2a3d", "speciesId": 12, "form": null, "isShiny": true, "displayName": "Butterfree"}
+    ]
+  }
+}

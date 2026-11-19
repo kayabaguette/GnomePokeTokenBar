@@ -1,0 +1,15 @@
+{
+  "type": "result",
+  "id": 51,
+  "ok": true,
+  "data": {
+    "plan": {
+      "count": 3,
+      "xp": 300000000,
+      "evolves": true,
+      "graduates": false,
+      "carryoverXP": 212400000,
+      "discardedXP": 0
+    }
+  }
+}

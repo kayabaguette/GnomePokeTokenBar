@@ -1,0 +1,32 @@
+{
+  "type": "result",
+  "id": 62,
+  "ok": true,
+  "data": {
+    "scope": "week",
+    "offset": -1,
+    "start": "2026-11-09",
+    "end": "2026-11-15",
+    "total": 1026194859,
+    "isInProgress": false,
+    "previousTotal": 1168838842,
+    "bestDay": {"key": "2026-11-10", "tokens": 284095164},
+    "activeDays": 5,
+    "countedDays": 7,
+    "bestStreak": 2,
+    "canGoBack": true,
+    "buckets": [
+      {"key": "2026-11-09", "tokens": 259771802, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-10", "tokens": 284095164, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-11", "tokens": 0, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-12", "tokens": 236442519, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-13", "tokens": 198617043, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-14", "tokens": 0, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-15", "tokens": 47268331, "isCurrent": false, "hasData": true}
+    ],
+    "graduated": 1,
+    "graduates": [
+      {"entryId": "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d", "speciesId": 134, "form": null, "isShiny": false, "displayName": "Vaporeon"}
+    ]
+  }
+}

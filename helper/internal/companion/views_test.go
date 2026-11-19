@@ -95,6 +95,38 @@ func hasChild(parent string, set map[string]bool) bool {
 	return false
 }
 
+// m2Pending lists the companion fixture paths (docs/protocol.md, Milestone 2) that the Go views do
+// not emit yet. withoutPending drops them, and everything below them, from the fixture shape, so the
+// comparison stays green until each phase lands. The phase that implements a field deletes its line
+// here; from then on the shape check covers it. Groups are separated by blank lines so parallel
+// phases do not touch the same lines.
+var m2Pending = []string{
+	// Bag and Shop (phase 10)
+	".wallet",
+	".shop",
+	".bag",
+	".inventory.mint",
+	".inventory.shinyCharm",
+	".egg.guarantee",
+
+	// Pet fields (phase 11)
+	".sulkIdleSeconds",
+}
+
+func withoutPending(want map[string]bool) map[string]bool {
+	out := map[string]bool{}
+next:
+	for k := range want {
+		for _, p := range m2Pending {
+			if k == p || strings.HasPrefix(k, p+".") || strings.HasPrefix(k, p+"[]") {
+				continue next
+			}
+		}
+		out[k] = true
+	}
+	return out
+}
+
 // pidgeottoWorld approximates the fixture world: Pidgeotto at stage 2/3 and a graduated Butterfree.
 func pidgeottoWorld(t *testing.T) *Store {
 	st := freshState()
@@ -133,9 +165,9 @@ func TestPayloadShapesMatchFixtures(t *testing.T) {
 	eq(t, v.Active.DisplayName, "Pidgeotto", "name")
 	eq(t, v.Active.Types[1].Name, "Flying", "type name")
 	eq(t, v.MenuSubject.Asset, "12", "asset")
-	sameShape(t, "state.companion (active)", shapeOf(t, v), shapeOf(t, fixture(t, "state-active.json", "companion")))
+	sameShape(t, "state.companion (active)", shapeOf(t, v), withoutPending(shapeOf(t, fixture(t, "state-active.json", "companion"))))
 	egg := newStore(t, stub(linear3()), 7)
-	sameShape(t, "state.companion (egg)", shapeOf(t, egg.BuildState(MoodInput{Now: fixedNow})), shapeOf(t, fixture(t, "state-egg.json", "companion")))
+	sameShape(t, "state.companion (egg)", shapeOf(t, egg.BuildState(MoodInput{Now: fixedNow})), withoutPending(shapeOf(t, fixture(t, "state-egg.json", "companion"))))
 	sameShape(t, "getDexPage", shapeOf(t, s.DexPage(DexQuery{})), shapeOf(t, fixture(t, "dex-page.json", "data")))
 	sameShape(t, "getCatchLog", shapeOf(t, s.CatchLog(CatchLogQuery{})), shapeOf(t, fixture(t, "catch-log.json", "data")))
 	sp := s.Species(bg, 17)

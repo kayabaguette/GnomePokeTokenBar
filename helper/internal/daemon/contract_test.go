@@ -107,20 +107,89 @@ func checkResult[T any](t *testing.T, file string) {
 	checkKeys(t, file, raw, resultMsg{Type: r.Type, ID: r.ID, OK: r.OK, Data: r.Data})
 }
 
+// m2Pending lists the state-fixture paths (dotted, object keys only) that the Milestone 2 contract
+// (docs/protocol.md) added but the Go structs do not carry yet. They are removed from the fixture
+// before the strict decode and the key comparison, so this test stays green until each Go phase
+// lands. The phase that implements a field deletes its line here: once it does, the emitted key is
+// no longer in the stripped fixture and the test checks it for real. Groups are separated by blank
+// lines so parallel phases do not touch the same lines.
+var m2Pending = []string{
+	// Bag and Shop (phase 10)
+	"companion.wallet",
+	"companion.shop",
+	"companion.bag",
+	"companion.inventory.mint",
+	"companion.inventory.shinyCharm",
+	"companion.egg.guarantee",
+	"settingsApplied.shopDifficulty",
+
+	// Recap, heatmap and pet fields (phase 11)
+	"usage.combined.heatmap",
+	"companion.sulkIdleSeconds",
+}
+
+// stripPending removes the m2Pending paths from a state fixture and reports which of them it found.
+func stripPending(t *testing.T, raw []byte) ([]byte, []string) {
+	t.Helper()
+	var doc map[string]any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	var found []string
+	for _, path := range m2Pending {
+		keys := strings.Split(path, ".")
+		node := doc
+		for _, k := range keys[:len(keys)-1] {
+			next, ok := node[k].(map[string]any)
+			if !ok {
+				node = nil
+				break
+			}
+			node = next
+		}
+		if node == nil {
+			continue
+		}
+		if _, ok := node[keys[len(keys)-1]]; ok {
+			delete(node, keys[len(keys)-1])
+			found = append(found, path)
+		}
+	}
+	out, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out, found
+}
+
 // Every fixture decodes into the structs the daemon emits, with no unknown field, and re-encodes
 // to exactly the fixture's key set.
 func TestContractDrift(t *testing.T) {
+	seenPending := map[string]bool{}
+	defer func() {
+		for _, path := range m2Pending {
+			if !seenPending[path] {
+				t.Errorf("m2Pending path %q is in no state fixture: remove it", path)
+			}
+		}
+	}()
 	for _, file := range []string{"state-egg.json", "state-active.json"} {
 		t.Run(file, func(t *testing.T) {
 			raw, err := os.ReadFile(filepath.Join(fixtureDir, file))
 			if err != nil {
 				t.Fatal(err)
 			}
+			raw, found := stripPending(t, raw)
+			for _, path := range found {
+				seenPending[path] = true
+			}
 			var st stateMsg
 			strictDecode(t, raw, &st)
 			checkKeys(t, file, raw, st)
 		})
 	}
+	// M2 result fixtures (candy-plan.json, recap-week.json, recap-week-prev.json, recap-year.json) get a
+	// checkResult line here once their Go types exist (phases 10 and 11).
 	t.Run("dex-page.json", func(t *testing.T) { checkResult[companion.DexPage](t, "dex-page.json") })
 	t.Run("species.json", func(t *testing.T) { checkResult[companion.SpeciesView](t, "species.json") })
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })

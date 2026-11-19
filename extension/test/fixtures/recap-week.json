@@ -1,0 +1,30 @@
+{
+  "type": "result",
+  "id": 61,
+  "ok": true,
+  "data": {
+    "scope": "week",
+    "offset": 0,
+    "start": "2026-11-16",
+    "end": "2026-11-22",
+    "total": 700311738,
+    "isInProgress": true,
+    "previousTotal": 543866966,
+    "bestDay": {"key": "2026-11-16", "tokens": 263904712},
+    "activeDays": 3,
+    "countedDays": 3,
+    "bestStreak": 3,
+    "canGoBack": true,
+    "buckets": [
+      {"key": "2026-11-16", "tokens": 263904712, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-17", "tokens": 249115386, "isCurrent": false, "hasData": true},
+      {"key": "2026-11-18", "tokens": 187291640, "isCurrent": true, "hasData": true},
+      {"key": "2026-11-19", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-11-20", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-11-21", "tokens": 0, "isCurrent": false, "hasData": false},
+      {"key": "2026-11-22", "tokens": 0, "isCurrent": false, "hasData": false}
+    ],
+    "graduated": 0,
+    "graduates": []
+  }
+}
