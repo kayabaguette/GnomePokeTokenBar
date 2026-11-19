@@ -239,6 +239,7 @@ export async function runShop(shot) {
     await d.shot('bag-confirm-dark.png');
     await d.click(bagCandy.actor, 'Use ×2');
     await sleep(150);
+    d.log(`bag candy after use: stepper ×${bagCandy._stepper.value}, count ${bagCandy.count}`);
     d.log(`after Use ×2: tab ${d.popover._tab}, fx children ${d.popover._companion._fxLayer.get_n_children()}`);
     await d.shot('home-xp-dark.png');
     await sleep(1000);
@@ -274,16 +275,18 @@ export async function runShop(shot) {
     d.popover._bag.update(d.ptb.context());
     await sleep(300);
 
-    // H. A real item purchase: one Rare Candy.
+    // H. A real item purchase: ×2, after which the stepper must read ×1 again.
     await d.tab('shop');
     shopScroll.vadjustment.value = 0;
     const before = d.wallet();
-    while (candy._stepper.value > 1) // the ×3 from B is kept: back to one
-        await shot._clickActor(candy._stepper._minus);
-    await d.click(candy.actor, 'Buy');
-    await d.click(candy.actor, 'Buy');
+    // Two Mints (cheap enough to leave the Uncommon Egg affordable for step I).
+    const shopMint = d.shopCard('item:mint');
+    await shot._clickActor(shopMint._stepper._plus);
+    await d.click(shopMint.actor, 'Buy');
+    await d.click(shopMint.actor, 'Buy ×2');
     await sleep(600);
-    d.log(`bought a Rare Candy: wallet ${before} → ${d.wallet()}, owned ${d.ptb.context().state.companion.inventory.rareCandy}`);
+    d.log(`bought 2 Mints: wallet ${before} → ${d.wallet()}, owned ` +
+        `${d.ptb.context().state.companion.inventory.mint}; stepper ×${shopMint._stepper.value}, count ${shopMint._count}`);
     await d.shot('shop-bought-dark.png');
 
     // I. A real egg purchase: the Uncommon Egg → Home with the guarantee badge.
@@ -340,24 +343,24 @@ export async function runShopCycle(shot) {
     if (!await d.start())
         return;
     let opened = 0;
+    let beat = 0;
+    const status = () => `menu open ${d.indicator.menu.isOpen}, tab ${d.popover?._tab}, ` +
+        `candy step ${d.shopCard('item:rareCandy')?._step}`;
     for (;;) {
-        if (Main.panel.statusArea[TARGET] !== d.indicator) {
-            // PokeTokenBar was disabled first: stop here.
-            d.log(`shop-cycle: PokeTokenBar disabled; menu was open ${d.indicator.menu?.isOpen}, ` +
-                `tab ${d.indicator._popover?._tab}`);
-            return;
-        }
+        if (Main.panel.statusArea[TARGET] !== d.indicator)
+            return; // PokeTokenBar was disabled first: stop here
         if (!d.indicator.menu.isOpen) {
+            opened++;
             await d.tab('shop');
-            d.popover._shop._cards.get('item:rareCandy')?._stepper._step(1);
+            await shot._sleep(300);
+            await shot._clickActor(d.shopCard('item:rareCandy')._stepper._plus);
+            await shot._sleep(300);
             await d.click(d.shopCard('item:rareCandy').actor, 'Buy');
-            d.popover._bag.requestPlan();
-            if (opened++ === 0)
-                d.log(`shop-cycle: menu open ${d.indicator.menu.isOpen}, tab ${d.popover._tab}`);
-            else
-                d.log(`shop-cycle: menu re-opened (${opened})`);
+            d.log(`shop-cycle: open #${opened}: ${status()}`);
         }
-        await shot._sleep(400);
+        await shot._sleep(500);
+        if (++beat % 2 === 0)
+            d.log(`shop-cycle: heartbeat ${status()}`);
     }
 }
 

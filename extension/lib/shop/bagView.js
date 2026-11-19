@@ -177,7 +177,9 @@ class BagCard {
                 this._busy = false;
                 this._confirming = false;
                 this._count = 1;
+                this._stepper.set(1, this._entry.maxUse);
                 this._render();
+                this._deps.planner.requestPlan();
             }
             if (!this._deps.planner.destroyed)
                 this._deps.onUsed?.(M.feedbackFor(cmd, data));

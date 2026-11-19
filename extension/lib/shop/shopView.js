@@ -247,6 +247,7 @@ class ShopCard {
             this._busy = false;
             this._step = 'idle';
             this._count = 1; // SV:148-151
+            this._stepper.set(1, entry.maxCount);
             this._render();
             if (entry.kind === 'egg')
                 this._deps.onEggBought?.();
