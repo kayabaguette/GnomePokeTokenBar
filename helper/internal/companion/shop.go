@@ -237,10 +237,8 @@ func (s *Store) BuyEgg(tier string) (EggPurchase, error) {
 // releasedEntry records a released Pokémon: only the reached forms, the displayed shininess (a
 // disguised Ditto stays hidden), and names only from a loaded line (CS:355-375).
 func (s *Store) releasedEntry(a *monState) dexEntry {
+	// pathIDs is never empty: decode drops an active Pokémon without one (CM:522-549).
 	chain := append([]int{}, a.PathIDs[:min(len(a.PathIDs), max(1, a.StageIndex+1))]...)
-	if len(chain) == 0 {
-		chain = []int{a.BaseID}
-	}
 	now := s.now()
 	e := dexEntry{
 		ID: a.Profile.InstanceID, BaseID: a.BaseID, FinalID: chain[len(chain)-1], ChainOrder: chain,
@@ -286,11 +284,8 @@ type ShopView struct {
 // passive item last (shopEntries, CS:1304-1319). Eggs stay listed while incubating.
 func (s *Store) shopView() ShopView {
 	var entries []ShopEntry
-	for _, item := range itemKinds {
-		price, ok := s.itemPrice(item)
-		if !ok {
-			continue
-		}
+	for _, item := range itemKinds { // every ItemKind is sold
+		price, _ := s.itemPrice(item)
 		owned := s.itemCount(item)
 		entries = append(entries, ShopEntry{
 			Kind: "item", Item: strPtr(item), Price: price, Passive: itemPassive(item), Owned: owned,

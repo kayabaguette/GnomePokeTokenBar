@@ -258,6 +258,9 @@ func TestBuyErrorOrder(t *testing.T) {
 	} {
 		_, err := s.Buy(c.item, c.count)
 		eq(t, errCode(err), c.code, fmt.Sprintf("%s×%d", c.item, c.count))
+		if err.Error() == "" {
+			t.Error("empty message")
+		}
 	}
 	eq(t, s.st.SpentTokens, 0, "nothing applied")
 }
@@ -877,18 +880,17 @@ func TestHighValueCompanion(t *testing.T) {
 		disguise string
 		want     bool
 	}{
-		{"PreciousCompanionGuardTests.swift:31", true, rarityLegendary, false, "", true},
-		{"PreciousCompanionGuardTests.swift:38", true, rarityCommon, true, "", true},
-		{"PreciousCompanionGuardTests.swift:45", true, rarityLegendary, true, "", true},
-		{"PreciousCompanionGuardTests.swift:52", true, rarityCommon, false, "", false},
-		{"PreciousCompanionGuardTests.swift:57", true, rarityUncommon, false, "", false},
-		{"PreciousCompanionGuardTests.swift:62", true, rarityRare, false, "", false},
-		{"PreciousCompanionGuardTests.swift:69", false, "", false, "", false},
-		{"PreciousCompanionGuardTests.swift:75 disguised", true, rarityCommon, true, `,"dittoDisguise":10,"dittoRevealed":false`, false},
-		{"PreciousCompanionGuardTests.swift:75 revealed", true, rarityRare, true, `,"dittoDisguise":10,"dittoRevealed":true`, true},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:31", true, rarityLegendary, false, "", true},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:38", true, rarityCommon, true, "", true},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:45", true, rarityLegendary, true, "", true},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:52", true, rarityCommon, false, "", false},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:57", true, rarityUncommon, false, "", false},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:62", true, rarityRare, false, "", false},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:69", false, "", false, "", false},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:75 disguised", true, rarityCommon, true, `,"dittoDisguise":10,"dittoRevealed":false`, false},
+		{"Swift: Tests/PokeTokenBarTests/PreciousCompanionGuardTests.swift:75 revealed", true, rarityRare, true, `,"dittoDisguise":10,"dittoRevealed":true`, true},
 	}
 	for _, c := range cases {
-		// Swift: Tests/PokeTokenBarTests/<c.line>
 		v := guardStore(t, c.active, c.rarity, c.shiny, c.disguise)
 		eq(t, highValue(v), c.want, c.line)
 	}

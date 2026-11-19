@@ -227,6 +227,8 @@ func TestBatchCapsAtInventoryAndRejectsNonpositiveAmounts(t *testing.T) {
 	if p.Count != 1 || p.Evolves {
 		t.Fatalf("plan(MaxInt) = %+v", p)
 	}
+	// derived: no carryover is reported without an evolution (protocol §7.4)
+	eq(t, p, CandyPlan{Count: 1, XP: rareCandyXP}, "plan(MaxInt)")
 	eq(t, candy(t, s, math.MaxInt), CandyProgressed, "use(MaxInt)")
 	eq(t, s.st.Active.UsedAtStage, rareCandyXP, "usedAtStage")
 	eq(t, s.itemCount(itemRareCandy), 0, "stock")
