@@ -17,8 +17,16 @@ export const EGG_TIERS = [null, 'uncommon', 'rare'];
 /** XP per Rare Candy, never scaled by difficulty (bag-shop.md §2.2). */
 export const CANDY_XP = 100_000_000;
 
-/* Mint has no sprite at all, and getSprite has no item request shape
- * (protocol §8.1), so every item shows its fallback emoji (bag-shop.md §1.2). */
+/* The extension owns the item → PokéAPI sprite name table (protocol §8.1, §14 decision 37).
+ * Mint has no sprite upstream, so it is absent and keeps its emoji (bag-shop.md §1.2). */
+export const ITEM_SPRITE = {rareCandy: 'rare-candy', shinyCharm: 'shiny-charm'};
+
+/** The getSprite name of an item, or null when it has no sprite. */
+export function itemSpriteName(item) {
+    return Object.hasOwn(ITEM_SPRITE, item) ? ITEM_SPRITE[item] : null;
+}
+
+/* Shown while the sprite loads, when it is unavailable, and always for Mint. */
 const ITEM_EMOJI = {rareCandy: '🍬', mint: '🌿', shinyCharm: '✨'};
 
 export function itemName(item) {

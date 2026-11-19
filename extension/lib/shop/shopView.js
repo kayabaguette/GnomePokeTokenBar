@@ -18,7 +18,7 @@ import {rarityName} from '../viewModel.js';
 import {staticPngPath} from '../sprites.js';
 import {hbox, label, spacer, vbox, wrapLabel} from '../popover/widgets.js';
 import * as M from './shopModel.js';
-import {Stepper, card, controlButton, iconTile, setEnabled} from './shopWidgets.js';
+import {Stepper, card, controlButton, iconTile, loadItemSprite, setEnabled} from './shopWidgets.js';
 
 const EGG_ICON_SIZE = 26;
 
@@ -81,6 +81,8 @@ class ShopCard {
 
         if (entry.kind === 'egg')
             this._loadEggIcon();
+        else
+            loadItemSprite(this._icon, this._deps.sprites, entry.item, () => !this._destroyed);
     }
 
     get key() {

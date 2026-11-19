@@ -12,9 +12,10 @@ import (
 
 // spriteWant is a sprite the helper should have on disk.
 type spriteWant struct {
-	key string // the requested key
-	egg bool
-	req sprites.Request
+	key  string // the requested key
+	egg  bool
+	item string // item sprite name (key item-<name>), "" when not an item
+	req  sprites.Request
 }
 
 // menuSprite tracks the animated sprite kept ready for state.companion.menuSubject (protocol §5.4).
@@ -97,6 +98,10 @@ func loadSprite(ctx context.Context, s *sprites.Store, w spriteWant) (res sprite
 		res, err = s.Egg(ctx)
 		return res, false, err
 	}
+	if w.item != "" {
+		res, err = s.Item(ctx, w.item)
+		return res, false, err
+	}
 	res, err = s.Get(ctx, w.req)
 	if err != nil && w.req.Back && errors.Is(err, sprites.ErrUnavailable) && ctx.Err() == nil {
 		f := w.req
@@ -153,6 +158,12 @@ func (d *daemon) cmdSprite(r request) {
 	var w spriteWant
 	if a.boolean("egg", false, false) {
 		w = spriteWant{key: sprites.EggKey, egg: true}
+	} else if _, ok := a.m["item"]; ok {
+		name := a.str("item", true, "")
+		if a.err == nil && !sprites.ValidName(name) {
+			a.fail(badArgs("item must be lowercase letters, digits and '-'"))
+		}
+		w = spriteWant{key: sprites.ItemKey(name), item: name}
 	} else {
 		id := int(a.int("speciesId", true, 0, 1, maxSpecies))
 		form := a.nullableStr("form")

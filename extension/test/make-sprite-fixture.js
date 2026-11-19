@@ -119,6 +119,40 @@ GdkPixbuf.Pixbuf.new_from_bytes(new GLib.Bytes(px), GdkPixbuf.Colorspace.RGB, tr
     .savev(GLib.build_filenamev([dest, 'egg.png']), 'png', [], []);
 print('egg.png drawn');
 
+// Item sprites (protocol §8.1): 30x30 pixel-art stand-ins for PokéAPI's rare-candy and shiny-charm.
+// Drawn here so the sandbox never fetches the network. A hard-edged checker pattern makes any
+// non-nearest-neighbour scaling visible in screenshots.
+function drawItem(name, paint) {
+    const S = 30;
+    const buf = new Uint8Array(S * S * 4);
+    const put = (x, y, c) => buf.set([c[0], c[1], c[2], c[3] ?? 255], (y * S + x) * 4);
+    paint(put, S);
+    GdkPixbuf.Pixbuf.new_from_bytes(new GLib.Bytes(buf), GdkPixbuf.Colorspace.RGB, true, 8, S, S, S * 4)
+        .savev(GLib.build_filenamev([dest, `item-${name}.png`]), 'png', [], []);
+    print(`item-${name}.png drawn`);
+}
+drawItem('rare-candy', (put, S) => {
+    for (let y = 0; y < S; y++) {
+        for (let x = 0; x < S; x++) {
+            const dx = x - 14.5, dy = y - 14.5;
+            if (dx * dx + dy * dy > 11 * 11)
+                continue;
+            const edge = dx * dx + dy * dy > 9.5 * 9.5;
+            put(x, y, edge ? [30, 40, 110] : ((x >> 1) + (y >> 1)) % 2 ? [80, 140, 230] : [150, 190, 250]);
+        }
+    }
+});
+drawItem('shiny-charm', (put, S) => {
+    for (let y = 0; y < S; y++) {
+        for (let x = 0; x < S; x++) {
+            const d = Math.abs(x - 14.5) + Math.abs(y - 14.5);
+            if (d > 13)
+                continue;
+            put(x, y, d > 11 ? [90, 60, 10] : ((x >> 1) + (y >> 1)) % 2 ? [250, 200, 40] : [255, 235, 140]);
+        }
+    }
+});
+
 if (built === 0) {
     printerr('no sprite built: run Spike A first (spikes/sprite-anim/README.md §1)');
     System.exit(1);

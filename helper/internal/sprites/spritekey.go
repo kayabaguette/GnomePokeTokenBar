@@ -99,6 +99,9 @@ func RecoveryDelay(attempt int) time.Duration {
 	return time.Duration(2<<attempt) * time.Second
 }
 
+// ValidName reports whether s is a valid item sprite name (lowercase letters, digits, '-').
+func ValidName(s string) bool { return validName(s) }
+
 // validName reports whether s is safe as a path element and URL segment.
 func validName(s string) bool {
 	if s == "" {

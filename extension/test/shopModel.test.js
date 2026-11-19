@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 
 import {assert, run, test} from './harness.js';
 import * as M from '../lib/shop/shopModel.js';
+import {spriteRequestKey} from '../lib/sprites.js';
 import {COMMAND_TIMEOUTS_MS} from '../lib/helperClient.js';
 
 const fixtureDir = Gio.File.new_for_uri(import.meta.url).get_parent().get_child('fixtures');
@@ -269,6 +270,26 @@ test('Shop and Bag command timeouts (protocol §4)', () => {
     assert.equal(COMMAND_TIMEOUTS_MS.planCandies, 5_000);
     assert.equal(COMMAND_TIMEOUTS_MS.useCandy, 10_000);
     assert.equal(COMMAND_TIMEOUTS_MS.useMint, 10_000);
+});
+
+test('item sprite names (protocol §8.1): Mint has none', () => {
+    assert.equal(M.ITEM_SPRITE.rareCandy, 'rare-candy');
+    assert.equal(M.ITEM_SPRITE.shinyCharm, 'shiny-charm');
+    assert.equal(M.ITEM_SPRITE.mint, undefined);
+    assert.equal(M.itemSpriteName('rareCandy'), 'rare-candy');
+    assert.equal(M.itemSpriteName('shinyCharm'), 'shiny-charm');
+    assert.equal(M.itemSpriteName('mint'), null);
+    assert.equal(M.itemSpriteName('toString'), null);
+    assert.equal(M.itemEmoji('mint'), '🌿');
+});
+
+test('spriteRequestKey: item keys do not collide with egg or species', () => {
+    const k = spriteRequestKey({item: 'rare-candy'});
+    assert.equal(k, 'item-rare-candy');
+    assert.equal(spriteRequestKey({item: 'shiny-charm'}), 'item-shiny-charm');
+    assert.equal(k === spriteRequestKey({egg: true}), false);
+    assert.equal(k === spriteRequestKey({speciesId: 25}), false);
+    assert.equal(spriteRequestKey({egg: true, item: 'rare-candy'}), 'egg');
 });
 
 run('shopModel.test.js');
