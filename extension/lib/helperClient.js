@@ -42,6 +42,12 @@ export const COMMAND_TIMEOUTS_MS = {
     getSpecies: 30_000,
     getCatchLog: 10_000,
     getSprite: 30_000,
+    exportSave: 10_000, // Save1 relay (M3, protocol §4)
+    inspectSave: 10_000,
+    importSave: 10_000,
+    listSnapshots: 5_000,
+    createSnapshot: 10_000,
+    restoreSnapshot: 10_000,
 };
 const DEFAULT_TIMEOUT_MS = 30_000;
 

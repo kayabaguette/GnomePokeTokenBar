@@ -23,6 +23,7 @@ import {setTranslations} from './lib/i18n.js';
 import {Indicator} from './lib/indicator.js';
 import {Notifier} from './lib/notifications.js';
 import {AgentBus} from './lib/pet/agentBus.js';
+import {SaveBus} from './lib/saveBus.js';
 import {FloatingPet} from './lib/pet/floatingPet.js';
 import {
     FORWARDED_KEYS, forwardedSettings, intlFirstDay, languageFromNames, resolveWeekStart,
@@ -70,6 +71,8 @@ export default class PokeTokenBarExtension extends Extension {
             context: () => this.context(),
             openPopover: () => this._indicator?.menu.open(),
         });
+        // Save1 rides on the name AgentBus owns; exported first so it is there once the name is (§15.1).
+        this._saveBus = new SaveBus((cmd, args) => this.request(cmd, args));
         // Owned while enabled, released on disable (and so on every lock): protocol §15.
         this._agentBus = new AgentBus(event => this._pet?.handleAgentEvent(event));
 
@@ -97,6 +100,8 @@ export default class PokeTokenBarExtension extends Extension {
         }
         this._agentBus?.destroy();
         this._agentBus = null;
+        this._saveBus?.destroy();
+        this._saveBus = null;
         this._pet?.destroy();
         this._pet = null;
         this._monitorManager?.disconnectObject(this);
