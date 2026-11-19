@@ -114,15 +114,6 @@ func checkResult[T any](t *testing.T, file string) {
 // no longer in the stripped fixture and the test checks it for real. Groups are separated by blank
 // lines so parallel phases do not touch the same lines.
 var m2Pending = []string{
-	// Bag and Shop (phase 10)
-	"companion.wallet",
-	"companion.shop",
-	"companion.bag",
-	"companion.inventory.mint",
-	"companion.inventory.shinyCharm",
-	"companion.egg.guarantee",
-	"settingsApplied.shopDifficulty",
-
 	// Recap, heatmap and pet fields (phase 11)
 	"usage.combined.heatmap",
 	"companion.sulkIdleSeconds",
@@ -190,6 +181,7 @@ func TestContractDrift(t *testing.T) {
 	}
 	// M2 result fixtures (candy-plan.json, recap-week.json, recap-week-prev.json, recap-year.json) get a
 	// checkResult line here once their Go types exist (phases 10 and 11).
+	t.Run("candy-plan.json", func(t *testing.T) { checkResult[candyPlanReply](t, "candy-plan.json") })
 	t.Run("dex-page.json", func(t *testing.T) { checkResult[companion.DexPage](t, "dex-page.json") })
 	t.Run("species.json", func(t *testing.T) { checkResult[companion.SpeciesView](t, "species.json") })
 	t.Run("catch-log.json", func(t *testing.T) { checkResult[companion.CatchLog](t, "catch-log.json") })

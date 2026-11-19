@@ -56,6 +56,8 @@ func (d *daemon) command(r request) {
 		d.requestRefresh(false, nil, true)
 	case "setRepresentative":
 		d.cmdSetRepresentative(r)
+	case "buyItem", "buyEgg", "planCandies", "useCandy", "useMint":
+		d.shopCommand(r)
 	case "getDexPage":
 		d.cmdDexPage(r)
 	case "getCatchLog":
@@ -74,7 +76,7 @@ func (d *daemon) command(r request) {
 }
 
 func (d *daemon) cmdSetSettings(r request) {
-	s, err := parseSettings(r.Args)
+	s, err := parseSettings(r.Args, d.settings.ShopDifficulty)
 	if err != nil {
 		d.replyErr(r.ID, "badArgs", err.Error())
 		return
@@ -86,6 +88,7 @@ func (d *daemon) cmdSetSettings(r request) {
 		d.store.SetGrowthDifficulty(s.GrowthDifficulty)
 	}
 	s.GrowthDifficulty = d.store.GrowthDifficulty()
+	d.store.SetShopDifficulty(s.ShopDifficulty) // prices are derived: nothing is rescaled
 	d.store.SetLanguage(s.Language)
 	d.settings = s
 	d.notePersist(writeJSONAtomic(d.path(settingsFile), s), settingsFile)

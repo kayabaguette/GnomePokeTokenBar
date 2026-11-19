@@ -47,8 +47,8 @@ func TestSettingsNormalization(t *testing.T) {
 		(Settings{WeekStart: 6}).weekday() != time.Saturday {
 		t.Error("ISO weekday mapping")
 	}
-	s, err := parseSettings(json.RawMessage(`{"refreshInterval":90,"warnThreshold":90,"critThreshold":90,"growthDifficulty":0.01,"weekStart":7,"language":"de_DE","alwaysFacesBack":true,"future":1}`))
-	if err != nil || s.RefreshInterval != 60 || s.WarnThreshold != 85 || s.GrowthDifficulty != 0.1 || s.Language != "de-de" || !s.AlwaysFacesBack {
+	s, err := parseSettings(json.RawMessage(`{"refreshInterval":90,"warnThreshold":90,"critThreshold":90,"growthDifficulty":0.01,"weekStart":7,"language":"de_DE","alwaysFacesBack":true,"future":1}`), 0.7)
+	if err != nil || s.RefreshInterval != 60 || s.WarnThreshold != 85 || s.GrowthDifficulty != 0.1 || s.Language != "de-de" || !s.AlwaysFacesBack || s.ShopDifficulty != 0.7 {
 		t.Fatalf("parseSettings = %+v, %v", s, err)
 	}
 	for _, bad := range []string{`{}`, `[]`, `{"refreshInterval":60.5,"warnThreshold":80,"critThreshold":95,"growthDifficulty":1,"weekStart":1,"language":"en","alwaysFacesBack":false}`,
@@ -56,7 +56,7 @@ func TestSettingsNormalization(t *testing.T) {
 		`{"refreshInterval":60,"warnThreshold":80,"critThreshold":95,"growthDifficulty":1,"weekStart":0,"language":"en","alwaysFacesBack":false}`,
 		`{"refreshInterval":60,"warnThreshold":80,"critThreshold":95,"growthDifficulty":1,"weekStart":1,"language":null,"alwaysFacesBack":false}`,
 		`{"refreshInterval":60,"warnThreshold":80,"critThreshold":95,"growthDifficulty":1,"weekStart":1,"language":"en","alwaysFacesBack":1}`} {
-		if _, err := parseSettings(json.RawMessage(bad)); err == nil || !isBadArgs(err) {
+		if _, err := parseSettings(json.RawMessage(bad), 1); err == nil || !isBadArgs(err) {
 			t.Errorf("%s accepted (%v)", bad, err)
 		}
 	}
