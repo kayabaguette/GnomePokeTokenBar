@@ -528,3 +528,21 @@ func TestRevealLoadsDittoDetailsWhenNothingElseIsPending(t *testing.T) {
 	eq(t, deref(s.st.Active.Profile.Gender), genderGenderless, "Ditto's details enriched the profile")
 	eq(t, len(s.BuildState(MoodInput{Now: fixedNow}).Active.Types), 1, "Ditto's types on the card")
 }
+
+// Reachable after a restart: line 132 loads (disk cache) while the disguise's own line does not.
+// The reveal needs the disguise's line (its threshold node and name), so it waits.
+func TestRevealWaitsForTheDisguiseLine(t *testing.T) {
+	ditto := dittoLine()
+	f := &fakeData{lineFn: func(b int) (*Line, error) {
+		if b == dittoSpeciesID {
+			return ditto, nil
+		}
+		return nil, errOffline
+	}}
+	s := seedDisguise(t, disguiseSeed{used: 125_000_000}, f)
+	giveCandies(s, 1)
+	evs := drainReveal(s)
+	eq(t, s.st.Active.DittoRevealed, false, "no reveal without the disguise's line")
+	eq(t, len(revealEvents(evs)), 0, "no event")
+	eq(t, deref(s.BuildState(MoodInput{Now: fixedNow}).Bag.CandyBlocked), candyBlockedLineLoading, "bag")
+}
