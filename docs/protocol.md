@@ -1,13 +1,15 @@
 # Helper protocol (protocol version 1)
 
-Contract between the Go helper `ptb-helper` and the GNOME Shell 51 extension `poketokenbar@local`,
-Milestone 1. Implementers: Go daemon (plan Phase 5), Go companion (Phase 3), GJS UI (Phases 6–7).
+Contract between the Go helper `ptb-helper` and the GNOME Shell 51 extension `poketokenbar@local`.
+Milestone 1 defined it; Milestone 2 (Bag, Shop, recap, heatmap, floating pet) extends it **additively**
+under §2.7, so the protocol stays at version 1. Implementers: Go daemon and companion, GJS UI.
 
 **Division of work.** The helper does all data work: usage scanning, official limits, the companion
 game, PokéAPI and sprite decoding. It sends raw values. The extension renders. It formats numbers,
 countdowns and relative times, translates UI strings, owns GSettings, posts notifications and
-restarts the helper. Game and usage rules live in `docs/spec/{usage,companion}.md`; screens live in
-`docs/spec/ui.md`. This document only fixes the wire contract.
+restarts the helper. Game and usage rules live in `docs/spec/{usage,companion,bag-shop,recap-heatmap}.md`; screens live in
+`docs/spec/ui.md` and `docs/spec/floating-pet.md`. This document only fixes the wire contract (plus
+the extension-side agent D-Bus interface, §15).
 
 ## 1. Transport
 
@@ -112,6 +114,11 @@ the current time. As a result:
   - Totals whose day key ≠ today become zero.
   - `recentDaily` and `monthDaily` are re-windowed to end today: missing days are zero, and days
     outside the window are dropped.
+- `usage.combined.heatmap` is rebuilt from the loaded ledger and the re-windowed `monthDaily`, anchored
+  on today: cells after today are 0.
+- `companion.sulkIdleSeconds` is recomputed at `generatedAt`.
+- `companion.shop` and `companion.bag` are built from the loaded save and the last-applied
+  `shopDifficulty` (from `settings-applied.json`), so prices are right on the first frame.
 - `levelUpUntil`, `justEvolvedTo` and `justGraduated` are `null`; they live in memory only.
 - `menuSubject.sprite` is re-validated on disk. If its manifest is gone, status is `loading` and
   `manifestPath` is `null`.
@@ -126,7 +133,7 @@ the current time. As a result:
 A `state` is emitted whenever any field other than `meta.generatedAt` would change:
 
 - a refresh starts or ends;
-- the companion changes (credit, hatch, evolve, graduate, candy);
+- the companion changes (credit, hatch, evolve, graduate, candy, a purchase or an item use);
 - `setSettings` or `setRepresentative` is applied;
 - `menuSubject.sprite` changes status;
 - `levelUpUntil` expires;
@@ -134,7 +141,8 @@ A `state` is emitted whenever any field other than `meta.generatedAt` would chan
 - the **60 s tick** (below) changes something.
 
 **Time-derived fields** change with the clock alone: `pace`, `paceDelta`, the tiers, both `isStale`
-flags, `activeBlock` and `forecast` expiry, and `mood` (sulk after 3 h idle). Every 60 s the helper
+flags, `activeBlock` and `forecast` expiry, `mood` (sulk after 3 h idle) and `companion.sulkIdleSeconds`
+(whole hours, so it changes at most once an hour). Every 60 s the helper
 rebuilds the state from its in-memory inputs, without scanning. It emits the state if anything other
 than `meta.generatedAt` differs. So these values are never more than 60 s old, even with
 `refresh-interval` 0. The extension computes countdowns and relative times from its own clock.
@@ -145,7 +153,8 @@ extension replaces wholesale.
 **Ordering.**
 - An `event` is written after the `state` that already reflects it. A `hatch` handler therefore
   finds the new Pokémon in the last state.
-- A `result` is written after any `state` its command produced.
+- A `result` is written after any `state` its command produced. For `useCandy` the order is
+  `state`, then the `evolve` or `graduate` events it caused, then the `result`.
 - Writing a `result` or an `event` first flushes any coalesced, pending `state`. Coalescing never
   delays a state past a message that depends on it.
 
@@ -184,7 +193,12 @@ These changes are allowed without a version bump:
 - new message `type`s and new event `kind`s;
 - new enum values;
 - new error codes;
-- new optional command args.
+- new optional command args, including new optional `setSettings` fields (§9.2);
+- new optional fields in an on-disk sprite `manifest.json` (§8.2).
+
+Milestone 2 uses exactly these: every addition in §3 to §12 marked "M2" is additive and keeps
+`protocol` at 1. A new field of `state` or of a `result` is always present once the helper emits it
+(§1.1 Presence); "optional" applies to command args, `setSettings` fields and manifest fields.
 
 Receivers ignore unknown fields, types and kinds. An unknown enum value takes the fallback listed in
 §12. The helper ignores unknown command args. Any rename, removal, type change or change of meaning
@@ -212,9 +226,10 @@ bumps `protocol`.
 - `stateDirUnavailable`: the state dir cannot be created, locked or written;
 - `internal`: a recovered panic.
 
-**State budget.** A typical `state` is at most 8 KB compact. The `state-active.json` fixture is
-6.3 KB on the wire, and a 31-day month adds about 0.9 KB. Dex lists, the catch log and species
-details never appear in `state`; they are served on request (§7).
+**State budget.** A typical `state` is at most **9 KB** (9,216 bytes) compact, raised from 8 KB in M2
+for the heatmap, the shop list and the bag. The `state-active.json` fixture is 8,007 bytes on the wire,
+and a 31-day month adds about 0.8 KB (8,787 bytes measured). Dex lists, the catch log, species details, recap data and candy plans
+never appear in `state`; they are served on request (§7).
 
 ## 4. Commands (extension → helper)
 
@@ -222,13 +237,13 @@ The envelope is `{"id": <int>, "cmd": "<name>", "args": {…}}`, and `args` may 
 command takes none.
 
 - Replies may arrive **out of order**; correlate them by `id`.
-- The helper serves commands concurrently, except `setSettings` and `setRepresentative`, which apply in
-  arrival order.
+- The helper serves commands concurrently, except the mutating ones (`setSettings`,
+  `setRepresentative`, `buyItem`, `buyEgg`, `useCandy`, `useMint`), which apply in arrival order.
 
 | `cmd` | `args` | Reply `data` | Reply sent | Ext. timeout |
 |---|---|---|---|---|
 | `ping` | none | `{}` | immediately | 5 s |
-| `setSettings` | full forwarded set (§9.2) | the applied set, shaped like `settingsApplied` | after applying and persisting | 10 s |
+| `setSettings` | the forwarded set (§9.2) | the applied set, shaped like `settingsApplied` | after applying and persisting | 10 s |
 | `refresh` | `manual` (bool, default `false`) | `{}` | when the refresh cycle it started or joined finishes; the fresh `state` comes first | 120 s |
 | `wake` | none | `{}` | immediately; schedules a refresh and re-arms the midnight timer | 5 s |
 | `networkUp` | none | `{}` | immediately; schedules a refresh and retries pending hatch, line and sprite work | 5 s |
@@ -237,6 +252,12 @@ command takes none.
 | `getSpecies` | `speciesId` (int 1–649) | §7.2 | once PokéAPI details load or fail (at most 25 s) | 30 s |
 | `getCatchLog` | §7.3 | §7.3 | immediately | 10 s |
 | `getSprite` | §8.1 | §8.1 | once the first download or decode attempt settles (at most 25 s) | 30 s |
+| `getRecap` (M2) | §7.5 | §7.5 | immediately (local data) | 10 s |
+| `buyItem` (M2) | §7.4 | §7.4 | after applying and saving | 10 s |
+| `buyEgg` (M2) | §7.4 | §7.4 | after saving; the species prefetch starts afterwards in the background | 10 s |
+| `planCandies` (M2) | §7.4 | §7.4 | immediately; read-only | 5 s |
+| `useCandy` (M2) | §7.4 | §7.4 | after applying and saving; the `state` and any `evolve` or `graduate` events come first | 10 s |
+| `useMint` (M2) | none | §7.4 | after saving; the `state` comes first | 10 s |
 
 - **`refresh`.**
   - `manual: true` bypasses the official-limits 429 backoff and the in-memory credential cache
@@ -334,6 +355,20 @@ day, stepping +1 calendar day from `start` (never +86,400 s, so DST is safe).
 |---|---|---|---|
 | `burnTier` | BurnTier | sum of every provider's `activeBlock.tokensPerMinute`: idle at ≤ 1,000, normal below 100,000, fast below 400,000, else blazing (usage.md §4) | helper logic (mood) |
 | `streak` | `{days: int, includesToday: bool}` | consecutive active days (usage.md §6.7); `days` is 0 with no run | streak badge, shown when `days ≥ 2` (§2.1 C.3) |
+| `heatmap` (M2) | Heatmap | the 16-week activity grid, tokens only (recap-heatmap.md §2, §4.1). **Present on `combined` only**, always (never `null`). | activity heatmap, Activity click-cycle |
+
+**Heatmap** (M2) is `{start, first, tokens}`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `start` | day key | cell (column 0, row 0): the first day of the week, per the applied `weekStart`, that is 15 weeks before the week containing `calendar.today`. It is always a `weekStart` weekday, so it equals `calendar.weekStart` minus 105 days. |
+| `tokens` | int[112] | 16 columns × 7 rows, index `col*7 + row`, so index `i` is day `start + i` (calendar days, DST-safe). Value = `max(ledger tokens(day), combined monthDaily tokens(day))` (upstream `AH:117-123`). Days after `calendar.today` are 0. Exactly 112 entries, always. |
+| `first` | day key | the first day the grid can vouch for: `max(start, recordedSince)`, where `recordedSince = min(ledger coveredSince if any, combined.monthDaily.start)`. A cell with `date < first` or `date > calendar.today` is **outside range** (drawn blank, never hovered). |
+
+- The heatmap carries totals only: the ledger keeps no cost and no provider split.
+- With no usage in the grid every entry is 0 and the field is still present. The extension keeps the
+  caption row and the click target (recap-heatmap.md §6, Q1).
+- `recordedSince` is shared with `getRecap` (§7.5).
 
 **ProviderUsage** is `today`, `week`, `month`, `recentDaily` and `monthDaily` for that provider, plus:
 
@@ -411,7 +446,11 @@ day, stepping +1 calendar day from `start` (never +86,400 s, so DST is safe).
 | `growthPercent` | int 0–100 | `floor(used·100 / threshold)` of the egg or the current stage. It follows what is being raised, never the representative. | top-bar "Hatch 42%" / "Growth 42%" (§1.1) |
 | `representative` | Representative \| null | pinned Pokédex choice; `null` follows the companion being raised | right-click and dex star, detail star (§3.3, §3.4) |
 | `menuSubject` | MenuSubject | what the top bar draws | top-bar sprite (§1.3) |
-| `inventory` | `{rareCandy: int}` | candies accrue in M1 but cannot be spent | informational (Bag is LATER) |
+| `wallet` (M2) | int | spendable tokens, `max(0, usedSinceInstall − spentTokens)` (bag-shop.md §1.1); never negative | Shop header |
+| `inventory` | `{rareCandy: int, mint: int, shinyCharm: int}` | counts, **not clamped** (bag-shop.md §6 item 6). Every key is always present; an item is owned iff its count is > 0. M2 extends the M1 `{rareCandy}`. | Bag list, Shop "Owned ×n" |
+| `shop` (M2) | Shop | the Shop list, already in display order | Shop tab |
+| `bag` (M2) | Bag | Bag availability flags | Bag tab |
+| `sulkIdleSeconds` (M2) | int | idle time in **whole hours expressed in seconds** (a multiple of 3600), floored; `0` unless `mood` is `sulk`. The helper already knows the idle time (companion.md §9). | floating-pet hover suffix "Sulking for N hours/days" |
 | `dexSummary` | DexSummary | | dex empty state (§2.4), Collection tab header and medals (§3.3) |
 | `levelUpUntil` | ts \| null | end of the hatch, evolve or graduate window (4, 4 or 6 s) | celebration (§2.1 A) |
 | `justEvolvedTo` | string \| null | display name of the new species during an evolve window | status line `statusEvolved(name)` |
@@ -425,6 +464,7 @@ day, stepping +1 calendar day from `start` (never +86,400 s, so DST is safe).
 | `threshold` | int | effective hatch threshold, `round(5,000,000 × difficulty)` |
 | `imminent` | bool | `used` ≥ 90 % of `threshold`: "About to hatch!" and the wobble |
 | `hatchDelayed` | bool | the egg is ready, but the hatch waits for PokéAPI: orange warning |
+| `guarantee` (M2) | `uncommon` \| `rare` \| `null` | the rarity floor bought with a premium egg (bag-shop.md §1.8); `null` for a plain egg. Never `common` or `legendary`. | egg card badge in the rarity color |
 
 **Active:**
 
@@ -491,6 +531,40 @@ player owns that species shiny (`ownsShinySpecies`, companion.md §5.5).
 | `nationalTotal` | int | 649 |
 | `badges` | string[] | earned badge keys in display order: `region.<r>`, `regionShiny.<r>`, `unown`, `national`, `nationalShiny`. These keys are persisted and never renamed. |
 
+**Shop** (M2) is `{entries, shinyOdds}`:
+- `entries`: ShopEntry[6], already sorted (bag-shop.md §1.4). The extension never re-sorts.
+  - Order: ascending **scaled** price, except an owned passive item goes last.
+  - Default order at difficulty 1.0: `mint`, `rareCandy`, plain egg, `uncommon` egg, `shinyCharm`, `rare` egg.
+  - Eggs stay listed while an egg is incubating.
+- `shinyOdds`: int, 48 with the Shiny Charm owned, else 64. It is the denominator the next hatch will use.
+
+**ShopEntry:**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `kind` | `item` \| `egg` | |
+| `item` | Item \| null | the item for `kind: "item"`, else `null` |
+| `tier` | `uncommon` \| `rare` \| `null` | for `kind: "egg"`: the premium tier, `null` is the plain egg. Always `null` for items. |
+| `price` | int | **scaled unit price** in tokens, after the applied `shopDifficulty` (bag-shop.md §1.3). The total for N items is `price × N`; the extension does the multiplication. |
+| `passive` | bool | `true` for `shinyCharm` only: bought once, never consumed |
+| `owned` | int | `inventory` count for an item; `0` for an egg |
+| `purchased` | bool | passive and owned: the card shows "Owned" and has no button |
+| `canBuy` | bool | items: `canBuy` (sold, not an owned passive, wallet ≥ price). Eggs: `canBuyEgg`, so `false` while `companion.phase` is `egg`. |
+| `maxCount` | int | items: `maxBuyCount` (0 unless `canBuy`; 1 for a passive item; else `floor(wallet / price)`). Eggs: 1 if `canBuy`, else 0. |
+
+- The extension shows an egg entry as **locked** when `companion.phase == "egg"`; it needs no extra field.
+- An unknown `item` is skipped (§12).
+
+**Bag** (M2) is `{candyMaxUse, canUseMint, candyBlocked}`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `candyMaxUse` | int | `min(stock, needed)`, where `needed = ceil(max(0, Σ stage costs − usedAtStage) / 100,000,000)` (bag-shop.md §2.2). `0` disables Rare Candy. It is `0` iff `candyBlocked` is not `null`. |
+| `canUseMint` | bool | an active Pokémon exists and the Mint stock is > 0. It does not need the evolution line. |
+| `candyBlocked` | CandyBlocked \| `null` | why `candyMaxUse` is 0, evaluated in this order: no active Pokémon gives `egg`; stock 0 gives `noStock`; the evolution line is not loaded gives `lineLoading`; a Ditto reveal is pending gives `revealPending` (**reserved**: the Ditto reveal is not ported, so M2 never emits it); otherwise `null`. |
+
+No per-count plan table is ever put in `state`; previews come from `planCandies` (§7.4).
+
 ### 5.5 Pokémon identifiers
 
 - `speciesId`: national dex number, 1–649.
@@ -505,7 +579,8 @@ player owns that species shiny (`ownsShinySpecies`, companion.md §5.5).
 
 Same fields as the `setSettings` args (§9.2), after normalization: what the helper actually uses, for
 example a clamped `growthDifficulty`. Before any `setSettings`, it holds the persisted last-applied
-values.
+values. `shopDifficulty` (M2) is **always present** here (default 1.0, also when an M1
+`settings-applied.json` lacks it), even though it is an optional `setSettings` arg.
 
 ## 6. Events
 
@@ -513,15 +588,18 @@ The envelope is `{"type":"event","kind":"<kind>", …}`.
 
 - Each event is emitted after the `state` that reflects it (§2.4).
 - Events are not persisted and not replayed.
+- **M2 adds no event kind.** A candy that evolves or graduates the companion emits the usual `evolve`
+  or `graduate`, before the `useCandy` result. The "+XP" and sparkle feedback is driven by the
+  command **reply** (§7.4), because events are not replayed.
 - The extension gates notifications with its own settings (`companion-notifications`,
   `limit-notifications`).
 
 | `kind` | Fields | Extension (ui.md §5) |
 |---|---|---|
-| `hatch` | `speciesId`, `form`, `displayName`, `rarity`, `isShiny`, `shinyOdds` (int; 64 in M1) | "Hatched!", or "Shiny Pokémon!" with odds taken from `shinyOdds`; celebration |
+| `hatch` | `speciesId`, `form`, `displayName`, `rarity`, `isShiny`, `shinyOdds` (int; 48 if the Shiny Charm was owned at hatch time, else 64) | "Hatched!", or "Shiny Pokémon!" with odds taken from `shinyOdds`; celebration |
 | `evolve` | `fromSpeciesId`, `fromDisplayName`, `speciesId`, `form`, `displayName`, `isShiny` | "Evolved!": `<from> evolved into <to>!`; celebration |
 | `graduate` | `speciesId`, `form`, `displayName`, `rarity`, `isShiny`, `entryId` (catch-log id) | "Graduated!"; celebration |
-| `candyGranted` | `item` (`rareCandy`), `count` (1 for session, 5 for weekly), `providerId`, `windowKey` (`claude.fiveHour` or `claude.sevenDay`), `windowKind` (`session` \| `weekly`) | M1: nothing, or a quiet notification (the Bag is LATER) |
+| `candyGranted` | `item` (`rareCandy`), `count` (1 for session, 5 for weekly), `providerId`, `windowKey` (`claude.fiveHour` or `claude.sevenDay`), `windowKind` (`session` \| `weekly`) | Nothing, or a quiet notification. The Bag (M2) reflects the new stock through `companion.inventory`. |
 | `badge` | `key`, `badge` (`region` \| `regionShiny` \| `unown` \| `national` \| `nationalShiny`), `region` (Region \| null) | M1: an optional notification (dex medals are LATER). The helper emits it once per key ever: it persists `notifiedDexCompletions`, and first-run seeding never emits. |
 | `limitAlert` | `providerId`, `windowKey`, `windowKind` (WindowKind), `label` (Window.label), `tier` (`warn` \| `crit`), `utilization` | "Limit warning" or "Limit imminent", body `<window> at <percent>`. `crit` uses urgency HIGH or CRITICAL (CRITICAL pierces Do Not Disturb) and plays a sound; `warn` is silent. |
 | `authExpired` | `providerId`, `errorCode` | Nothing required; the state banner covers it. Emitted when `authState` changes to `expired`. |
@@ -536,7 +614,7 @@ The envelope is `{"type":"event","kind":"<kind>", …}`.
 keeps it in memory (usage.md §6.6). The helper restarts on every screen lock and would otherwise alert
 again after each unlock. Keys missing from the latest successful fetch are pruned from that map.
 
-## 7. Pokédex payloads
+## 7. Request payloads (Pokédex, Shop, Bag, recap)
 
 ### 7.1 `getDexPage`
 
@@ -602,7 +680,7 @@ individuals and no form ownership.
 | `form` | string \| null | |
 | `displayName` | string | with a form label for a non-default form |
 | `isRaising` | bool | |
-| `released` | bool | |
+| `released` | bool | sent off by `buyEgg` (M2); `false` in M1 saves |
 | `isShiny` | bool | |
 | `caughtAt` | ts \| null | `null` for the active individual |
 | `nature` | Nature \| null | |
@@ -649,7 +727,7 @@ The extension computes the base-stat total and the stat-bar scale (upstream `dis
 |---|---|---|
 | `id` | string | as for Individual |
 | `isRaising` | bool | the synthetic active entry. It is pinned first under `recentFirst` and last under `oldestFirst` (companion.md §5.3). |
-| `released` | bool | "RELEASED" badge; always `false` in M1 |
+| `released` | bool | "RELEASED" badge: `true` for an entry sent off by `buyEgg` (M2), `false` before |
 | `rarity`, `isShiny`, `nature`, `form` | | |
 | `caughtAt` | ts \| null | shown as a relative date |
 | `speciesId` | int | the final species reached |
@@ -657,6 +735,96 @@ The extension computes the base-stat total and the stat-bar scale (upstream `dis
 | `chain` | `[{speciesId, form, displayName}]` | the species reached, in order, with `form` resolved per species; drawn as the evolution line with names |
 
 Static thumbnails for chain nodes: `{speciesId, form, shiny: entry.isShiny, back: false, animated: false}`.
+
+### 7.4 Shop and Bag commands (M2)
+
+Types: **Item** = `rareCandy` \| `mint` \| `shinyCharm`. **CandyResult** = `evolved` \| `graduated` \|
+`progressed`. Semantics are in bag-shop.md §1.5–1.7 and §2.2–2.3.
+
+| `cmd` | `args` | Reply `data` |
+|---|---|---|
+| `buyItem` | `item` (Item), `count` (int ≥ 1, default 1) | `{item, count, spent, wallet, owned}` |
+| `buyEgg` | `tier` (`null` \| `uncommon` \| `rare`; the key must be present) | `{tier, spent, wallet, releasedEntryId}` |
+| `planCandies` | `count` (int) | `{plan: CandyPlan \| null}` |
+| `useCandy` | `count` (int ≥ 1) | `{consumed, xp, result: CandyResult}` |
+| `useMint` | none | `{nature}` |
+
+- **`buyItem`.** `count` is the number bought, `spent` = `price × count` (tokens), `wallet` is the wallet
+  after the purchase and `owned` the new inventory count of that item. All-or-nothing: nothing changes on
+  any error, and there is **no clamping**. Validation order:
+  1. an unknown `item`, or a `count` that is not an int or is < 1: `badArgs`;
+  2. a passive item with `count` ≠ 1: `badArgs`;
+  3. a passive item already owned: `alreadyOwned`;
+  4. `count` above the entry's `maxCount` (this includes a single unaffordable item): `insufficientFunds`.
+- **`buyEgg`.** `tier` is `null` (plain), `uncommon` or `rare`; `spent` is the scaled egg price,
+  `wallet` the wallet after, and `releasedEntryId` the catch-log id of the released Pokémon (`Entry.id`,
+  §7.3). The purchase releases the active Pokémon and starts a new egg (`egg.guarantee` = `tier`). It
+  never waits on the network: the species is rolled later. Validation order:
+  1. `tier` not in `[null, uncommon, rare]` (so `common` and `legendary` too), or the key missing: `badArgs`;
+  2. no active Pokémon (an egg is incubating): `noActive`;
+  3. wallet < price: `insufficientFunds`.
+- **`planCandies`** is read-only and answers on the owner goroutine. The extension calls it when the Bag
+  opens and on each stepper change.
+  - **CandyPlan** = `{count, xp, evolves, graduates, carryoverXP, discardedXP}`; all ints except the
+    two bools:
+    - `count`: the **clamped** count, `min(max(0, requested), candyMaxUse)`;
+    - `xp`: `count × 100,000,000`;
+    - `evolves`: an earlier stage is passed (never true just because the final stage is reached);
+    - `graduates`: the batch reaches the end of the line;
+    - `carryoverXP`: the XP kept at the new stage, reported only when it evolves without graduating, else 0;
+    - `discardedXP`: the XP lost past graduation, else 0.
+  - `plan` is `null` when the clamped count is 0 (also for `count` ≤ 0, an egg, no stock, or a line that is
+    not loaded): the extension shows no preview. A `count` that is not an int is `badArgs`.
+- **`useCandy`.** A `count` above `candyMaxUse` is **clamped**, not rejected (upstream semantics).
+  `consumed` is the number of candies actually spent (less than the clamped count only for a disguised
+  Ditto, which M2 does not emit); `xp` = `consumed × 100,000,000`; `result` is `graduated` if the
+  companion graduated, `evolved` if its stage rose, else `progressed`. Validation order: `badArgs`
+  (`count` not an int or < 1), `noActive`, `noStock`, `notReady` (the evolution line is not loaded, or a
+  Ditto reveal is pending). The reply order is `state`, then `evolve` or `graduate` events, then `result`.
+- **`useMint`.** Errors in order: `noActive`, `noStock`. It works while the line is loading. `nature` is
+  the new nature id (§12). The roll never returns the previous nature, and the displayed stats change
+  with it (companion.md §3.4).
+- The extension drives the "+XP" capsule (`xp`) and the Mint sparkle from these replies, and switches to
+  the Home tab itself.
+
+### 7.5 `getRecap` (M2)
+
+| Arg | Type | Meaning |
+|---|---|---|
+| `scope` | `week` \| `month` \| `year` | any other value: `badArgs` |
+| `offset` | int, −1000…0 | 0 is the running period, −1 the one before; anything else, or a non-int: `badArgs` |
+
+A period is a **calendar** week (starting on the applied `weekStart`), month or year in local time; a
+month shifts from its 1st (so "31 March − 1 month" is February). All math is in civil-date space, so it
+is DST-safe. The recap overlays the live series: per day, `tokens = max(ledger, combined monthDaily)`,
+and a day is **known** if its tokens are > 0 or it is on or after `recordedSince` (§5.2 Heatmap).
+Computation rules are recap-heatmap.md §1.3.
+
+| Data field | Type | Meaning |
+|---|---|---|
+| `scope`, `offset` | | echoed |
+| `start`, `end` | day key | first and last day of the period, **both inclusive** |
+| `total` | int | tokens over the elapsed days (days after today are excluded) |
+| `isInProgress` | bool | the period contains today and has not ended |
+| `previousTotal` | int \| null | tokens of the previous period over the **same number of days** while running, else the whole period; `null` if that range is not covered (judged on its oldest day) |
+| `bestDay` | `{key, tokens}` \| null | highest day among days with tokens > 0; ties go to the **earliest** day; `null` if none |
+| `activeDays`, `countedDays` | int | elapsed days with tokens > 0 / elapsed days that are known; shown "active/counted" |
+| `bestStreak` | int | longest run of consecutive active elapsed days **inside** the period |
+| `canGoBack` | bool | the last day of the previous period is covered |
+| `buckets` | Bucket[] | 7 (week), 28–31 (month, one per day) or 12 (year, one per month) entries |
+| `graduated` | int | catch-log entries that are not released and have `caughtAt` inside the period |
+| `graduates` | Graduate[] | at most 4 of them, newest first |
+
+- **Bucket** = `{key, tokens, isCurrent, hasData}`. `key` is the day, or the first day of the month for a
+  year bucket. `isCurrent` marks today (or the current month). `hasData` is false for future days and for
+  days not known; a known day with 0 tokens has `hasData: true`.
+- **Graduate** = `{entryId, speciesId, form, isShiny, displayName}`. `entryId` is the catch-log `Entry.id`
+  (§7.3), and `displayName` is localized with the Unown letter rule. Sprites come from the existing `getSprite`.
+- **No `delta` is sent**: the extension computes `previousTotal > 0 ? (total − previousTotal) / previousTotal
+  : none`, so the two can never disagree. No cost is sent either.
+- The companion sprite in the recap card comes from `state.companion` (`active`, or the egg when `phase` is `egg`).
+- The extension re-sends `getRecap` while the recap is visible and a new `state` changes
+  `usage.combined.today.tokens` or the day. It ignores a reply that is not for its latest request.
 
 ## 8. Sprites
 
@@ -708,7 +876,8 @@ Always use the path the helper returns; never build sprite paths.
   - `manifest.json`:
     ```json
     {"width": 50, "height": 46, "animated": true, "rgba": "frames.rgba",
-     "frames": [{"offset": 0, "delayMs": 200}, {"offset": 9200, "delayMs": 100}]}
+     "frames": [{"offset": 0, "delayMs": 200}, {"offset": 9200, "delayMs": 100}],
+     "visibleTopFraction": 0.1304}
     ```
 - **Static sprite (a PNG source: dex cells, fallbacks, items, egg):** a plain file `sprites/<key>.png`,
   with no manifest. Item keys are `item-<name>`; the egg key is `egg` (a square crop around its content).
@@ -723,6 +892,19 @@ Always use the path the helper returns; never build sprite paths.
   (companion.md §8.4).
 - `animated`: `false` for a 1-frame GIF (exactly one entry in `frames`). A 1-frame GIF counts as
   `fallback` when an animation was requested.
+- `visibleTopFraction` (M2, **optional** number, 0 ≤ v < 1, 4 decimals): where the visible sprite starts,
+  as a share of `height` above its first non-transparent row. It lets the floating pet anchor hearts and
+  bubbles on the Pokémon instead of the emptier canvas. The helper computes it when it writes the
+  manifest, as upstream does (`SpriteVisibleTop`):
+  - **Per frame:** scan rows from the top over the central columns `[int(width × 0.35),
+    max(that + 1, int(width × 0.65)))` for the first pixel with alpha > 16. If the band holds none, scan
+    the whole width. The frame's value is `row / height`; a fully transparent frame gives 0.
+  - **Per sprite:** the **median** frame, `sorted(values)[count / 2]` (integer division, so the upper
+    median for an even count). Not the minimum: a few frames that stretch to the canvas top would drag the
+    anchor away.
+  - **Fallback for the extension: 0**, in three cases: the field is absent (a manifest cached by an
+    M1 helper; manifests are immutable and are **not** migrated), the sprite is a plain `.png` (egg,
+    static fallback, item), or the value is not a number in 0…1.
 
 **Rules**
 
@@ -742,6 +924,8 @@ Always use the path the helper returns; never build sprite paths.
 ### 9.1 GSettings keys
 
 Schema id `org.gnome.shell.extensions.poketokenbar`. Enum keys are type `s` with `<choices>`.
+The extension validates every enum read (`activity-view` through a `normalizeActivityView`, like
+`normalizeWindow`); an unknown value takes the default.
 **Forwarded** means the extension sends the value in `setSettings`. **UI-only** means only the
 extension reads it.
 
@@ -763,12 +947,19 @@ extension reads it.
 | `warn-threshold` | `i` (%) | 80 | 50–95, step 5 | forwarded as `warnThreshold` | ui.md §4 Notifications; usage.md §6.6 |
 | `crit-threshold` | `i` (%) | 95 | 80–100, step 5 | forwarded as `critThreshold` | same |
 | `companion-notifications` | `b` | true | | UI-only | ui.md §5.1 |
+| `shop-difficulty` (M2) | `d` | 1.0 | 0.1–2.0 | forwarded as `shopDifficulty` | bag-shop.md §1.3, §3.4 |
+| `activity-view` (M2) | `s` | `'bars'` | `bars`, `heatmap` | UI-only | recap-heatmap.md §2.7 |
+| `floating-pet-enabled` (M2) | `b` | false | | UI-only | floating-pet.md §4.4 |
+| `floating-pet-size` (M2) | `i` (px) | 96 | 48–384; prefs enforce step 8 | UI-only | floating-pet.md §4.4 |
+| `floating-pet-bubble-alerts` (M2) | `b` | true | | UI-only | floating-pet.md §4.3, §4.4 |
+| `floating-pet-agent-activity` (M2) | `b` | true | | UI-only | floating-pet.md §4.4, §15 |
+| `floating-pet-origin` (M2) | `m(dd)` | `nothing` | the pet's bottom-left in logical stage pixels; written on drag end only | UI-only | floating-pet.md §4.4 |
 
 These are not GSettings keys:
 - the representative Pokémon, which lives in the helper's save and is set with `setRepresentative`;
 - the language, which follows the session locale (§10).
 
-LATER keys: shop difficulty, tracked providers, status checks, floating pet.
+LATER keys: tracked providers, status checks.
 
 **Threshold rule.** GSettings cannot enforce the 5-point gap.
 1. Clamp `warn` to 50–95 and `crit` to 80–100.
@@ -778,8 +969,13 @@ The helper applies this rule, and prefs use the same rule after moving either sl
 
 ### 9.2 `setSettings` args (the forwarded set)
 
-Every field is required. A missing field or a wrong JSON type gives `badArgs`, and nothing is applied.
-The helper persists the applied set as `<stateDir>/settings-applied.json`.
+Every **M1** field is required. A missing M1 field or a wrong JSON type gives `badArgs`, and nothing is
+applied. A field added in a later milestone (marked "optional" below) may be absent: the helper then keeps
+its last applied value (its default on first run), so an M1-era caller still works. A present optional
+field of the wrong type gives `badArgs`. `settingsApplied` and the `setSettings` reply always carry every
+field. The extension sends the full set, optional fields included. The helper persists the applied set
+as `<stateDir>/settings-applied.json`, and applies the persisted `shopDifficulty` **before** the first
+cached `state` (§2.3).
 
 | Field | Type | Normalization |
 |---|---|---|
@@ -790,6 +986,7 @@ The helper persists the applied set as `<stateDir>/settings-applied.json`.
 | `weekStart` | int 1–7 | ISO weekday the week starts on (1 = Monday … 7 = Sunday); out of range gives `badArgs` |
 | `language` | string | §10 |
 | `alwaysFacesBack` | bool | |
+| `shopDifficulty` (M2, **optional**) | number | clamped to 0.1–2.0 (default 1.0). It scales prices only and **never rescales anything**: prices are derived, so the next `state` simply carries the new `shop.entries[].price` values. It is stored in `settings-applied.json`, not in the save. |
 
 `weekStart` is resolved by the extension from `week-start`:
 - `monday` → 1, `sunday` → 7, `saturday` → 6;
@@ -833,9 +1030,13 @@ The extension tries `new Intl.Locale(tag).getWeekInfo?.().firstDay`, then the `w
 | `code` | Meaning | Extension |
 |---|---|---|
 | `unknownCommand` | `cmd` not recognized | log it; it is a bug |
-| `badArgs` | an arg is missing, out of range or of the wrong type | log it; it is a bug |
+| `badArgs` | an arg is missing, out of range or of the wrong type (including a `scope` or `offset` of `getRecap`, and an unknown `item`) | log it; it is a bug |
 | `notOwned` | `setRepresentative` for a species or form the player does not own | keep the previous UI state |
-| `notReady` | **Reserved; no M1 command returns it.** It means data the command depends on is still loading. It exists so a later command (for example Rare Candy use, which needs the evolution line) can say so without a protocol bump. | retry after the next `state` |
+| `notReady` | data the command depends on is still loading: `useCandy` while the evolution line is not loaded (or a Ditto reveal is pending). No M1 command returned it. | keep the button disabled until the next `state` (`bag.candyBlocked`) |
+| `insufficientFunds` (M2) | `buyItem` or `buyEgg`: the wallet is below the total price, or `count` is above `maxCount` | refresh from the next `state`; the button should already have been hidden |
+| `alreadyOwned` (M2) | `buyItem` for a passive item (Shiny Charm) the player already owns | refresh from the next `state` |
+| `noActive` (M2) | `buyEgg`, `useCandy` or `useMint` while an egg is incubating | refresh from the next `state` |
+| `noStock` (M2) | `useCandy` or `useMint` with a count of 0 in the inventory | refresh from the next `state` |
 | `unavailable` | remote data is unobtainable and nothing is cached (`getSprite` while offline) | placeholder; retry when the view reopens or after `networkUp` |
 | `internal` | unexpected helper error | log it and show a generic error |
 
@@ -879,6 +1080,10 @@ show `message`.
 | Rarity | `common`, `uncommon`, `rare`, `legendary` | `common` (gray) |
 | Region | `kanto` (1–151), `johto` (152–251), `hoenn` (252–386), `sinnoh` (387–493), `unova` (494–649) | none |
 | Nature | the 25 natures in lowercase, `hardy` … `quirky` (companion.md §3.4) | show the id |
+| Item (M2) | `rareCandy`, `mint`, `shinyCharm` | skip the entry |
+| CandyResult (M2) | `evolved`, `graduated`, `progressed` | `progressed` |
+| CandyBlocked (M2) | `egg`, `noStock`, `lineLoading`, `revealPending` | `lineLoading` |
+| RecapScope (M2) | `week`, `month`, `year` | none: sent by the extension only |
 
 **Coverage** merges the per-entry flags with an OR (usage.md §3.4):
 - unknown mixed with an estimated or reported cost gives `partial`;
@@ -897,17 +1102,25 @@ M1 prices from the pricing table only, so `reported` does not occur yet.
 
 They live in `extension/test/fixtures/`.
 - Each file holds one wire message, pretty-printed; `events.ndjson` is the exception and is compact.
+- The M2 fields are in the state fixtures and the four new result files. The recap files were generated
+  from the heatmap grid and the catch log with the stub's `make_recap`, under assertions (totals equal
+  the week and bucket sums; the heatmap equals `monthDaily` and `recentDaily` where they overlap).
+- `extension/test/stub-helper.py` serves every fixture and mutates an in-memory copy of the state.
 - Sums, thresholds, tiers and the forecast were generated under assertions.
 - Pokémon details (moves, IVs) are realistic but illustrative.
 - The time zone is Europe/Paris (UTC+1), the week starts Monday, and the date is 2026-11-18.
 
 | File | Scenario |
 |---|---|
-| `state-egg.json` (6.0 KB) | Fresh install at 07:50 local. Egg 3.1M/5M (62 %), dex empty, no Claude OAuth credentials (`authState: missing`), 4.1M tokens today. |
-| `state-active.json` (7.7 KB on disk, 6.3 KB on the wire) | 14:20 local, 187.3M tokens today. Pidgeotto, a common 3-stage line at stage 2/3 (162.4M/250M = 64 %, level 41), mood `focus`. The representative is pinned to a shiny Butterfree, so `menuSubject` differs from `active`. Max plan: 5 h window 47 % `onPace`, 7 d window 83 % `over` (warn tier), scoped Opus 31 % `wayUnder`; the forecast does not reach the reset. |
+| `state-egg.json` (6.7 KB on the wire) | Fresh install at 07:50 local. Egg 3.1M/5M (62 %), dex empty, no Claude OAuth credentials (`authState: missing`), 4.1M tokens today. M2: wallet 3.1M (nothing affordable, `candyBlocked: "egg"`), empty inventory, `egg.guarantee: null`. |
+| `state-active.json` (8.0 KB on the wire) | 14:20 local, 187.3M tokens today. Pidgeotto, a common 3-stage line at stage 2/3 (162.4M/250M = 64 %, level 41), mood `focus`. The representative is pinned to a shiny Butterfree, so `menuSubject` differs from `active`. Max plan: 5 h window 47 % `onPace`, 7 d window 83 % `over` (warn tier), scoped Opus 31 % `wayUnder`; the forecast does not reach the reset. M2: wallet 3,214,500,000, inventory 3 candies, 1 Mint, no Charm; shop in the default order, with the Charm and the plain and uncommon eggs affordable and the rare egg not; `bag.candyMaxUse` 3 (5 needed, stock 3); heatmap covering 2026-08-03 to 2026-11-22 whose first known day is 2026-09-14 (older cells blank); difficulty 1.0. |
 | `dex-page.json` | `getDexPage` result for the same world: 14 species, one species pair with forms, 3 species owned only shiny |
 | `species.json` | `getSpecies` result for Gastrodon (#423): West/East Sea forms, one East Sea individual, details ready |
 | `catch-log.json` | `getCatchLog` result: the active entry first, then 5 graduations, newest first |
+| `candy-plan.json` (M2) | `planCandies` result for `count: 3` on `state-active.json`: stage costs 250M and 375M, so the batch evolves and carries 212.4M over |
+| `recap-week.json` (M2) | `getRecap` `week`, offset 0: 2026-11-16…22, in progress, 3 of 7 days elapsed, no graduates (the empty strip) |
+| `recap-week-prev.json` (M2) | `getRecap` `week`, offset −1: a complete week with a previous-period total and one graduate |
+| `recap-year.json` (M2) | `getRecap` `year`, offset 0: 12 buckets (three with data, future months without), 5 graduates of which 4 are listed, `previousTotal: null`, `canGoBack: false` |
 | `events.ndjson` | One compact line per event kind. These are standalone examples, and the `badge` line does not match the fixture world. |
 
 ## 14. Decisions taken here (versus upstream and the specs)
@@ -926,3 +1139,127 @@ They live in `extension/test/fixtures/`.
    included.
 8. Dex cells, evolution lines and the catch log use static sprites, as upstream does.
 9. Windows with a null utilization are omitted, as upstream's `limitRow` does.
+
+**Milestone 2 decisions** (approved 2026-11-19, `tasks/todo.md` "Milestone 2 plan"). Items 10 to 16 are
+Bag and Shop, 17 to 22 recap and heatmap, 23 to 29 floating pet, 30 to 32 polish.
+
+10. **Candy has a "loading" disabled reason.** `bag.candyBlocked` is `lineLoading` while a Pokémon
+    exists but its evolution line is not loaded, and `useCandy` answers `notReady` (§5.4, §7.4). The
+    value is named `lineLoading`, as in bag-shop.md §4.1.
+11. **No inventory clamp.** The helper stores and sends inventory counts as they are (bag-shop.md §6
+    item 6); the 2^53−1 wire clamp of §1.1 still applies.
+12. **Prefs apply immediately.** The shop-prices row writes `shop-difficulty` as the slider moves and
+    has no draft and no Save. The extension forwards it through the 300 ms debounce of §2.2.
+13. **M2 protocol additions are optional and additive.** §2.7 and §9.2 are amended; the protocol
+    stays at version 1. Optional `setSettings` fields keep the last applied value when absent.
+14. **`shopDifficulty` is persisted in `settings-applied.json`**, not in the save, and is applied
+    before the first cached `state` (§9.2).
+15. **Mint changes the displayed stats**, as upstream does. The helper computes stats at view time from
+    the stored nature, so nothing is recomputed in the save (§7.4).
+16. **The hatch notification's shiny odds follow the Shiny Charm.** `hatch.shinyOdds` is 48 with the
+    Charm owned at hatch time, else 64 (§6); `shop.shinyOdds` previews the next hatch's value.
+17. **The empty-heatmap trap is fixed.** `usage.combined.heatmap` is always present, and the
+    extension keeps the caption row and the click target when the grid is empty (§5.2).
+18. **The recap overlays the live series** on the ledger, with the same `recordedSince` as the
+    heatmap, so the two never disagree (§5.2, §7.5).
+19. **Best-day ties go to the earliest day** (§7.5).
+20. **No cost in readouts.** Neither the recap nor the heatmap carries cost; the bar and heatmap
+    readouts show tokens only.
+21. **The state budget is 9 KB** (§3).
+22. **`Intl.DateTimeFormat.formatRange` is used only if GJS supports it**; otherwise the extension
+    formats the two dates itself. No wire impact.
+23. **The pet is a chrome actor** restacked just above `global.window_group`. A single `sync()` hides
+    it for the overview, fullscreen, power-save and the settings screen. No wire impact.
+24. **An egg click opens the popover**; prayers are deferred, so there is no `pray` command.
+25. **Agents report over an extension-owned D-Bus object**, `io.github.poketokenbar.Agent`, interface
+    `io.github.poketokenbar.Agent1`, with `Report(sss)` and `OpenUrl(s)`. Hooks use `busctl`. There is
+    no URL scheme handler and no `.desktop` file (§15).
+26. **Agent state is not persisted across a lock.** The extension is disabled on lock, so reports sent
+    while locked are lost and the tracker starts empty on unlock (§15).
+27. **Passive JSONL activity detection is deferred.** The helper gains no agent fields; hooks are the
+    only source.
+28. **Sprites scale by whole numbers when possible.** No wire impact.
+29. **Nothing edits `~/.claude/settings.json`.** The README shows the hooks block for the user to add.
+30. **Ctrl+click on the indicator opens the secondary menu.** No wire impact.
+31. **The extension pauses on `power-save-mode-changed`.** No wire impact.
+32. **Hatch and evolve play a CSS celebration flash**, driven by the existing `hatch` and `evolve`
+    events. No wire impact.
+
+Details settled while merging the specs into this document:
+
+33. `sulkIdleSeconds` is floored to whole hours so the 60 s tick does not emit a state every minute
+    while sulking (§5.4, §2.4).
+34. `visibleTopFraction` is optional in the manifest, and the extension falls back to 0 for old
+    manifests and for plain `.png` sprites (§8.2). Old manifests are not migrated.
+35. `getRecap` names a graduate's localized name `displayName`, like every other payload, not `name`.
+36. `settingsApplied.shopDifficulty` is always present even though the `setSettings` arg is optional.
+
+## 15. Agent D-Bus interface (extension side, not the helper protocol)
+
+Coding agents such as Claude Code report their activity to the **extension**, not to the helper: the
+helper's stdio belongs to the extension and the helper holds the state-dir lock (§2.1), so a hook
+process has no way in. The extension owns a session-bus name for the floating pet's bubbles. Parsing,
+sanitizing and the tracker live in the extension (floating-pet.md §1.6, §4.1). This interface is not
+part of protocol versioning; it changes only additively.
+
+| Item | Value |
+|---|---|
+| Bus | session |
+| Well-known name | `io.github.poketokenbar.Agent` |
+| Object path | `/io/github/poketokenbar/Agent` |
+| Interface | `io.github.poketokenbar.Agent1` |
+| Owned | `Gio.bus_own_name_on_connection` in `enable()`, released in `disable()` |
+
+```xml
+<node>
+  <interface name="io.github.poketokenbar.Agent1">
+    <method name="Report">
+      <arg type="s" name="state" direction="in"/>
+      <arg type="s" name="label" direction="in"/>
+      <arg type="s" name="message" direction="in"/>
+    </method>
+    <method name="OpenUrl">
+      <arg type="s" name="url" direction="in"/>
+    </method>
+  </interface>
+</node>
+```
+
+**`Report(sss)`:**
+- `state`: `working`, `waiting`, `done` or `idle`. It is lowercased first. Anything else is ignored.
+- `label`: the agent's name, such as the project directory. An empty string means none.
+- `message`: free text, kept only for `waiting` and `done`. An empty string means none.
+- Sanitizing and caps (upstream `AA:47-74`): control characters become spaces; format characters are
+  dropped except U+200D; whitespace runs collapse and the text is trimmed; empty becomes none. A message
+  is cut to 80 grapheme clusters and a label to 24, with a trailing `…`; more than four times the cap in
+  Unicode scalars is cut first.
+- Tracker (floating-pet.md §1.6): one entry per label, `""` for the unlabeled agent. `idle` removes the
+  entry; `working` expires after 600 s, `done` after 6 s, and `waiting` never; at most 8 labels.
+
+**`OpenUrl(s)`** takes `poketokenbar://agent?state=<state>[&label=…][&message=…]` (percent-encoded;
+scheme and host case-insensitive; the first `state` wins) and ends in the same code path as `Report`.
+It exists so the upstream parse tests port verbatim and a third-party tool can use a URL. No URL scheme
+handler is registered.
+
+**Behaviour:**
+- Both methods are fire-and-forget: they return an empty reply at once.
+- They are silently dropped when `floating-pet-enabled` or `floating-pet-agent-activity` is false.
+  Turning either off resets the tracker.
+- There is no service file, so nothing is D-Bus-activated. While the extension is disabled (off, or the
+  screen is locked) the name has no owner, and a call fails at once with "The name is not activatable".
+  Hooks must swallow that failure.
+- **Reports sent while locked are lost**, and the tracker is empty after unlock (decision 26).
+- Any local process of the user can call it. The sanitizer and the caps are the defence.
+
+**Hook example** (the README shows the full `settings.json` hooks block, which this repo never writes):
+
+```sh
+busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent \
+  io.github.poketokenbar.Agent1 Report sss "$1" "${CLAUDE_PROJECT_DIR##*/}" "" >/dev/null 2>&1 || true
+```
+
+**Why `busctl` and not `gdbus`.** `gdbus call` parses each argument as GVariant text whenever it can,
+so it silently strips quotes: checked, `NameHasOwner "'org.freedesktop.DBus'"` returned `true`, and a
+label such as `'x'` would lose its quotes. `busctl … s "'org.freedesktop.DBus'"` passes the string
+literally (`false`), and an empty string is fine. `busctl` exits 1 at once when the extension is not
+running, and `|| true` swallows it.
