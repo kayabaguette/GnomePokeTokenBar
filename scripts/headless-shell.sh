@@ -130,7 +130,17 @@ LIVE_RUNTIME=/run/user/$LIVE_UID
 ls -A "$LIVE_RUNTIME" | sort >"$LOGS/runtime-before.txt"
 live_mounts() { findmnt -rn -o TARGET,FSTYPE | grep -E "^$LIVE_RUNTIME(/| )" | sort || true; }
 live_mounts >"$LOGS/live-mounts-before.txt"
-LIVE_SHELL_BEFORE=$(pgrep -u "$LIVE_UID" -x gnome-shell | sort | tr '\n' ' ' || true)
+# Live shells only: a gnome-shell whose XDG_RUNTIME_DIR is the live one. Another agent's sandbox
+# shell (private runtime dir) must not make this run's isolation check fail.
+live_shells() {
+    local p
+    for p in $(pgrep -u "$LIVE_UID" -x gnome-shell || true); do
+        if { tr '\0' '\n' <"/proc/$p/environ" | grep -qx "XDG_RUNTIME_DIR=$LIVE_RUNTIME"; } 2>/dev/null; then
+            echo "$p"
+        fi
+    done | sort | tr '\n' ' '
+}
+LIVE_SHELL_BEFORE=$(live_shells)
 
 # shellcheck disable=SC2016  # expanded inside the private session
 INNER='
@@ -188,7 +198,7 @@ trap - EXIT
 # Isolation evidence: the live runtime dir and the live shell must be unchanged.
 ls -A "$LIVE_RUNTIME" | sort >"$LOGS/runtime-after.txt"
 live_mounts >"$LOGS/live-mounts-after.txt"
-LIVE_SHELL_AFTER=$(pgrep -u "$LIVE_UID" -x gnome-shell | sort | tr '\n' ' ' || true)
+LIVE_SHELL_AFTER=$(live_shells)
 # Entries that other tools on the machine create or remove on their own (rootless containers).
 # A change there is reported but cannot come from the sandbox: sandbox processes run with
 # XDG_RUNTIME_DIR=$RUN, and the mount comparison below still covers the real risk.
