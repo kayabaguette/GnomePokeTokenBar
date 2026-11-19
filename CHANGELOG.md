@@ -7,6 +7,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Floating desktop pet (Milestone 2, `docs/spec/floating-pet.md`):
+  - a chrome actor restacked just above the windows, under the top bar, menus and banners; one
+    `sync()` hides it in the overview, over fullscreen windows, while the display sleeps and when
+    the setting is off; only the drawn sprite is reactive, so clicks beside it reach the windows;
+  - the representative sprite (back view on sulk or *Show back view*), 48–384 px with integer
+    upscaling, drag with work-area clamping, the position saved on release, a bottom-right default
+    and off-screen recovery;
+  - hover callout (today's tokens, highest limit, sulk duration), a 6 s event callout for hatch,
+    evolve, graduate and medals, petting hearts anchored on the sprite's visible top, a context menu
+    (*Open Token Bar*, *Turn off floating pet*, *Show back view*);
+  - limit-alert speech bubbles from `limitAlert` events: batched for 250 ms, critical first, 6 s TTL,
+    gated by *Show notifications as bubbles* only;
+  - five GSettings keys and a *Floating pet* preferences group; the *Show back view* row moves there;
+    a *Show floating pet* switch in the indicator menu and an eye toggle in the popover footer.
+- Agent activity over D-Bus (protocol §15): `io.github.poketokenbar.Agent` with `Report(sss)` and
+  `OpenUrl(s)`, owned while the extension is enabled. Grapheme-aware sanitizing and caps, the
+  multi-agent tracker, bubbles, a bob while working and a run to the pointer on done. The README
+  shows the Claude Code hooks block; nothing edits `~/.claude`.
+- Ported Swift tests: `AgentActivityTests`, `FloatingPetAgentTests` (pure and wiring, geometry
+  mirrored to y-down), `FloatingPetPettingTests` and `PetEventLineTests`; bubble fitting as property
+  tests over Pango.
+- Sandbox suites `pet` and `pet-prefs` (`extension/test/shot-extension/petSuite.js`); agent calls go to
+  the sandbox's private bus only.
+- Indicator: Ctrl+click opens the secondary menu; the bar sprite pauses while the display is in
+  power-save; hatch and evolve flash the bar and the companion card.
+
 - `make rpm`: builds an installable Fedora RPM (`packaging/gnome-shell-extension-poketokenbar.spec`) from the
   working tree; the helper is installed in `/usr/libexec/poketokenbar/` and symlinked into the extension.
 - Project skeleton: Go helper (`ptb-helper`: `--version`, `serve` NDJSON handshake and ping,

@@ -74,6 +74,67 @@ Open preferences from the gear in the popover footer, or right-click the indicat
 interval, animation quality, menu-bar items and limit color mode, used or remaining limits, chart
 period, week start, growth difficulty, warn / critical thresholds, and notification toggles.
 
+## Floating pet and agent bubbles
+
+Turn it on in **Settings → Floating pet**, from the indicator's right-click menu, or with the eye in
+the popover footer. Your Pokémon then stands over your windows, under the top bar, menus and
+notifications.
+
+- **Drag** it anywhere; the spot is saved when you let go and kept inside the screen's work area.
+  It starts in the bottom-right corner and comes back there if its monitor is unplugged.
+- **Hover** shows today's tokens and the highest limit; **stroke** it side to side for a heart;
+  **click** opens the popover; **right-click** offers *Open Token Bar*, *Turn off floating pet* and
+  *Show back view*.
+- Limit alerts pop up as a speech bubble for 6 s (**Show notifications as bubbles**, independent of
+  the notification setting), and hatches, evolutions and medals show their line in the callout.
+- It hides in the overview, over fullscreen windows and while the display sleeps. With animations
+  off or the power-saver profile on, bubbles still show but the pet does not move.
+
+**Agent activity.** Coding agents report to the extension over the session bus: the pet bobs while
+an agent works, asks for you in a bubble when it waits, and runs to your pointer when it is done.
+
+| Item | Value |
+|---|---|
+| Name | `io.github.poketokenbar.Agent` |
+| Object | `/io/github/poketokenbar/Agent` |
+| Method | `io.github.poketokenbar.Agent1.Report(state, label, message)` |
+
+- `state` is `working`, `waiting`, `done` or `idle`. `label` (up to 24 characters) names the agent so
+  several can run at once; `message` (up to 80) is shown for `waiting` and `done`. Empty strings mean
+  none.
+- `working` falls back to idle after 10 minutes without news; `done` shows for 6 seconds, then the
+  pet walks home; `waiting` stays until that agent's next report or a click on the pet. A click
+  clears every question and still opens the popover. Up to 8 labels are tracked.
+- Reports are dropped while the pet or **React to agent activity** is off, and reports sent while the
+  screen is locked are lost (the shell disables extensions on lock).
+- `OpenUrl(s)` accepts the upstream `poketokenbar://agent?state=…&label=…&message=…` form. No URL
+  handler is installed.
+
+**Claude Code.** Setup is manual: PokeTokenBar never edits your agent settings. Add these hooks to
+`~/.claude/settings.json`. Each labels the session with its project folder. `|| true` keeps a hook
+quiet when the extension is off (the name is then not owned and `busctl` fails at once). The
+`Notification` matcher skips Claude Code's idle reminder, which would otherwise leave a "waiting"
+bubble after every turn. `Stop` does not fire when you interrupt a turn (Esc), so the pet keeps
+working until the 10-minute timeout or an `idle` report.
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss working \"${CLAUDE_PROJECT_DIR##*/}\" '' >/dev/null 2>&1 || true" }] }],
+    "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss working \"${CLAUDE_PROJECT_DIR##*/}\" '' >/dev/null 2>&1 || true" }] }],
+    "PreToolUse": [{ "matcher": "AskUserQuestion", "hooks": [{ "type": "command", "command": "busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss waiting \"${CLAUDE_PROJECT_DIR##*/}\" '' >/dev/null 2>&1 || true" }] }],
+    "Notification": [{ "matcher": "permission_prompt|elicitation_dialog", "hooks": [{ "type": "command", "command": "busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss waiting \"${CLAUDE_PROJECT_DIR##*/}\" '' >/dev/null 2>&1 || true" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss done \"${CLAUDE_PROJECT_DIR##*/}\" '' >/dev/null 2>&1 || true" }] }]
+  }
+}
+```
+
+Use `busctl`, not `gdbus call`: `gdbus` parses its arguments as GVariant text and would strip quotes
+from a label such as `'x'`.
+
+**Other agents** can call the same method, for example
+`busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss done my-app "Build passed" || true`.
+
 ## Data locations
 
 | What | Where |
@@ -100,7 +161,8 @@ period, week start, growth difficulty, warn / critical thresholds, and notificat
 - Official limits go stale when Claude Code is idle longer than the token lifetime (the token is never
   refreshed).
 - Notifications are cleared on screen lock, because the shell disables extensions then.
-- Not yet ported: shop, bag and Rare Candy use, floating desktop pet, usage recap. See `SPEC.md`.
+- Not yet ported: shop, bag and Rare Candy use, usage recap. See `SPEC.md`.
+- The floating pet does not pray over the egg yet: a click on the egg opens the popover.
 
 ## Development
 
