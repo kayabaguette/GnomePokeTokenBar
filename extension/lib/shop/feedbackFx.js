@@ -30,10 +30,11 @@ const SPARKLES = [
 ];
 
 /* A transient actor whose parent (the card) can be destroyed mid-animation.
- * Only a finished ease may destroy it: an interrupted one means the card is
- * being torn down, which takes the actor with it, and destroying it from
- * inside that stop would edit Clutter's transition table mid-iteration (the
- * GLib-CRITICAL phase 20 hit with the pet's 🙏). */
+ * Only a finished ease may destroy it; an interrupted one is left to the
+ * card's teardown. This is the rule the pet's 🙏 follows since phase 20, where
+ * a destroy from an interrupted stop logged a GLib-CRITICAL. No path to these
+ * actors reproduced that CRITICAL (phase 22a): on disable the card is
+ * destroyed first, so `_ptbGone` is already set when the stop arrives. */
 function transient(actor) {
     actor._ptbGone = false;
     actor.connect('destroy', () => {

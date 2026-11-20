@@ -62,9 +62,15 @@
   - On disable the card is destroyed before its effects stop. The `destroy` signal sets `_ptbGone`
     first, so the old code was a no-op there. These instances were latent, not a live CRITICAL.
   - Tab switches and menu closes do not stop transitions.
-  - The CRITICAL needs a stop on a live actor. For the pet, `removeChrome` unstaged the root before
-    destroying it. A forced `remove_all_transitions()` on live fx actors reached the old `dispose`
-    from inside the stop; the fixed code does not.
+  - The pet's CRITICAL came from a stop that arrived while the 🙏 was still alive
+    (`removeChrome` → `transition-removed`, `finished=false`, before its `destroy`). Nothing in the
+    popover delivers such a stop to an fx actor: unstaging the menu from `uiGroup` and detaching
+    the fx layer interrupted nothing.
+  - A forced `remove_all_transitions()` on live fx actors did reach the old destroy from inside the
+    stop, 3 times, but logged 0 CRITICAL. Why the pet's path CRITICALs and this one does not was not
+    identified. The fix is for consistency with the rule, not a reproduced bug.
+  - After the fix, a forced interruption leaves the actor frozen in the layer (6 → 16 children)
+    until the card goes. No product path does that.
 - **Rule.**
   - Only a finished ease may destroy its own actor (`onStopped: finished => { if (finished) … }`,
     or `onComplete`). An interrupted one is left to its parent's teardown.
@@ -99,8 +105,20 @@
   - Prove a lifecycle hook fires on the exact path before calling the bug fixed. Log the hook, and
     show the trigger in the same run: the stub's write time against "Shutting down", plus a log of
     the dispatch or the refusal.
-  - Inject each defence alone (`p-nohook`, `p-nostop`, `p-noclose` in the phase 22a runs). Only
-    the no-hook build reproduced the error.
+  - Repro: `PTB_STUB_EXTRA='"speciesDelay": 30' extension/test/prepare-sandbox.sh DEST
+    state-active.json 6`, then `PTB_SHOT_SUITE=cycle scripts/headless-shell.sh --ext
+    DEST/poketokenbar@local --ext extension/test/shot-extension --enable poketokenbar@local --enable
+    ptb-shot@local --duration 24 --cycle`. Event 7 (limitAlert) lands near exit on most runs.
+  - To prove the trigger in a passing run, patch the sandbox copy, never the repo:
+    - in the stub's event loop, log each event write with ms time;
+    - in `_onEvent` and `Notifier.handle`, log each dispatch and each refusal.
+    A run counts only if an event was written after "Shutting down" and was then dropped or
+    refused. Phase 22a had 5 such runs.
+  - Inject each defence alone: remove the hook, keep the hook without `stop()`, or keep it without
+    `close()`. Only the no-hook build reproduced the error, and each layer was seen working alone.
+  - Measured residual: the pet root is destroyed with `uiGroup` before the hook runs. The pet's
+    timers and `AgentBus` are not stopped there. Two pet-pray hold runs showed 0 pet timers armed
+    at teardown and 0 errors.
   - For shell-exit behaviour, trust only signals seen in the sandbox log. On 51 the panel destroying
     our indicator is the first one we own.
 
