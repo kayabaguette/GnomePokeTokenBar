@@ -211,13 +211,13 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
                 show(v);
         });
         show(P.snapPetSize(settings.get_int('floating-pet-size')));
-        group.add(size);
 
         const bubbles = this._switchRow(settings, 'floating-pet-bubble-alerts', _('Show notifications as bubbles'),
             _('Limit alerts also pop up over the pet'));
         const agents = this._switchRow(settings, 'floating-pet-agent-activity', _('React to agent activity'),
             _('Coding agents drive it over D-Bus — see the README'));
-        // The pet's own rows show only while it is on (SettingsView.swift:373).
+        // The pet's own rows show only while it is on (SettingsView.swift:373). Each row is added
+        // here only: a second group.add() of the same row is an Adwaita-CRITICAL.
         for (const row of [size, bubbles, agents]) {
             settings.bind('floating-pet-enabled', row, 'visible', Gio.SettingsBindFlags.GET);
             group.add(row);

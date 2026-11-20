@@ -23,7 +23,8 @@
 #   --seed-state F copy companion save F into the helper state dir (__TODAY__ -> today's date)
 #   --prefs UUID   open that extension's preferences window once the shell is up
 #
-# Output: .sandbox/logs/<timestamp>/ with shell.log, extension-info.txt, isolation.txt.
+# Output: .sandbox/logs/<timestamp>/ with shell.log, session.log (prefs process and other bus
+# services), extension-info.txt, log-check.txt (JS ERROR / CRITICAL counts) and isolation.txt.
 # Exit status is non-zero if isolation checks fail.
 set -euo pipefail
 
@@ -51,7 +52,7 @@ while (($#)); do
         --cycle) CYCLE=1; shift ;;
         --seed-state) SEED=$(realpath -e "$2") || die "no such seed: $2"; shift 2 ;;
         --prefs) PREFS=$2; shift 2 ;;
-        -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
         *) die "unknown argument: $1" ;;
     esac
 done
@@ -228,7 +229,15 @@ ok=1
     if ((ok)); then echo "ISOLATION OK"; else echo "ISOLATION FAILED"; fi
 } >>"$LOGS/isolation.txt" 2>&1
 
+# Error counts per log. The shell writes shell.log; the bus-activated prefs process and the other
+# session services write session.log, so a prefs CRITICAL never shows in shell.log (phase 22a).
+count() { grep -c -- "$1" "$2" 2>/dev/null || true; }
+for f in shell session; do
+    echo "$f.log: JS ERROR $(count 'JS ERROR' "$LOGS/$f.log"), CRITICAL $(count CRITICAL "$LOGS/$f.log")"
+done >"$LOGS/log-check.txt"
+
 echo "logs: $LOGS"
+cat "$LOGS/log-check.txt"
 cat "$LOGS/isolation.txt"
 ((ok)) || exit 1
 exit "$status"

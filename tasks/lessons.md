@@ -103,3 +103,19 @@
     the no-hook build reproduced the error.
   - For shell-exit behaviour, trust only signals seen in the sandbox log. On 51 the panel destroying
     our indicator is the first one we own.
+
+## 2026-11-19 — The prefs process logs to session.log, which no check read
+
+- **What happened.** `prefs.js _floatingPet` added the Size row with `group.add(size)` and again in
+  the loop that binds the pet rows' visibility. Every prefs window logged an Adwaita-CRITICAL
+  (`adw_preferences_group_add: gtk_widget_get_parent (child) == NULL`), from M2 until phase 22a.
+- **Why it was missed.** Sandbox acceptance grepped `shell.log` for JS ERROR and CRITICAL. The
+  prefs window is a separate bus-activated process (`org.gnome.Shell.Extensions`), and its stderr
+  goes to `session.log`. The row still rendered, because the second add failed. So the screenshots
+  looked right.
+- **Fix and sweep.** One `group.add` per row. Every `add`/`add_row`/`add_suffix` in `prefs.js` and
+  `lib/backupPage.js` was checked, and there are no other double adds. Before the fix, `backup-prefs`
+  produced 1 CRITICAL in `session.log`; after it, 0. `pet-prefs` with the pet on shows Size, bubbles
+  and agents once each.
+- **Rule.** `scripts/headless-shell.sh` now writes `log-check.txt` and prints JS ERROR and
+  CRITICAL counts for both `shell.log` and `session.log`. Acceptance quotes both lines.
