@@ -5,6 +5,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+### Added
+
+- Item sprites in the Shop and Bag cards (`docs/spec/items-medals.md`): the helper serves them through
+  `getSprite {item}`; the extension owns the name table.
+- Prayers (`docs/spec/prayers-ditto.md`): left-clicking the floating egg pet prays, with a wobble, 🙏
+  particles and a prayer line. A `pray` helper command saves the count, which the hatched Pokémon
+  keeps, and the hatch text mentions it.
+- Ditto disguise: the 1/128 roll and the reveal at the growth threshold (`dittoReveal` event, notice
+  and a 🎭 card effect).
+- Save export and import (`docs/spec/save-transfer.md`):
+  - schema 2 envelopes, and import of macOS app envelope exports;
+  - a mandatory pre-import backup, and snapshots (automatic and manual) with restore;
+  - six helper commands, relayed to preferences by the extension's `Save1` D-Bus interface, which
+    carries paths only;
+  - a *Backup & Transfer* preferences page.
+- Medals were already delivered in Milestone 1; this milestone only added tests and docs.
+
+### Fixed
+
+- Shutdown no longer logs a JS ERROR: the extension stops posting when the shell tears its UI down
+  at exit.
+- A finished feedback ease is the only thing that destroys its actor in the Shop.
+- The *Size* row of the floating pet preferences is added once, which removes an Adwaita CRITICAL in
+  every prefs window.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added

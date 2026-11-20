@@ -3,7 +3,7 @@
 Port of [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) (macOS) to GNOME Shell 51 on Fedora Linux.
 It tracks Claude Code token usage and turns it into a Pokémon companion in the top bar.
 
-**Status:** Milestone 2 complete, current version 0.2.0 (Claude Code only).
+**Status:** Milestone 3 complete, current version 0.3.0 (Claude Code only).
 
 ## Features
 
@@ -19,6 +19,8 @@ It tracks Claude Code token usage and turns it into a Pokémon companion in the 
   use Rare Candy and Mint from the Bag. A *Shop prices* slider in Settings rescales the prices.
 - **Usage recap and heatmap:** click the Activity row to switch between the daily bars and a 16-week
   heatmap; *Details* opens a week / month / year recap card.
+- **Prayers:** left-click the egg pet to pray over it; the count carries into the hatched Pokémon.
+- **Backup & Transfer:** export, import and snapshot your save from Settings.
 - **Floating pet:** your Pokémon on the desktop, draggable, with hover, petting and speech bubbles for
   limit alerts and events. Coding agents can make it work, ask and celebrate through D-Bus bubbles
   fed by Claude Code hooks (see below).
@@ -40,7 +42,7 @@ The numbers are sample values and the sprites are placeholder drawings, not real
 |---|---|
 | ![Pokédex grid](docs/screenshots/pokedex-grid-dark.png) | ![Species detail](docs/screenshots/pokedex-species-detail-dark.png) |
 
-| Shop | Bag |
+| Shop (item sprites) | Bag (item sprites) |
 |---|---|
 | ![Shop tab](docs/screenshots/shop-dark.png) | ![Bag tab](docs/screenshots/bag-dark.png) |
 
@@ -63,8 +65,8 @@ make rpm
 sudo dnf install dist/gnome-shell-extension-poketokenbar-*.rpm
 ```
 
-Upgrading to a newer version, for example from 0.1.x:
-`sudo dnf upgrade dist/gnome-shell-extension-poketokenbar-0.2.0-1.fc45.x86_64.rpm`. To reinstall the same version
+Upgrading to a newer version, for example from 0.2.x:
+`sudo dnf upgrade dist/gnome-shell-extension-poketokenbar-0.3.0-1.fc45.x86_64.rpm`. To reinstall the same version
 (rebuilt from the working tree), use `sudo dnf reinstall dist/...rpm`.
 
 Then log out and back in (Wayland cannot reload extensions; an upgrade only takes effect after that),
@@ -106,12 +108,28 @@ notifications.
 - **Drag** it anywhere; the spot is saved when you let go and kept inside the screen's work area.
   It starts in the bottom-right corner and comes back there if its monitor is unplugged.
 - **Hover** shows today's tokens and the highest limit; **stroke** it side to side for a heart;
-  **click** opens the popover; **right-click** offers *Open Token Bar*, *Turn off floating pet* and
+  **click** opens the popover (on an egg it prays instead, see below); **right-click** offers *Open Token Bar*, *Turn off floating pet* and
   *Show back view*.
 - Limit alerts pop up as a speech bubble for 6 s (**Show notifications as bubbles**, independent of
   the notification setting), and hatches, evolutions and medals show their line in the callout.
 - It hides in the overview, over fullscreen windows and while the display sleeps. With animations
   off or the power-saver profile on, bubbles still show but the pet does not move.
+
+### Prayers
+
+**Left-click the egg pet** to pray over it. The egg wobbles, 🙏 particles rise, a prayer line shows
+in the callout, and the count is saved each time. When the egg hatches, the Pokémon keeps the
+prayer count, and the hatch text mentions it. With animations off, the wobble and the particles are
+skipped. To open the popover from an egg, use the context menu entry *Open Token Bar*. A hatched
+pet still opens the popover on click.
+
+| Egg praying (sample data) | Ditto reveal card effect (sample data; the stub does not swap the sprite) |
+|---|---|
+| ![Praying over the egg](docs/screenshots/pet-pray-dark.png) | ![Ditto reveal](docs/screenshots/ditto-reveal-dark.png) |
+
+**Ditto.** A genuine Ditto can start disguised as another Pokémon (a 1 in 128 roll, as in the macOS
+app). The disguise is lifted when it reaches its growth threshold: you get a notice and a 🎭 card
+effect, and the companion card then shows Ditto.
 
 **Agent activity.** Coding agents report to the extension over the session bus: the pet bobs while
 an agent works, asks for you in a bubble when it waits, and runs to your pointer when it is done.
@@ -158,6 +176,26 @@ from a label such as `'x'`.
 **Other agents** can call the same method, for example
 `busctl --user call io.github.poketokenbar.Agent /io/github/poketokenbar/Agent io.github.poketokenbar.Agent1 Report sss done my-app "Build passed" || true`.
 
+## Backup & Transfer
+
+Open **Settings → Backup & Transfer**. The page offers:
+
+- **Export:** writes a schema 2 envelope file you choose.
+- **Import:** reads an envelope file. A backup of your current save is always taken first (the last 5
+  are kept). Your growth difficulty, language and device fields stay as they are.
+- **Snapshots:** the helper snapshots the save every 12 hours (the last 10 are kept); you can create
+  one by hand and restore any of them from the *Automatic Backups* list (a safety snapshot is taken
+  before a restore).
+
+The page talks to the helper through the extension, so **the extension must be enabled** for it to
+work. Exports made by the macOS app import fine. Importing a GNOME export in the macOS app is
+untested on a real Mac. A bare `companion-state.json` copied from macOS is not accepted; use the
+app's export.
+
+| Backup & Transfer |
+|---|
+| ![Backup and Transfer preferences](docs/screenshots/backup-prefs.png) |
+
 ## Data locations
 
 | What | Where |
@@ -187,8 +225,8 @@ from a label such as `'x'`.
   state is lost on lock for the same reason.
 - The floating pet hides over fullscreen windows, and its hit area is a rectangle around the sprite.
 - HiDPI and multi-monitor setups are less tested.
-- Not ported yet: prayers, the Ditto reveal, other providers, multiple Claude accounts, save
-  export/import, and the eight UI languages. See `SPEC.md`.
+- Not ported yet: other providers, multiple Claude accounts, session-key limits, passive agent
+  detection and the eight UI languages. See `SPEC.md`.
 
 ## Development
 

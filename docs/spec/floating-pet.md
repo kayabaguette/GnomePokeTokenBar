@@ -489,7 +489,7 @@ Main.layoutManager.uiGroup.set_child_above_sibling(this._root, global.window_gro
 | Petting and heart bubble | **Keep** | It is cheap: a pure detector and static pixel art (upload the 17×16 grid once as an `St.ImageContent` scaled ×2 NEAREST). Anchoring to the visible top needs `visibleTopFraction` (§4.2). |
 | Context menu: Open Token Bar, Turn off floating pet, Show back view | **Keep** | A `PopupMenu` sourced on the sprite, added to `Main.uiGroup` with its own `PopupMenuManager` (the port's pattern, `extension/lib/indicator.js:126-156`). "Open" calls `indicator.menu.open()`. |
 | Ctrl+click opens the menu | **Drop** | A macOS one-button-mouse convention. |
-| Click on an egg prays (count, 🙏 particles, wobble, refresh every 30 prayers, prayer line in the hover) | **Adapt: click opens the popover for the egg too** | Prayers are deferred in the port (`SPEC.md` "Not yet ported" #10). The helper has the save field (`helper/internal/companion/state.go:97`) but no `pray` command, quips or prayer hatch text. Keep the `clickAction(subjectIsEgg)` seam so prayers drop in later (open question 1). |
+| Click on an egg prays (count, 🙏 particles, wobble, refresh every 30 prayers, prayer line in the hover) | **Ported in Milestone 3: an egg click prays; the context menu *Open Token Bar* opens the popover** | Superseded the M2 adaptation (egg click opened the popover). The helper `pray` command, the prayer hatch text and the quips ship in 0.3.0 (`docs/spec/prayers-ditto.md`). |
 | Display sleep: hide the pet | **Adapt** | Locking already destroys it. For blanking without a lock, hide on monitor-manager `power-save-mode-changed`. |
 | Low Power Mode: static and no motion | **Adapt** | `Gio.PowerProfileMonitor.power_saver_enabled`. |
 | Reduce Motion: no bob or run | **Adapt** | `St.Settings.get().enable_animations` (`ease()` already honours it). |
@@ -854,7 +854,7 @@ screen.
 - `:360-374`: a click dismisses the bubble and still opens the popover (`opened` 1, then 2; working
   survives);
 - `:378-415`: hosting click for an egg and for a hatched pet.
-  - For an egg, adapt: until prayers ship, a click opens the popover (`opened = 1`, no prayer count).
+  - For an egg, M3 prays (`pray` command, 🙏 particles, wobble); the M2 adaptation, which opened the popover, is superseded. The context menu *Open Token Bar* opens it.
   - The context-menu Open still dismisses a done.
 - `:417-434`:
   - the expiry fire date equals the deadline;
@@ -920,7 +920,7 @@ screen.
 1. **Prayers:** stay deferred, so an egg click opens the popover? Or ship a `pray` helper command plus
    particles in this milestone (about +1.5 d: helper command, 11 quips, prayer hatch text, refresh
    throttle)?
-   **Resolved (2026-11-19):** prayers stay deferred; an egg click opens the popover.
+   **Resolved (2026-11-19):** prayers stay deferred; an egg click opens the popover. **Superseded (2026-11-20, Milestone 3):** prayers shipped in 0.3.0; an egg click prays and the context menu *Open Token Bar* opens the popover.
 2. **Fullscreen:** hide over fullscreen (recommended), or keep upstream parity with an opt-in setting?
    **Resolved (2026-11-19):** hide over fullscreen. One `sync()` hides the pet for the overview, fullscreen, power-save and settings; `addChrome` is restacked just above `global.window_group`.
 3. **D-Bus name and interface:** `io.github.poketokenbar.Agent` / `…Agent1`, or a name under the

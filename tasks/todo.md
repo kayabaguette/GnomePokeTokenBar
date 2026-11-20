@@ -524,13 +524,13 @@ Specs: `docs/spec/items-medals.md`, `docs/spec/prayers-ditto.md` and `docs/spec/
 
 ### Phases
 
-- [ ] 16. Contract `[sub:sonnet]`: specs into `docs/spec/`, protocol additions, fixtures, stub-helper.
-- [ ] 17. Go prayers + Ditto reveal `[sub:opus, worktree]`.
-- [ ] 18. Go save transfer (6 commands) `[sub:opus, worktree]`.
-- [ ] 19. Go item sprite arg + JS item icons + medal tests/docs `[sub:sonnet + frontend-design, worktree]`.
-- [ ] 20. JS pet prayers, notifications, Ditto reveal UI `[sub:opus + frontend-design, stub]`.
-- [ ] 21. JS `Save1` relay + prefs Backup & Transfer page `[sub:opus + frontend-design, stub]`.
-- [ ] 22. Integration `[sub:sonnet]` + review:
+- [x] 16. Contract `[sub:sonnet]`: specs into `docs/spec/`, protocol additions, fixtures, stub-helper.
+- [x] 17. Go prayers + Ditto reveal `[sub:opus, worktree]`.
+- [x] 18. Go save transfer (6 commands) `[sub:opus, worktree]`.
+- [x] 19. Go item sprite arg + JS item icons + medal tests/docs `[sub:sonnet + frontend-design, worktree]`.
+- [x] 20. JS pet prayers, notifications, Ditto reveal UI `[sub:opus + frontend-design, stub]`.
+- [x] 21. JS `Save1` relay + prefs Backup & Transfer page `[sub:opus + frontend-design, stub]`.
+- [x] 22. Integration `[sub:sonnet]` + review:
   - real helper in the sandbox;
   - RPM 0.3.0;
   - README, CHANGELOG and SPEC.
@@ -624,7 +624,9 @@ Acceptance is the same as M2. User checks after 0.3.0:
 - The real-data state (`snapshot --json`) is 7,190 bytes, under the 9,216-byte budget.
 - Fixes found during integration:
   - The sandbox isolation check now counts only live-session shells (concurrent agents).
-  - The helper is stopped on `prepare-shutdown`, which removed a dateMenu JS ERROR at shell exit.
+  - The helper is stopped on `prepare-shutdown`. It was credited with removing a dateMenu JS ERROR at
+    shell exit, but that was never proven on the exact path (the error was an event posted during
+    teardown). The verified fix is `cd4d63e` (phase 22a, M3); see `tasks/lessons.md`.
 - **Still open, user, real session:**
   - the CPU gate with two animated sprites;
   - dragging and petting the pet;
@@ -632,3 +634,27 @@ Acceptance is the same as M2. User checks after 0.3.0:
   - the hooks block drives the bubbles;
   - the back sprite when sulking.
 
+
+### 2026-11-20: RPM 0.3.0 ready (Milestone 3)
+
+- Artifact: `dist/gnome-shell-extension-poketokenbar-0.3.0-1.fc45.x86_64.rpm` (3.08 MB, 70 entries, no
+  `test/` files; helper in `/usr/libexec/poketokenbar/` behind a relative symlink; `--version` prints
+  0.3.0; stripped, `-s -w -trimpath`).
+- Validation on the **RPM payload** in the sandbox (`headless-shell.sh --rpm`), real helper, seed save,
+  real `~/.claude` logs read-only. Every run: ISOLATION OK, 0 JS ERROR and 0 CRITICAL in `shell.log`
+  and `session.log`, unless noted:
+  - `cycle --cycle`, `recap`, `pet-pray` (egg seed, 28 prayers);
+  - `shop`: 11 CRITICAL with the default seed, all `ptb-shot:` lines (the script expects a wallet that
+    can afford the egg). With a seed holding 9B used tokens, 0 CRITICAL;
+  - `backup` (Save1 on the sandbox bus): 17 checks passed and 15 `ptb-shot: backup: FAIL` lines. The
+    suite asserts stub fixtures (fixed paths under `/tmp/ptb-backup`, injected errors by file name),
+    which the real helper answers differently (`fileNotFound`). 0 JS ERROR, 0 CRITICAL from the
+    product. The real helper's six commands were therefore driven directly over NDJSON in a scratch
+    state dir: export, inspect, import (pre-import backup written), snapshot, list, restore, a wrong
+    digest answers `fileChanged`, clean exit 0.
+  - Sandbox helper count: 1 while enabled, 0 after exit.
+- Stub runs for the screenshots (pet-pray, pet-reveal, shop, dex, backup-prefs): 0 JS ERROR, 0 CRITICAL
+  in both logs, ISOLATION OK. The file chooser was never opened.
+- `go test -race -count=1 ./...` green; 17 `gjs -m` test files green.
+- **Still open, user, real session:** pray on the egg; an export/import round trip (and a macOS
+  export); restore a snapshot; GNOME to macOS import on a real Mac.

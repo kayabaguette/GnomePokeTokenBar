@@ -31,21 +31,34 @@ Claude Code only. Delivered:
 - Agent activity over D-Bus (`io.github.poketokenbar.Agent`), fed by user-installed Claude Code hooks.
 - Indicator polish: Ctrl+click menu, power-save pause, hatch/evolve flash.
 
+## Milestone 3 delivered (v0.3.0)
+
+Claude Code only. Delivered:
+
+- Item sprites in the Shop and Bag cards (`getSprite {item}`, fetched on demand).
+- Prayers: left-click the egg pet to pray (wobble, 🙏 particles, quips, prayer count carried into the
+  hatched Pokémon and the hatch text).
+- Ditto disguise: the 1/128 roll and the reveal at the growth threshold, with a `dittoReveal` event,
+  a notice and a card effect.
+- Save export and import (`docs/spec/save-transfer.md`): schema 2 envelope, macOS envelope exports
+  import, a mandatory pre-import backup (keep 5), automatic snapshots every 12 h (keep 10) plus
+  manual ones, restore with a safety snapshot.
+- *Backup & Transfer* preferences page, reaching the helper through the extension's `Save1` D-Bus
+  relay (paths only, never save contents).
+- Pokédex completion medals were already delivered in Milestone 1; M3 only added tests and docs.
+
 Plan and history: `tasks/todo.md`.
 
 ## Not yet ported
 
 Ordered by value, mirroring the parity backlog in `tasks/todo.md`:
 
-1. Item sprites in the Shop and Bag (emoji today).
-2. Prayers.
-3. Ditto disguise reveal.
-4. Passive agent detection (from session logs, without hooks).
-5. Additional providers (Codex, Gemini CLI, OpenCode, Cursor, others).
-6. Multi-account Claude.
-7. Session-key limits.
-8. Save export and import.
-9. Translations beyond English.
+1. Passive agent detection (from session logs, without hooks).
+2. Additional providers (Codex, Gemini CLI, OpenCode, Cursor, others).
+3. Multi-account Claude.
+4. Session-key limits.
+5. Translations beyond English.
+6. A GNOME-to-macOS import has not been tried on a real Mac.
 
 ## Deliberate deviations from upstream
 
