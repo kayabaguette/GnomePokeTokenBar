@@ -15,7 +15,7 @@ import {_} from '../i18n.js';
 import {SpriteAnimator} from '../spriteAnimator.js';
 import {hbox, label, spacer, vbox, wrapLabel} from '../popover/widgets.js';
 import * as M from './shopModel.js';
-import {Stepper, card, controlButton, iconTile, setEnabled} from './shopWidgets.js';
+import {Stepper, card, controlButton, iconTile, loadItemSprite, setEnabled} from './shopWidgets.js';
 
 const SNORLAX = 143;
 const EMPTY_SPRITE = 96;
@@ -41,7 +41,9 @@ class BagCard {
         });
 
         const header = hbox('ptb-shop-card-header', {x_expand: true});
-        header.add_child(iconTile(entry.emoji, entry.item));
+        const icon = iconTile(entry.emoji, entry.item);
+        header.add_child(icon);
+        loadItemSprite(icon, deps.sprites, entry.item, () => !this._destroyed);
         const info = vbox('ptb-shop-card-info', {x_expand: true});
         const nameRow = hbox('ptb-shop-name-row');
         nameRow.add_child(label(entry.name, 'ptb-shop-name'));

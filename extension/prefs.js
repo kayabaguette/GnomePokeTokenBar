@@ -3,16 +3,20 @@
  * Every row applies at once.
  *
  * Runs in the gnome-extensions-app process, never in the shell: it imports
- * Gtk/Adw and the pure lib/prefsModel.js only. The representative Pokémon is
- * chosen in the popover's Pokédex, not here (it lives in the helper's save).
+ * Gtk/Adw, the pure lib/prefsModel.js and the Backup & Transfer page
+ * (lib/backupPage.js, which talks to the extension over D-Bus). The
+ * representative Pokémon is chosen in the popover's Pokédex, not here (it
+ * lives in the helper's save).
  */
 
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
-import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {ExtensionPreferences, gettext as _, ngettext} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+import {BackupPage} from './lib/backupPage.js';
+import {setTranslations} from './lib/i18n.js';
 import * as P from './lib/prefsModel.js';
 
 function stringList(labels) {
@@ -44,6 +48,10 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
         page.add(this._limits(settings));
         page.add(this._growth(settings));
         window.add(page);
+
+        // Backup & Transfer (save-transfer.md §5.2): its texts come from the pure model.
+        setTranslations(_, ngettext);
+        window.add(new BackupPage(window).page);
     }
 
     /** A ComboRow over string choices, kept in sync both ways. */
@@ -203,13 +211,13 @@ export default class PokeTokenBarPreferences extends ExtensionPreferences {
                 show(v);
         });
         show(P.snapPetSize(settings.get_int('floating-pet-size')));
-        group.add(size);
 
         const bubbles = this._switchRow(settings, 'floating-pet-bubble-alerts', _('Show notifications as bubbles'),
             _('Limit alerts also pop up over the pet'));
         const agents = this._switchRow(settings, 'floating-pet-agent-activity', _('React to agent activity'),
             _('Coding agents drive it over D-Bus — see the README'));
-        // The pet's own rows show only while it is on (SettingsView.swift:373).
+        // The pet's own rows show only while it is on (SettingsView.swift:373). Each row is added
+        // here only: a second group.add() of the same row is an Adwaita-CRITICAL.
         for (const row of [size, bubbles, agents]) {
             settings.bind('floating-pet-enabled', row, 'visible', Gio.SettingsBindFlags.GET);
             group.add(row);

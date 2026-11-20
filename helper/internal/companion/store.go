@@ -20,8 +20,8 @@ type Options struct {
 	Data DataSource // Pokémon data; required
 	Rng  Rng        // nil: crypto/rand
 	Now  func() time.Time
-	// DittoDisguiseEnabled turns on the 1/128 Ditto disguise roll at hatch. Off in M1: the reveal
-	// is not ported, so a disguised Pokémon would stop at its first evolution threshold.
+	// DittoDisguiseEnabled turns on the 1/128 Ditto disguise roll at hatch. The daemon sets it; the
+	// default stays off so tests keep upstream's draw counts (upstream gates it the same way).
 	DittoDisguiseEnabled bool
 	AppVersion           string // written into snapshot envelopes
 	Logf                 func(format string, args ...any)
@@ -82,7 +82,8 @@ type nameRef struct {
 	names     map[string]string
 }
 
-// levelUpWindow is the 4 s hatch/evolve or 6 s graduate celebration (CS:1053, 1142, 1817).
+// levelUpWindow is the 4 s hatch/evolve, 6 s graduate or 5 s Ditto-reveal celebration
+// (CS:1053, 1142, 1817, 1869).
 type levelUpWindow struct {
 	until     time.Time
 	evolvedTo *nameRef
@@ -243,6 +244,7 @@ func (s *Store) Update(ctx context.Context, in UsageInput) []Event {
 	case !st.InstallBaselineSet && !hasCurrent:
 		// An imported active Pokémon still shows and its line keeps loading (CS:880-887).
 		s.loadCurrentLine(ctx)
+		s.revealIfNeeded(ctx)
 		return s.drain()
 	case !st.InstallBaselineSet:
 		st.InstallBaselineSet = true
@@ -294,6 +296,7 @@ func (s *Store) Update(ctx context.Context, in UsageInput) []Event {
 	if st.Active != nil && s.line == nil {
 		s.loadCurrentLine(ctx)
 	}
+	s.revealIfNeeded(ctx)
 	if s.warmPending {
 		s.warmActive(ctx)
 	}
@@ -345,7 +348,7 @@ func (s *Store) applyUsage(delta int) {
 			break
 		}
 		if a.DittoDisguise != nil && !a.DittoRevealed {
-			break // the reveal replaces this evolution upstream; it is deferred (CS:1016-1019)
+			break // the reveal replaces this evolution; Update runs it (revealIfNeeded, CS:1016-1019)
 		}
 		if len(node.Children) == 0 {
 			s.graduate()
@@ -698,7 +701,7 @@ func (s *Store) hatchCore(ctx context.Context, baseID int, pendingForm *string) 
 	ref := s.lineRef(l.baseID, st.Active.Form)
 	s.emit(HatchEvent{
 		Type: "event", Kind: "hatch", SpeciesID: l.baseID, Form: ref.form, DisplayName: s.refName(ref),
-		Rarity: l.rarity, IsShiny: isShiny && disguise == nil, ShinyOdds: odds,
+		Rarity: l.rarity, IsShiny: isShiny && disguise == nil, ShinyOdds: odds, Prayers: prayerCount(prayers),
 	})
 	s.openWindow(4 * time.Second)
 	s.window.evolvedTo = nil

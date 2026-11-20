@@ -1,0 +1,12 @@
+{
+  "type": "result",
+  "id": 63,
+  "ok": true,
+  "data": {
+    "snapshots": [
+      {"id": "companion-snapshot-2026-11-18-062015.json", "date": "2026-11-18T05:20:15Z", "dexCount": 5, "lifetimeTokens": 8640000000, "speciesId": 17, "shiny": false, "form": null},
+      {"id": "companion-snapshot-2026-11-17-201533.json", "date": "2026-11-17T19:15:33Z", "dexCount": 5, "lifetimeTokens": 8402000000, "speciesId": 423, "shiny": true, "form": "east"},
+      {"id": "companion-snapshot-2026-11-10-093201.json", "date": "2026-11-10T08:32:01Z", "dexCount": 3, "lifetimeTokens": 3120000000, "speciesId": null, "shiny": false, "form": null}
+    ]
+  }
+}

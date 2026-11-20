@@ -23,6 +23,7 @@ import {setTranslations} from './lib/i18n.js';
 import {Indicator} from './lib/indicator.js';
 import {Notifier} from './lib/notifications.js';
 import {AgentBus} from './lib/pet/agentBus.js';
+import {SaveBus} from './lib/saveBus.js';
 import {FloatingPet} from './lib/pet/floatingPet.js';
 import {
     FORWARDED_KEYS, forwardedSettings, intlFirstDay, languageFromNames, resolveWeekStart,
@@ -34,7 +35,7 @@ import {Tooltip} from './lib/tooltip.js';
 const SETTINGS_DEBOUNCE_MS = 300; // protocol §2.2
 const DESKTOP_CALENDAR_SCHEMA = 'org.gnome.desktop.calendar';
 const LOG = 'PokeTokenBar';
-const CELEBRATED = ['hatch', 'evolve']; // M2 decision 32
+const CELEBRATED = ['hatch', 'evolve', 'dittoReveal']; // M2 decision 32, M3 decision 43
 const DISPLAY_CONFIG = 'org.gnome.Mutter.DisplayConfig';
 
 export default class PokeTokenBarExtension extends Extension {
@@ -69,7 +70,10 @@ export default class PokeTokenBarExtension extends Extension {
             sprites: this._sprites,
             context: () => this.context(),
             openPopover: () => this._indicator?.menu.open(),
+            request: (cmd, args) => this.request(cmd, args),
         });
+        // Save1 rides on the name AgentBus owns; exported first so it is there once the name is (§15.1).
+        this._saveBus = new SaveBus((cmd, args) => this.request(cmd, args));
         // Owned while enabled, released on disable (and so on every lock): protocol §15.
         this._agentBus = new AgentBus(event => this._pet?.handleAgentEvent(event));
 
@@ -78,16 +82,17 @@ export default class PokeTokenBarExtension extends Extension {
         this._desktopCalendar?.connectObject('changed::week-start-day', () => this._scheduleSettings(), this);
         this._watchSystem();
 
-        // The shell does not disable extensions on exit: stop the helper first so a late event
-        // cannot reach the message tray after the shell has started tearing it down.
-        global.context.connectObject('prepare-shutdown', () => this._client?.stop(), this);
+        // The shell does not disable extensions on exit; the panel destroying our indicator is the
+        // first sign of it (see _onShellTeardown). disable() disconnects this before its own destroy.
+        this._indicator.connectObject('destroy', () => this._onShellTeardown(), this);
 
         this._indicator.render();
         this._client.start();
     }
 
     disable() {
-        global.context.disconnectObject(this);
+        this._notifier?.close(); // nothing is posted once disable has begun, not even a late catch
+        this._indicator?.disconnectObject(this);
         this._client?.stop();
         this._client = null;
 
@@ -97,6 +102,8 @@ export default class PokeTokenBarExtension extends Extension {
         }
         this._agentBus?.destroy();
         this._agentBus = null;
+        this._saveBus?.destroy();
+        this._saveBus = null;
         this._pet?.destroy();
         this._pet = null;
         this._monitorManager?.disconnectObject(this);
@@ -197,6 +204,23 @@ export default class PokeTokenBarExtension extends Extension {
         this._settings.set_string('activity-view', view);
     }
 
+    /**
+     * Shell exit, observed on GNOME Shell 51: after "Shutting down GNOME Shell" the shell destroys
+     * its UI (the panel takes our indicator, then the message tray and the date menu go), and only
+     * then emits `shutdown`. The shell's own first `shutdown` handler spins a nested main loop,
+     * which still delivers helper lines; a notification posted from there reaches the destroyed
+     * date menu (JS ERROR in dateMenu.js _sync). MetaContext::prepare-shutdown never arrived before
+     * exit, so this hook stops everything that could post: the notifier first (a stop rejects
+     * pending icon requests, whose catch would post), then the helper.
+     */
+    _onShellTeardown() {
+        console.log(`${LOG}: the shell is tearing down its UI; stopping the helper`);
+        this._notifier?.close();
+        this._indicator = null; // being destroyed by the panel: no more renders
+        this._client?.stop();
+        this._client = null;
+    }
+
     /* ---- helper messages ---------------------------------------------- */
 
     _onState(msg) {
@@ -209,7 +233,7 @@ export default class PokeTokenBarExtension extends Extension {
     _onEvent(event) {
         this._pet?.handleEvent(event);
         if (CELEBRATED.includes(event?.kind))
-            this._indicator?.celebrate();
+            this._indicator?.celebrate(event.kind);
         this._notifier?.handle(event);
     }
 

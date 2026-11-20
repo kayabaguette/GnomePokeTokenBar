@@ -167,10 +167,10 @@ test('an event pops the callout once, only while visible and quiet', () => {
     assert.equal(M.EVENT_POP_MS, 6000);
 });
 
-test('a click opens the popover, for an egg too (prayers deferred)', () => {
-    // FPP:260-262 adapted (M2 decision 24)
+test('a click prays over an egg and opens the popover for a Pokémon', () => {
+    // EggPrayerTests.swift:275-278 (M3 decision 39)
+    assert.equal(M.clickAction(true), 'pray');
     assert.equal(M.clickAction(false), 'openPopover');
-    assert.equal(M.clickAction(true), 'openPopover');
 });
 
 test('pickBubbleAlert: critical first, then the higher utilisation (derived, no Swift oracle)', () => {
@@ -195,12 +195,18 @@ test('shouldDismissBubble: 6 s TTL (derived, no Swift oracle)', () => {
 
 /* ---- hover text ---- */
 
-test('hover text: tokens, limit and the event line', () => {
-    // PetEventLineTests.swift:59-67 (event-only half; prayers deferred) and FPP:1086-1101
+test('hover text: tokens, limit, the event line and the prayer line', () => {
+    // PetEventLineTests.swift:59-67 and FPP:1086-1101
     const plain = M.hoverText({todayTokens: 1234, limitUtilization: null, mode: 'used'});
     assert.equal(plain, `Today: ${new Intl.NumberFormat().format(1234)} tokens`);
     assert.equal(M.hoverText({todayTokens: 1234, limitUtilization: null, mode: 'used', eventLine: 'EVENT'}),
         `${plain}\nEVENT`);
+    assert.equal(M.hoverText({todayTokens: 1234, limitUtilization: null, mode: 'used', eventLine: 'EVENT', prayers: 3}),
+        `${plain}\nEVENT\n${M.prayerHoverLine(3)}`);
+    // EggPrayerTests.swift:307-313 (en)
+    assert.equal(M.hoverText({todayTokens: 1234, limitUtilization: null, mode: 'used', prayers: 3}),
+        `${plain}\n3 prayers · just trying it out`);
+    assert.equal(M.hoverText({todayTokens: 1234, limitUtilization: null, mode: 'used', prayers: 0}), plain);
     assert.equal(M.hoverText({todayTokens: 5, limitUtilization: 83, mode: 'used'}), 'Today: 5 tokens (limit 83%)');
     assert.equal(M.hoverText({todayTokens: 5, limitUtilization: 83, mode: 'remaining'}),
         'Today: 5 tokens (limit 17% left)');
@@ -361,6 +367,95 @@ test('manifest visibleTopFraction falls back to 0 (protocol §8.2)', () => {
     assert.equal(manifestVisibleTop({visibleTopFraction: 1.5}), 0);
     assert.equal(manifestVisibleTop({visibleTopFraction: '0.2'}), 0);
     assert.equal(manifestVisibleTop(null), 0);
+});
+
+/* ---- prayers (EggPrayerTests.swift) ---- */
+
+test('quip index advances every 30 prayers and stops at the last', () => {
+    // EggPrayerTests.swift:230-238
+    assert.equal(M.prayerQuipIndex(0), null);
+    assert.equal(M.prayerQuipIndex(-1), null);
+    for (const [n, i] of [[1, 0], [29, 0], [30, 1], [59, 1], [60, 2], [299, 9], [300, 10], [10000, 10]])
+        assert.equal(M.prayerQuipIndex(n), i, `${n} prayers`);
+    assert.equal(M.PRAYER_QUIP_COUNT, 11);
+});
+
+test('eleven distinct, non-empty quips', () => {
+    // EggPrayerTests.swift:240-246
+    const quips = Array.from({length: M.PRAYER_QUIP_COUNT}, (_, i) => M.prayerQuip(i * 30 + 1));
+    assert.ok(quips.every(q => q.length > 0));
+    assert.equal(new Set(quips).size, 11);
+});
+
+test('hover line copy', () => {
+    // EggPrayerTests.swift:249-261 (en; typographic apostrophes, the port's convention)
+    assert.equal(M.prayerHoverLine(0), '');
+    assert.equal(M.prayerHoverLine(-4), '');
+    assert.equal(M.prayerHoverLine(1), '1 prayer · just trying it out');
+    assert.equal(M.prayerHoverLine(31), '31 prayers · heaven hasn’t checked yet');
+    assert.equal(M.prayerHoverLine(120), '120 prayers · heaven’s servers are lagging');
+    assert.equal(M.prayerHoverLine(150), '150 prayers · you’re #3,812 in heaven’s queue');
+    assert.equal(M.prayerHoverLine(180), '180 prayers · your palms are wearing thin');
+    assert.equal(M.prayerHoverLine(300), '300 prayers · if a legendary hatches, that’s pure skill');
+    for (const n of [1, 3, 30, 70, 130, 200, 400])
+        assert.ok(M.prayerHoverLine(n).includes(String(n)), `${n}`);
+});
+
+test('refresh milestones are every 30 prayers', () => {
+    // EggPrayerTests.swift:328-335
+    const milestones = {0: 0, 1: 0, 29: 0, 30: 1, 59: 1, 60: 2, 89: 2, 90: 3, 120: 4};
+    for (const [count, m] of Object.entries(milestones))
+        assert.equal(M.prayerRefreshMilestone(Number(count)), m, `${count} prayers`);
+    assert.equal(M.prayerRefreshMilestone(-5), 0);
+    assert.equal(M.PRAYERS_PER_REFRESH, 30);
+    assert.equal(M.prayerRefreshMilestone(Number.MAX_SAFE_INTEGER), Math.floor(Number.MAX_SAFE_INTEGER / 30));
+});
+
+test('shouldRefreshOnPrayer decision', () => {
+    // EggPrayerTests.swift:404-415
+    const now = 1000, later = now + M.PRAYER_REFRESH_INTERVAL_S;
+    assert.equal(M.shouldRefreshOnPrayer(29, 0, null, now), false);
+    assert.equal(M.shouldRefreshOnPrayer(30, 0, null, now), true);
+    assert.equal(M.shouldRefreshOnPrayer(30, 1, null, now), false, 'already refreshed at this milestone');
+    assert.equal(M.shouldRefreshOnPrayer(30, 0, now, now), false, 'inside the floor');
+    assert.equal(M.shouldRefreshOnPrayer(30, 0, now, later), true);
+    assert.equal(M.shouldRefreshOnPrayer(60, 1, now, later), true);
+    assert.equal(M.shouldRefreshOnPrayer(30, 0, now, later - 0.001), false);
+});
+
+test('the 🙏 stays inside the pet frame at every size', () => {
+    // EggPrayerTests.swift:295-305; FPP:1140, :1159-1171
+    assert.equal(M.prayerEmojiSize(48), 14);
+    assert.equal(M.prayerEmojiSize(96), 24);
+    assert.equal(M.prayerEmojiSize(384), 32);
+    for (let size = 48; size <= 384; size += 8) {
+        const e = M.prayerEmojiSize(size);
+        assert.ok(e <= size);
+        for (const fraction of [0, 1]) {
+            for (const progress of [0, 1]) {
+                const f = M.prayerParticleFrame(fraction, size, e, progress);
+                assert.ok(f.x - e / 2 >= 0 && f.x + e / 2 <= size, `x at ${size}/${fraction}`);
+                assert.ok(f.y - e / 2 >= 0 && f.y + e / 2 <= size, `y at ${size}/${progress}`);
+            }
+        }
+    }
+});
+
+test('a particle rises from 0.7 of the pet to the top edge and fades', () => {
+    // FPP:1159-1171, EggPrayerTests.swift:280-293 (xFraction clamp)
+    assert.deepEqual(M.prayerParticleFrame(0, 96, 24, 0), {x: 12, y: 96 * 0.7, opacity: 1});
+    assert.deepEqual(M.prayerParticleFrame(1, 96, 24, 1), {x: 84, y: 12, opacity: 0});
+    assert.equal(M.clampFraction(-3), 0);
+    assert.equal(M.clampFraction(7), 1);
+    assert.equal(M.clampFraction(0.25), 0.25);
+    assert.deepEqual(M.prayerParticleFrame(-3, 96, 24, 0), M.prayerParticleFrame(0, 96, 24, 0));
+    assert.equal(M.PRAYER_FLIGHT_MS, 1000);
+});
+
+test('the wobble is −9, +9, −5, 0 degrees over 300 ms', () => {
+    // FPP:1046-1054
+    assert.deepEqual(M.WOBBLE_KEYFRAMES.map(k => k.angle), [-9, 9, -5, 0]);
+    assert.equal(M.WOBBLE_KEYFRAMES.reduce((t, k) => t + k.ms, 0), 300);
 });
 
 run('petModel.test.js');

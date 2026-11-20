@@ -20,6 +20,11 @@ function fixture({petEnabled = true, agentActivity = true, bubbleAlerts = true, 
         stops: 0,
         petEnabled, agentActivity, bubbleAlerts, visible, motion,
         cursor: {x: 600, y: 400},
+        prays: 0,
+        eggPrayers: 0,
+        emojis: 0,
+        refreshes: 0,
+        changes: 0,
     };
     f.ctl = new PetController({
         now: () => f.t,
@@ -30,6 +35,16 @@ function fixture({petEnabled = true, agentActivity = true, bubbleAlerts = true, 
         },
         clearTimer: id => f.timers.delete(id),
         openPopover: () => f.opened++,
+        // The helper counts (state first, then the reply); `notEgg` never calls back.
+        pray: onCount => {
+            f.prays++;
+            if (f.eggPrayers === null)
+                return;
+            f.eggPrayers++;
+            onCount(f.eggPrayers);
+        },
+        spawnPrayer: () => f.emojis++,
+        refreshUsage: () => f.refreshes++,
         persistHome: o => {
             f.saved = o;
             f.persisted.push(o);
@@ -44,7 +59,7 @@ function fixture({petEnabled = true, agentActivity = true, bubbleAlerts = true, 
         workAreaAt: () => ({x: 0, y: 0, width: 1440, height: 900}),
         animate: (target, done) => f.animations.push({target, done}),
         stopAnimation: () => f.stops++,
-        changed: () => {},
+        changed: () => f.changes++,
     });
     /** Advance fake time, firing due timers in order. */
     f.advance = seconds => {
@@ -144,21 +159,129 @@ test('a click dismisses the bubble and still opens the popover', () => {
     assert.equal(f.opened, 2);
 });
 
-test('an egg click acknowledges agents and opens the popover; menu Open too', () => {
-    // FloatingPetAgentTests.swift:378-415, adapted: prayers are deferred (M2 decision 24)
+test('an egg click acknowledges agents and prays; menu Open opens without praying', () => {
+    // FloatingPetAgentTests.swift:378-402 (M3 decision 39)
     const f = fixture();
     f.send('waiting');
     f.ctl.petClicked(true);
     assert.equal(act(f).state, 'idle');
-    assert.equal(f.opened, 1);
+    assert.equal(f.eggPrayers, 1);
+    assert.equal(f.opened, 0);
     f.send('working');
     f.ctl.petClicked(true);
     assert.equal(act(f).state, 'working');
-    assert.equal(f.opened, 2);
+    assert.equal(f.eggPrayers, 2);
+    assert.equal(f.opened, 0);
     f.send('done');
     f.ctl.openFromMenu();
     assert.equal(act(f).state, 'idle', 'the done replaced the unlabeled work and is acknowledged');
-    assert.equal(f.opened, 3, 'context-menu Open still opens an egg');
+    assert.equal(f.opened, 1, 'context-menu Open still opens an egg');
+    assert.equal(f.eggPrayers, 2);
+});
+
+test('a hatched click acknowledges agents and opens without praying', () => {
+    // FloatingPetAgentTests.swift:404-415
+    const f = fixture();
+    f.send('waiting');
+    f.ctl.petClicked(false);
+    assert.equal(act(f).state, 'idle');
+    assert.equal(f.opened, 1);
+    assert.equal(f.prays, 0);
+});
+
+/* ---- prayer refresh throttle (EggPrayerTests.swift:317-402) ---- */
+
+const prayN = (f, n) => {
+    for (let i = 0; i < n; i++)
+        f.ctl.petClicked(true);
+};
+
+test('prayer refresh follows the milestones', () => {
+    // EggPrayerTests.swift:337-359
+    const f = fixture();
+    const start = f.t;
+    prayN(f, 29);
+    assert.equal(f.refreshes, 0, '29 prayers: no refresh');
+    prayN(f, 1);
+    assert.equal(f.refreshes, 1, 'the 30th prayer refreshes');
+    f.t = start + M.PRAYER_REFRESH_INTERVAL_S;
+    prayN(f, 29);
+    assert.equal(f.refreshes, 1, '59 prayers: no new refresh');
+    prayN(f, 1);
+    assert.equal(f.refreshes, 2, 'the 60th prayer refreshes');
+    f.t = start + 2 * M.PRAYER_REFRESH_INTERVAL_S;
+    prayN(f, 29);
+    assert.equal(f.refreshes, 2);
+    prayN(f, 1);
+    assert.equal(f.refreshes, 3, 'the 90th prayer refreshes');
+    assert.equal(f.emojis, f.prays, 'every click still spawns its emoji');
+    assert.ok(f.changes >= f.prays, 'every reply rebuilds the hover text');
+});
+
+test('a milestone inside the floor is refreshed by the first click after it', () => {
+    // EggPrayerTests.swift:361-375
+    const f = fixture();
+    const start = f.t;
+    prayN(f, 30);
+    assert.equal(f.refreshes, 1);
+    f.t = start + 5;
+    prayN(f, 30);
+    assert.equal(f.refreshes, 1, 'the floor holds the 60th-prayer refresh back');
+    f.t = start + M.PRAYER_REFRESH_INTERVAL_S;
+    prayN(f, 1);
+    assert.equal(f.refreshes, 2, 'the first click after the floor does not lose the milestone');
+    prayN(f, 1);
+    assert.equal(f.refreshes, 2, 'and it is not refreshed twice');
+});
+
+test('a new egg starts the milestones over', () => {
+    // EggPrayerTests.swift:377-389
+    const f = fixture();
+    const start = f.t;
+    prayN(f, 60);
+    assert.equal(f.refreshes, 1);
+    f.t = start + 2 * M.PRAYER_REFRESH_INTERVAL_S;
+    f.eggPrayers = 0;
+    prayN(f, 29);
+    assert.equal(f.refreshes, 1);
+    prayN(f, 1);
+    assert.equal(f.refreshes, 2, 'the new egg\'s 30th prayer refreshes again');
+});
+
+test('hatched clicks open the popover without praying or refreshing', () => {
+    // EggPrayerTests.swift:391-402
+    const f = fixture();
+    prayN(f, 29);
+    for (let i = 0; i < 50; i++)
+        f.ctl.petClicked(false);
+    assert.equal(f.opened, 50);
+    assert.equal(f.prays, 29);
+    assert.equal(f.refreshes, 0);
+    prayN(f, 1);
+    assert.equal(f.refreshes, 1, 'the 30th real prayer still refreshes');
+});
+
+test('with motion off a prayer still counts and refreshes, with no particle or wobble', () => {
+    // M3 decision 40 (deviation from FPP:1057, which ignores reduced motion)
+    const f = fixture({motion: false});
+    prayN(f, 30);
+    assert.equal(f.eggPrayers, 30);
+    assert.equal(f.emojis, 0);
+    assert.equal(f.refreshes, 1);
+    assert.ok(f.changes >= 30, 'the hover text still rebuilds');
+});
+
+test('a prayer the helper refuses (notEgg) changes nothing', () => {
+    // protocol §7.6: the extension ignores notEgg (a click racing a hatch)
+    const f = fixture();
+    f.eggPrayers = null;
+    const changes = f.changes;
+    prayN(f, 40);
+    assert.equal(f.prays, 40);
+    assert.equal(f.emojis, 40, 'the click effect already played');
+    assert.equal(f.refreshes, 0);
+    assert.equal(f.changes, changes);
+    assert.equal(f.opened, 0);
 });
 
 test('expiry re-arms when the timer fires early', () => {

@@ -1,4 +1,4 @@
-VERSION ?= 0.2.0
+VERSION ?= 0.3.0
 UUID := poketokenbar@local
 EXT_DIR := $(HOME)/.local/share/gnome-shell/extensions/$(UUID)
 EXT_JS := $(shell find extension -name '*.js' -not -path 'extension/test/*' 2>/dev/null)

@@ -196,6 +196,11 @@ export class Popover {
         this._companion.setCelebrating(on);
     }
 
+    /** The Ditto reveal's 🎭 on the companion card, over the flash (M3 decision 43). */
+    playRevealMask() {
+        this._companion.playRevealMask();
+    }
+
     update(ctx) {
         this._recap.update(ctx);
         this._companion.update(ctx);

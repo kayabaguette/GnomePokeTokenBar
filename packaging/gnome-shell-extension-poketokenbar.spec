@@ -42,6 +42,9 @@ ln -sr %{buildroot}%{_libexecdir}/poketokenbar/ptb-helper %{buildroot}%{_datadir
 %{_libexecdir}/poketokenbar/
 
 %changelog
+* Fri Nov 20 2026 PokeTokenBar-GNOME maintainers - 0.3.0-1
+- Milestone 3: item sprites, prayers, Ditto disguise reveal, save export/import with snapshots and a Backup & Transfer prefs page
+
 * Thu Nov 19 2026 PokeTokenBar-GNOME maintainers - 0.2.0-1
 - Milestone 2: Shop and Bag, usage recap and heatmap, floating pet with agent bubbles over D-Bus
 

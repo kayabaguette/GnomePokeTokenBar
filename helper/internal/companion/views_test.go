@@ -102,11 +102,19 @@ func hasChild(parent string, set map[string]bool) bool {
 // phases do not touch the same lines.
 var m2Pending = []string{}
 
-func withoutPending(want map[string]bool) map[string]bool {
+// The Milestone 3 contract (docs/protocol.md) is pending the same way, per payload, because the
+// paths are relative to each payload. Phase 17 emptied these lists (prayers).
+var (
+	m3PendingEgg     = []string{}
+	m3PendingSpecies = []string{}
+	m3PendingHatch   = []string{}
+)
+
+func withoutPending(want map[string]bool, more ...string) map[string]bool {
 	out := map[string]bool{}
 next:
 	for k := range want {
-		for _, p := range m2Pending {
+		for _, p := range append(append([]string{}, m2Pending...), more...) {
 			if k == p || strings.HasPrefix(k, p+".") || strings.HasPrefix(k, p+"[]") {
 				continue next
 			}
@@ -156,11 +164,11 @@ func TestPayloadShapesMatchFixtures(t *testing.T) {
 	eq(t, v.MenuSubject.Asset, "12", "asset")
 	sameShape(t, "state.companion (active)", shapeOf(t, v), withoutPending(shapeOf(t, fixture(t, "state-active.json", "companion"))))
 	egg := newStore(t, stub(linear3()), 7)
-	sameShape(t, "state.companion (egg)", shapeOf(t, egg.BuildState(MoodInput{Now: fixedNow})), withoutPending(shapeOf(t, fixture(t, "state-egg.json", "companion"))))
+	sameShape(t, "state.companion (egg)", shapeOf(t, egg.BuildState(MoodInput{Now: fixedNow})), withoutPending(shapeOf(t, fixture(t, "state-egg.json", "companion")), m3PendingEgg...))
 	sameShape(t, "getDexPage", shapeOf(t, s.DexPage(DexQuery{})), shapeOf(t, fixture(t, "dex-page.json", "data")))
 	sameShape(t, "getCatchLog", shapeOf(t, s.CatchLog(CatchLogQuery{})), shapeOf(t, fixture(t, "catch-log.json", "data")))
 	sp := s.Species(bg, 17)
-	sameShape(t, "getSpecies", shapeOf(t, sp), shapeOf(t, fixture(t, "species.json", "data")))
+	sameShape(t, "getSpecies", shapeOf(t, sp), withoutPending(shapeOf(t, fixture(t, "species.json", "data")), m3PendingSpecies...))
 	eq(t, sp.Details.HeightM, 1.1, "height in metres")
 	eq(t, *sp.Details.Moves[0].Methods[0].Level, 1, "level-up level")
 	if sp.Details.Moves[0].Methods[1].Level != nil {
@@ -177,10 +185,11 @@ func TestPayloadShapesMatchFixtures(t *testing.T) {
 		_ = json.Unmarshal([]byte(line), &m)
 		want[m["kind"].(string)] = shapeOf(t, m)
 	}
+	want["hatch"] = withoutPending(want["hatch"], m3PendingHatch...)
 	for _, e := range []Event{
 		HatchEvent{Type: "event", Kind: "hatch"}, EvolveEvent{Type: "event", Kind: "evolve"},
 		GraduateEvent{Type: "event", Kind: "graduate"}, CandyGrantedEvent{Type: "event", Kind: "candyGranted"},
-		BadgeEvent{Type: "event", Kind: "badge", Region: sp.Region},
+		BadgeEvent{Type: "event", Kind: "badge", Region: sp.Region}, DittoRevealEvent{Type: "event", Kind: "dittoReveal"},
 	} {
 		sameShape(t, e.EventKind(), shapeOf(t, e), want[e.EventKind()])
 	}

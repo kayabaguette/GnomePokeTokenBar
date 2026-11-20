@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": 64,
+  "ok": true,
+  "data": {
+    "path": "/home/user/Documents/PokeTokenBar-Save-2026-11-18.json",
+    "bytes": 24816,
+    "summary": {"dexCount": 5, "lifetimeTokens": 8640000000}
+  }
+}

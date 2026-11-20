@@ -377,7 +377,7 @@ Scrolling column, top to bottom (with the 12 pt scroller lane on the right):
 4. **Individual picker** (a menu), only if more than one individual exists. Label format: `"#1 · ✨ Shiny · Lv. 5 · 11/18/26"`, or `Raising` or `—` when there is no catch date. The date is formatted in the app language's locale.
 5. If there are no individuals: `dexAppearancePreview` text.
 6. **Details**, if the PokéAPI data is loaded:
-   - **Individual card** (when the selected individual has a profile): the title `pokemonIndividual`, then `Level / Gender / Nature` pairs (caption label over semibold value), an optional prayer text (**LATER**; ignore), `Ability` (name via PokéAPI translation, with `· Hidden` suffix), **Actual stats** (6 rows) and **Known moves** (name and `Lv. N`).
+   - **Individual card** (when the selected individual has a profile): the title `pokemonIndividual`, then `Level / Gender / Nature` pairs (caption label over semibold value), an optional prayer text ("Born after N prayers", M3), `Ability` (name via PokéAPI translation, with `· Hidden` suffix), **Actual stats** (6 rows) and **Known moves** (name and `Lv. N`).
    - Otherwise a **Base stats** card.
    - **Species data** card: height in m, weight in kg, base-stat total, plus Possible abilities (joined with ` · `, a hidden marker).
    - **Complete move list** card: each move with its learn methods right-aligned, with dividers, in a `LazyVStack`.
@@ -491,12 +491,12 @@ Delivery: `UNUserNotificationCenter` with `trigger: nil`, which posts immediatel
 |---|---|---|---|---|
 | Hatch | egg usage reaches the hatch threshold | `notifHatchTitle` ("🥚 Hatched!") | `notifHatchBody(name)` ("`<name>` hatched from the egg!") | `CompanionStore.swift:1814` |
 | Shiny hatch | same, shiny roll | `notifShinyHatchTitle` ("✨ Shiny Pokémon!") | `notifShinyHatchBody(name, odds)` ("A shiny `<name>` hatched! (1 in `<odds>`)") | same |
-| Prayer hatch | hatch with prayers (**LATER**) | the same titles | `notifPrayerHatchBody` | same |
+| Prayer hatch | hatch with prayers (M3) | the same titles | `notifPrayerHatchBody` | same |
 | Evolve | stage change | `notifEvolveTitle` ("✨ Evolved!") | `notifEvolveBody(from, to)` ("`<old>` evolved into `<new>`!") | `:1054` |
 | Graduate | final-form threshold reached | `notifGraduateTitle` ("🎓 Graduated!") | `notifGraduateBody(name)` ("`<name>` — saved to your Pokédex! A new egg has arrived.") | `:1141` |
 | Ditto reveal | disguised Ditto reveals | `notifDittoRevealTitle` or `notifShinyDittoRevealTitle` | `notifDittoRevealBody(disguise)` or `notifShinyDittoRevealBody` | `:1870` |
 | Candy | rare candy granted when a limit window fills (**LATER**, bag) | `notifCandyTitle(item, count)` | `notifCandyBody(window)` | `:1521` (`showsOnPet: false`) |
-| Dex completion | region, Unown, national, and their shiny variants | `notifDexRegionCompleteTitle(region)`, `notifDexRegionShinyCompleteTitle`, `notifDexUnownCompleteTitle`, `notifDexNationalCompleteTitle`, `notifDexNationalShinyCompleteTitle` | the matching `...Body` keys | `:524`; one-shot per badge key in `notifiedDexCompletions`; **LATER** (dex medals) |
+| Dex completion | region, Unown, national, and their shiny variants | `notifDexRegionCompleteTitle(region)`, `notifDexRegionShinyCompleteTitle`, `notifDexUnownCompleteTitle`, `notifDexNationalCompleteTitle`, `notifDexNationalShinyCompleteTitle` | the matching `...Body` keys | `:524`; one-shot per badge key in `notifiedDexCompletions`; delivered in M1 (dex medals) |
 
 ### 5.2 Limit alerts (`UsageStore.swift:2165-2275`)
 
@@ -631,7 +631,7 @@ Difficulty is easy, medium or hard, relative to St and GJS.
 
 ## 9. LATER (listed briefly)
 
-Shop tab (`ShopView.swift`), Bag tab (`BagView.swift`: candies, mints, evolve, graduate controls), usage recap screen (`UsageRecapView.swift`, opened from the Details button), floating desktop pet (`FloatingPetPanel.swift`, with the bubble alerts and agent activity URL events), the 16-week activity heatmap (`ActivityHeatmap.swift`; the Activity panel click-cycle and page dots), multi-provider tabs (Codex, Antigravity, Cursor, OpenCode, Grok limits and their `ProviderTabBar`), Claude multi-account tabs, save backup screen (export, import, snapshots), the 8-language localization, prayers (born-with-prayers hatch text), candy "+XP" and mint sparkle effects, and Dex completion medals and notifications.
+Shop tab (`ShopView.swift`), Bag tab (`BagView.swift`: candies, mints, evolve, graduate controls), usage recap screen (`UsageRecapView.swift`, opened from the Details button), floating desktop pet (`FloatingPetPanel.swift`, with the bubble alerts and agent activity URL events), the 16-week activity heatmap (`ActivityHeatmap.swift`; the Activity panel click-cycle and page dots), multi-provider tabs (Codex, Antigravity, Cursor, OpenCode, Grok limits and their `ProviderTabBar`), Claude multi-account tabs, save backup screen (export, import, snapshots), the 8-language localization, prayers (born-with-prayers hatch text, delivered in M3), and candy "+XP" and mint sparkle effects. (The Dex completion medals and their notifications were delivered in M1.)
 
 ---
 

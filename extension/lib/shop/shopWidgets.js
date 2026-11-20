@@ -4,11 +4,15 @@
  */
 
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import St from 'gi://St';
 
 import {_} from '../i18n.js';
 import {hbox, label, vbox} from '../popover/widgets.js';
-import {timesText} from './shopModel.js';
+import {staticPngPath} from '../sprites.js';
+import {itemSpriteName, timesText} from './shopModel.js';
+
+export const ITEM_ICON_SIZE = 30;
 
 /** A rounded card (radius 10, padding 10, a faint ground). */
 export function card(extraClass = '') {
@@ -27,6 +31,28 @@ export function iconTile(emoji, tint) {
             x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER}),
     });
     return tile;
+}
+
+/**
+ * Swap an item tile's emoji for its sprite once the helper has it. The emoji
+ * stays for Mint (no sprite) and when the sprite is unavailable; the resolver
+ * forgets the failure, so the next popover open retries. The sprite is a 30 px
+ * St.Icon over a native ~30 px PNG (1:1), the same actor as the egg icon.
+ */
+export function loadItemSprite(tile, sprites, item, isAlive = () => true) {
+    const name = itemSpriteName(item);
+    if (name === null || !sprites)
+        return;
+    sprites.resolve({item: name}).then(data => {
+        const png = staticPngPath(data.manifestPath);
+        if (!png || !isAlive())
+            return;
+        tile.set_child(new St.Icon({
+            gicon: Gio.FileIcon.new(Gio.File.new_for_path(png)),
+            icon_size: ITEM_ICON_SIZE,
+            style_class: 'ptb-item-sprite',
+        }));
+    }).catch(() => {});
 }
 
 /** A button in one of the control-row roles: `bordered`, `prominent`, `precious` or `flat`. */

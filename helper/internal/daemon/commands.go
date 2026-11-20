@@ -58,6 +58,8 @@ func (d *daemon) command(r request) {
 		d.cmdSetRepresentative(r)
 	case "buyItem", "buyEgg", "planCandies", "useCandy", "useMint":
 		d.shopCommand(r)
+	case "pray":
+		d.cmdPray(r)
 	case "getDexPage":
 		d.cmdDexPage(r)
 	case "getCatchLog":
@@ -68,6 +70,8 @@ func (d *daemon) command(r request) {
 		d.cmdRecap(r)
 	case "getSprite":
 		d.cmdSprite(r)
+	case "exportSave", "inspectSave", "importSave", "listSnapshots", "createSnapshot", "restoreSnapshot":
+		d.saveCommand(r)
 	default:
 		msg := "missing cmd"
 		if r.Cmd != "" {

@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": 66,
+  "ok": true,
+  "data": {
+    "snapshot": {"id": "companion-snapshot-2026-11-18-142740.json", "date": "2026-11-18T13:27:40Z", "dexCount": 5, "lifetimeTokens": 8640000000, "speciesId": 17, "shiny": false, "form": null}
+  }
+}

@@ -29,8 +29,12 @@ const SPARKLES = [
     {size: 12, dx: 1, dy: 13},
 ];
 
-/* A transient actor whose parent (the card) can be destroyed mid-animation:
- * the stopped transitions then must not touch it again. */
+/* A transient actor whose parent (the card) can be destroyed mid-animation.
+ * Only a finished ease may destroy it; an interrupted one is left to the
+ * card's teardown. This is the rule the pet's 🙏 follows since phase 20, where
+ * a destroy from an interrupted stop logged a GLib-CRITICAL. No path to these
+ * actors reproduced that CRITICAL (phase 22a): on disable the card is
+ * destroyed first, so `_ptbGone` is already set when the stop arrives. */
 function transient(actor) {
     actor._ptbGone = false;
     actor.connect('destroy', () => {
@@ -50,7 +54,10 @@ function fadeOutAndDestroy(actor, delay) {
         delay,
         duration: OUT_MS,
         mode: Clutter.AnimationMode.EASE_IN_QUAD,
-        onStopped: () => dispose(actor),
+        onStopped: finished => {
+            if (finished)
+                dispose(actor);
+        },
     });
 }
 
@@ -76,8 +83,6 @@ function popInOut(actor, inMs, holdMs) {
         onStopped: finished => {
             if (finished && !actor._ptbGone)
                 fadeOutAndDestroy(actor, holdMs);
-            else
-                dispose(actor);
         },
     });
 }
@@ -116,4 +121,52 @@ export function playSparkle(layer) {
         star.set_scale(0.2, 0.2);
         popInOut(star, SPARKLE_IN_MS, SPARKLE_HOLD_MS);
     }
+}
+
+/* CV:718-723, :866-875: the 🎭 springs in top-centre 0.25 s after the flash
+ * starts and fades out over 0.5 s from 2.6 s. Upstream lifts it 12 pt above
+ * the tile; the scroll view would clip that, so it rides the top edge like
+ * the XP capsule. */
+const MASK_DELAY_MS = 250;
+const MASK_IN_MS = 400;
+const MASK_FADE_AT_MS = 2600;
+const MASK_OUT_MS = 500;
+
+/** The Ditto reveal's 🎭 over the sprite tile (M3 decision 43), on top of the CSS flash. */
+export function playRevealMask(layer) {
+    const mask = transient(new St.Label({style_class: 'ptb-reveal-mask', text: '🎭', opacity: 0}));
+    layer.add_child(mask);
+    const [, natW] = mask.get_preferred_width(-1);
+    const [, natH] = mask.get_preferred_height(-1);
+    const [w] = layerSize(layer);
+    mask.set_position(Math.round((w - natW) / 2), -CAPSULE_LIFT * themeScale());
+    mask.set_pivot_point(0.5, 0.5);
+    mask.set_scale(0.4, 0.4);
+    mask.translation_y = Math.round(natH * 0.15);
+    mask.ease({
+        opacity: 255,
+        scale_x: 1,
+        scale_y: 1,
+        translation_y: 0,
+        delay: MASK_DELAY_MS,
+        duration: MASK_IN_MS,
+        mode: Clutter.AnimationMode.EASE_OUT_BACK,
+        // An interrupted ease means the card is being torn down: its parent destroys the
+        // mask, and destroying it from inside that stop would edit Clutter's transition
+        // table mid-iteration (a GLib-CRITICAL at disable).
+        onStopped: finished => {
+            if (!finished || mask._ptbGone)
+                return;
+            mask.ease({
+                opacity: 0,
+                delay: MASK_FADE_AT_MS - MASK_DELAY_MS - MASK_IN_MS,
+                duration: MASK_OUT_MS,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: done => {
+                    if (done)
+                        dispose(mask);
+                },
+            });
+        },
+    });
 }

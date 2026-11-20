@@ -1,0 +1,14 @@
+{
+  "type": "result",
+  "id": 62,
+  "ok": true,
+  "data": {
+    "digest": "9f2c4a7e1b6d3085a4c91e7d02f8b3a65c1d7e94f0a2b8c6d3e5174a9b0c8f21",
+    "schema": 2,
+    "appVersion": "2.5.7",
+    "exportedAt": "2026-11-17T21:04:12Z",
+    "sourceDevice": "Jane's MacBook Pro",
+    "incoming": {"dexCount": 41, "lifetimeTokens": 52800000000},
+    "current": {"dexCount": 5, "lifetimeTokens": 8640000000}
+  }
+}

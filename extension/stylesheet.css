@@ -1015,6 +1015,8 @@
 
 .ptb-light .ptb-detail-card { background-color: rgba(0, 0, 0, 0.04); }
 .ptb-detail-pairs, .ptb-iv-row { spacing: 14px; }
+/* "Born after N prayers" with its caption (CV:1947-1953). */
+.ptb-prayer-lines { spacing: 2px; }
 .ptb-detail-pair { spacing: 1px; }
 .ptb-detail-value { font-weight: 600; font-feature-settings: "tnum"; }
 .ptb-detail-unavailable { spacing: 6px; }
@@ -1560,6 +1562,13 @@
 
 .ptb-mint-sparkle { text-shadow: 0 0 4px rgba(246, 211, 45, 0.55); }
 
+/* The Ditto reveal's 🎭 over the gold flash (M3 decision 43): a dark halo
+ * keeps the mask readable on the gold tile in both schemes. */
+.ptb-reveal-mask {
+    font-size: 26px;
+    text-shadow: 0 1px 3px rgba(32, 32, 32, 0.55);
+}
+
 /* ---- Celebration flash (M2 decision 32) ------------------------------- */
 
 /* A gold flash on hatch and evolve: St cross-fades between the two styles. */
@@ -1607,6 +1616,10 @@
 }
 
 /* The hover and event callout follows the shell theme, like the tooltips. */
+/* The 🙏 rising off a prayed-over egg (FPP:1104-1186): a faint warm halo, as
+ * if lit from above, keeps it legible over any window. */
+.ptb-pet-prayer { text-shadow: 0 0 5px rgba(255, 236, 170, 0.80); }
+
 .ptb-pet-callout {
     max-width: 260px;
     padding: 6px 10px;

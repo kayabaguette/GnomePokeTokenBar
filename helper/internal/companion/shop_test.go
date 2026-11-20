@@ -798,13 +798,16 @@ func TestReleasingDisguisedDittoKeepsShinyHidden(t *testing.T) {
 }
 
 func TestBuyEggStartsWithoutPrayers(t *testing.T) {
-	// Swift: Tests/PokeTokenBarTests/EggPrayerTests.swift:110 (pray is LATER; the nil is asserted)
+	// Swift: Tests/PokeTokenBarTests/EggPrayerTests.swift:110-116
 	s := openAt(t, writeSave(t, walletJSON(5_000_000_000, 0, mon10(false), "")), noData(), 7)
 	if _, err := s.BuyEgg(""); err != nil {
 		t.Fatal(err)
 	}
 	if s.st.EggPrayers != nil {
 		t.Fatal("egg prayers kept")
+	}
+	if n, err := s.Pray(); err != nil || n != 1 || s.st.EggPrayers.Count != 1 {
+		t.Fatalf("pray on the new egg: %d %v", n, err)
 	}
 }
 
@@ -935,7 +938,8 @@ func TestShopAndBagMatchFixtureValues(t *testing.T) {
 		key string
 		got any
 	}{{"wallet", ev.Wallet}, {"inventory", ev.Inventory}, {"shop", ev.Shop}, {"bag", ev.Bag}, {"egg", ev.Egg}} {
-		if want := fixture(t, "state-egg.json", "companion", k.key); !reflect.DeepEqual(fixtureJSON(t, k.got), want) {
+		want := fixture(t, "state-egg.json", "companion", k.key)
+		if !reflect.DeepEqual(fixtureJSON(t, k.got), want) {
 			t.Errorf("state-egg %s:\n got %v\nwant %v", k.key, fixtureJSON(t, k.got), want)
 		}
 	}
