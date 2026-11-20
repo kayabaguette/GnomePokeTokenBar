@@ -3,6 +3,7 @@ package companion
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -545,4 +546,52 @@ func TestRevealWaitsForTheDisguiseLine(t *testing.T) {
 	eq(t, s.st.Active.DittoRevealed, false, "no reveal without the disguise's line")
 	eq(t, len(revealEvents(evs)), 0, "no event")
 	eq(t, deref(s.BuildState(MoodInput{Now: fixedNow}).Bag.CandyBlocked), candyBlockedLineLoading, "bag")
+}
+
+// Phases 17 and 18 together (phase 22a): a save exported while its active Pokémon is a disguised,
+// unrevealed Ditto, imported on another computer, reveals there once usage crosses the disguise's
+// threshold. Real bytes on disk: ExportSave → ReadSave → ApplyImport, then Update on one day.
+func TestImportedDisguisedDittoRevealsAtTheThreshold(t *testing.T) {
+	src := seedDisguise(t, disguiseSeed{used: 100_000_000}, nil) // threshold 125M
+	path := filepath.Join(t.TempDir(), "PokeTokenBar-Save.json")
+	if _, err := src.ExportSave(path); err != nil {
+		t.Fatalf("export: %v", err)
+	}
+	_, env, err := ReadSave(path)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	dst := newStore(t, dittoData(linear3()), 9) // a fresh egg on the other computer
+	day := func(today int) []Event {
+		return update(dst, map[string]int{"test": today}, transferDay, true)
+	}
+	if err := dst.ApplyImport(env, usage(map[string]int{"test": 40_000_000}, true)); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	a := dst.st.Active
+	if a == nil || a.DittoDisguise == nil || *a.DittoDisguise != 1 || a.DittoRevealed || a.UsedAtStage != 100_000_000 {
+		t.Fatalf("imported active %+v", a)
+	}
+
+	evs := day(40_000_000) // the line loads; no new usage, still below the threshold
+	eq(t, len(revealEvents(evs)), 0, "no reveal below the threshold")
+	eq(t, dst.st.Active.currentID(), 1, "still the disguise")
+
+	evs = day(70_000_000) // +30M: 130M of 125M
+	r := revealEvents(evs)
+	if len(r) != 1 {
+		t.Fatalf("want one dittoReveal, events = %+v", evs)
+	}
+	eq(t, r[0], DittoRevealEvent{Type: "event", Kind: "dittoReveal", DisguiseSpeciesID: 1, DisguiseDisplayName: "P1",
+		SpeciesID: dittoSpeciesID, DisplayName: "P132", Rarity: rarityRare}, "event")
+	for _, e := range evs {
+		if e.EventKind() == "evolve" {
+			t.Fatal("a disguise never evolves")
+		}
+	}
+	a = dst.st.Active
+	eq(t, a.DittoRevealed, true, "revealed")
+	eq(t, a.currentID(), dittoSpeciesID, "Ditto")
+	eq(t, a.UsedAtStage, 5_000_000, "the excess carries over")
 }

@@ -119,3 +119,16 @@
   and agents once each.
 - **Rule.** `scripts/headless-shell.sh` now writes `log-check.txt` and prints JS ERROR and
   CRITICAL counts for both `shell.log` and `session.log`. Acceptance quotes both lines.
+
+## 2026-11-19 — Features built in parallel worktrees need a test of their combination
+
+- **What happened.** Phase 17 (Ditto reveal) and phase 18 (save import) were built and tested in
+  separate worktrees. Each suite seeded its own state, so neither covered the case of importing a
+  save whose active Pokémon is an unrevealed disguised Ditto and then reaching the threshold. That
+  case could only be tested after the merge, and nobody added the test.
+- **Fix.** `TestImportedDisguisedDittoRevealsAtTheThreshold` (companion) goes through real bytes:
+  `ExportSave` → `ReadSave` → `ApplyImport`. It then runs two `Update`s on the import day: no reveal
+  at 100M of 125M, then exactly one `dittoReveal`, no `evolve`, and a carry of 5M. Injecting
+  `rebase` dropping `DittoDisguise` makes the test fail.
+- **Rule.** When parallel phases each change state that the other one reads (save fields, events),
+  the merge phase lists their cross-product and adds one test per pair before it reports done.
