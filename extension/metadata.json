@@ -6,5 +6,5 @@
   "settings-schema": "org.gnome.shell.extensions.poketokenbar",
   "gettext-domain": "poketokenbar",
   "url": "",
-  "version-name": "0.2.0"
+  "version-name": "0.3.0"
 }
